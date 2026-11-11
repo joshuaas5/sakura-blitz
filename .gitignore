@@ -1,0 +1,16 @@
+# Godot 4 editor and build folders
+.godot/
+build/
+export/
+dist/
+_pages_out/
+.wrangler/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+*.tmp
+*.log
+*~
+.vscode/
+.idea/

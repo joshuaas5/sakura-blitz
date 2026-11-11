@@ -1,0 +1,119 @@
+name: Deploy SAKURA BLITZ to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: cloudflare-pages-sakura-blitz
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    name: Export Web and Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          lfs: false
+
+      - name: Setup Godot 4.7.2 Headless & Export Templates
+        run: |
+          set -euo pipefail
+          GODOT_VERSION="4.7.2"
+          GODOT_STATUS="stable"
+
+          echo "=== 1. Downloading Godot Linux Headless ==="
+          curl -fsSL -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-${GODOT_STATUS}/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64.zip"
+          unzip -q godot.zip
+          sudo mv "Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64" /usr/local/bin/godot
+          sudo chmod +x /usr/local/bin/godot
+          rm -f godot.zip
+
+          echo "=== 2. Downloading Export Templates ==="
+          curl -fsSL -o templates.tpz "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-${GODOT_STATUS}/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_export_templates.tpz"
+          
+          mkdir -p "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_STATUS}"
+          mkdir -p "$HOME/.local/share/godot/templates/${GODOT_VERSION}.${GODOT_STATUS}"
+          
+          unzip -q templates.tpz -d temp_extract
+          cp -r temp_extract/templates/* "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_STATUS}/"
+          cp -r temp_extract/templates/* "$HOME/.local/share/godot/templates/${GODOT_VERSION}.${GODOT_STATUS}/"
+          rm -rf temp_extract templates.tpz
+
+          echo "=== 3. Godot Version Verification ==="
+          godot --version
+
+      - name: Build Web Export
+        run: |
+          set -euo pipefail
+          mkdir -p build/web
+          godot --headless --verbose --export-release "Web" build/web/index.html
+          echo "=== Web export completed ==="
+          ls -lh build/web
+
+      - name: Prepare Cloudflare Pages Bundle (Gzip Wasm + Edge Worker)
+        run: |
+          set -euo pipefail
+          cd build/web
+          # Cloudflare Pages static assets have a 25 MiB single-file limit.
+          # We pre-gzip index.wasm (~37MB -> ~9.5MB) and stream it via _worker.js.
+          python3 -c "
+          import gzip, shutil, os
+          with open('index.wasm', 'rb') as f_in, gzip.open('index.wasm.gz', 'wb', compresslevel=9) as f_out:
+              shutil.copyfileobj(f_in, f_out)
+          print('Gzipped wasm size:', os.path.getsize('index.wasm.gz'))
+          os.remove('index.wasm')
+          "
+          
+          # Create edge _worker.js router
+          cat << 'EOF' > _worker.js
+          export default {
+            async fetch(request, env) {
+              const url = new URL(request.url);
+
+              if (url.pathname === '/index.wasm') {
+                const assetUrl = new URL('/index.wasm.gz', request.url);
+                const res = await env.ASSETS.fetch(assetUrl);
+                const headers = new Headers(res.headers);
+                headers.set('Content-Type', 'application/wasm');
+                headers.set('Content-Encoding', 'gzip');
+                headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+                headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+                headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
+                return new Response(res.body, {
+                  status: res.status,
+                  statusText: res.statusText,
+                  headers
+                });
+              }
+
+              const res = await env.ASSETS.fetch(request);
+              const headers = new Headers(res.headers);
+              headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+              headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
+              return new Response(res.body, {
+                status: res.status,
+                statusText: res.statusText,
+                headers
+              });
+            }
+          };
+          EOF
+          
+          echo "=== Bundle prepared ==="
+          ls -lh
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy build/web --project-name=sakura-blitz --branch=main
