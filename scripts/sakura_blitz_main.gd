@@ -23,10 +23,10 @@ const AIR_ACCEL := 36.0
 const AIR_BRAKE := 16.0
 
 const RES_PRESETS := [
-	{"h": 360, "label": "360p PS1 Retro (Padrao Mobile Leve)", "linear": false, "msaa": Viewport.MSAA_DISABLED},
-	{"h": 540, "label": "540p HD-Retro PS1", "linear": false, "msaa": Viewport.MSAA_2X},
-	{"h": 720, "label": "720p HD Nativo (MSAA 4X)", "linear": true, "msaa": Viewport.MSAA_4X},
-	{"h": 1080, "label": "1080p Full HD Ultra Cozy (MSAA 4X)", "linear": true, "msaa": Viewport.MSAA_4X}
+	{"h": 360, "short": "360p PS1", "label": "360p PS1 Retro (Nearest / Ultra-Leve)", "linear": false, "msaa": Viewport.MSAA_DISABLED},
+	{"h": 540, "short": "540p RETRO", "label": "540p HD-Retro PS1 (MSAA 2X)", "linear": false, "msaa": Viewport.MSAA_2X},
+	{"h": 720, "short": "720p HD", "label": "720p HD Nativo (Linear / MSAA 4X)", "linear": true, "msaa": Viewport.MSAA_4X},
+	{"h": 1080, "short": "1080p FHD", "label": "1080p Full HD Ultra Nítido (MSAA 4X)", "linear": true, "msaa": Viewport.MSAA_4X}
 ]
 
 const RANK_TIERS := [
@@ -807,22 +807,33 @@ func _draw_hud_canvas() -> void:
 		var tab_lbl := str(stage_defs[i].short)
 		_draw_hud_text(Vector2(tx + 2, ty + 15), tab_lbl, 10, Color("fff2c2") if is_act else Color("c4b49a"), HORIZONTAL_ALIGNMENT_CENTER, 77)
 
-	# Prominent 2-Mode Switcher Pills Below Scoreboard (Clickable / Tap-Friendly + [M] Hotkey!)
-	var m0_rect := Rect2(cx - 215.0, 86.0, 142.0, 24.0)
-	var m1_rect := Rect2(cx - 67.0, 86.0, 142.0, 24.0)
-	var mob_rect := Rect2(cx + 81.0, 86.0, 134.0, 24.0)
+	# Prominent Top Controls: 2-Mode Switcher, Touch HUD, Graphics Presets [O], and Weather [U]
+	var m0_rect := Rect2(cx - 325.0, 86.0, 118.0, 24.0)
+	var m1_rect := Rect2(cx - 201.0, 86.0, 138.0, 24.0)
+	var mob_rect := Rect2(cx - 57.0, 86.0, 96.0, 24.0)
+	var gfx_rect := Rect2(cx + 45.0, 86.0, 168.0, 24.0)
+	var atmo_rect := Rect2(cx + 219.0, 86.0, 106.0, 24.0)
 
 	_hud.draw_rect(m0_rect, Color("c92a42") if current_mode == 0 else Color(0.14, 0.11, 0.09, 0.88))
 	_hud.draw_rect(m0_rect, Color("ffd166") if current_mode == 0 else Color("6e5a44"), false, 1.8)
-	_draw_hud_text(m0_rect.position + Vector2(0, 16), "[M] MODO 1: TIRO", 11, Color("fff8ea"), HORIZONTAL_ALIGNMENT_CENTER, m0_rect.size.x)
+	_draw_hud_text(m0_rect.position + Vector2(0, 16), "[M] 1: TIRO", 10, Color("fff8ea"), HORIZONTAL_ALIGNMENT_CENTER, m0_rect.size.x)
 
 	_hud.draw_rect(m1_rect, Color("0096c7") if current_mode == 1 else Color(0.14, 0.11, 0.09, 0.88))
 	_hud.draw_rect(m1_rect, Color("00f5d4") if current_mode == 1 else Color("6e5a44"), false, 1.8)
-	_draw_hud_text(m1_rect.position + Vector2(0, 16), "[M] MODO 2: PARKOUR", 11, Color("fff8ea"), HORIZONTAL_ALIGNMENT_CENTER, m1_rect.size.x)
+	_draw_hud_text(m1_rect.position + Vector2(0, 16), "[M] 2: PARKOUR", 10, Color("fff8ea"), HORIZONTAL_ALIGNMENT_CENTER, m1_rect.size.x)
 
 	_hud.draw_rect(mob_rect, Color("2a9d8f") if _mobile_hud_enabled else Color(0.14, 0.11, 0.09, 0.88))
 	_hud.draw_rect(mob_rect, Color("ffd166"), false, 1.5)
-	_draw_hud_text(mob_rect.position + Vector2(0, 16), "[V] TOUCH: %s" % ("ON" if _mobile_hud_enabled else "OFF"), 11, Color("fff8ea"), HORIZONTAL_ALIGNMENT_CENTER, mob_rect.size.x)
+	_draw_hud_text(mob_rect.position + Vector2(0, 16), "[V] TOUCH: %s" % ("ON" if _mobile_hud_enabled else "OFF"), 10, Color("fff8ea"), HORIZONTAL_ALIGNMENT_CENTER, mob_rect.size.x)
+
+	var cur_gfx: Dictionary = RES_PRESETS[_res_idx]
+	_hud.draw_rect(gfx_rect, Color(0.28, 0.16, 0.42, 0.92))
+	_hud.draw_rect(gfx_rect, Color("c77dff"), false, 1.6)
+	_draw_hud_text(gfx_rect.position + Vector2(0, 16), "[O] GFX: %s" % str(cur_gfx.get("short", cur_gfx.label)), 10, Color("fff8ea"), HORIZONTAL_ALIGNMENT_CENTER, gfx_rect.size.x)
+
+	_hud.draw_rect(atmo_rect, Color(0.38, 0.25, 0.10, 0.92))
+	_hud.draw_rect(atmo_rect, Color("ffd166"), false, 1.5)
+	_draw_hud_text(atmo_rect.position + Vector2(0, 16), "[U] CLIMA", 10, Color("fff8ea"), HORIZONTAL_ALIGNMENT_CENTER, atmo_rect.size.x)
 
 	# =========================================================================
 	# 2B. GIANT FALL GUYS 5-4-3-2-1 VAI! STARTING GATE COUNTDOWN OVERLAY
@@ -1081,15 +1092,21 @@ func _handle_hud_tap_or_click(pos: Vector2, pressed: bool) -> bool:
 		if Rect2(12.0, 8.0, 290.0, 54.0).has_point(pos):
 			_toggle_shop()
 			return true
-		# 2. Top Mode Switcher Pills (MODO 1: TIRO | MODO 2: PARKOUR | TOUCH ON/OFF)
-		if Rect2(cx - 215.0, 84.0, 142.0, 28.0).has_point(pos):
+		# 2. Top Mode Switcher Pills (MODO 1: TIRO | MODO 2: PARKOUR | TOUCH | GFX [O] | CLIMA [U])
+		if Rect2(cx - 325.0, 84.0, 118.0, 28.0).has_point(pos):
 			_select_mode_and_stage(SakuraWorld.MODE_COMBAT, 0)
 			return true
-		if Rect2(cx - 67.0, 84.0, 142.0, 28.0).has_point(pos):
+		if Rect2(cx - 201.0, 84.0, 138.0, 28.0).has_point(pos):
 			_select_mode_and_stage(SakuraWorld.MODE_PARKOUR, 0)
 			return true
-		if Rect2(cx + 81.0, 84.0, 134.0, 28.0).has_point(pos):
+		if Rect2(cx - 57.0, 84.0, 96.0, 28.0).has_point(pos):
 			_toggle_mobile_hud()
+			return true
+		if Rect2(cx + 45.0, 84.0, 168.0, 28.0).has_point(pos):
+			_cycle_graphics_preset()
+			return true
+		if Rect2(cx + 219.0, 84.0, 106.0, 28.0).has_point(pos):
+			_cycle_atmosphere_preset()
 			return true
 		# 3. 4 Stage Tabs (F1..F4)
 		for i in 4:
@@ -1332,13 +1349,21 @@ func _input(event: InputEvent) -> void:
 				_reset_current_mode()
 			KEY_V, KEY_T:
 				_toggle_mobile_hud()
-			KEY_F5:
-				_res_idx = (_res_idx + 1) % RES_PRESETS.size()
-				_apply_graphics_preset()
-				_show_banner("MODO GRAFICO [F5]: %s" % RES_PRESETS[_res_idx].label, 2.4)
-			KEY_F6:
-				var atmo_name := world.cycle_atmosphere_preset()
-				_show_banner("ILUMINACAO & CLIMA [F6]: %s" % atmo_name, 2.4)
+			KEY_F5, KEY_O:
+				_cycle_graphics_preset()
+			KEY_F6, KEY_U:
+				_cycle_atmosphere_preset()
+
+
+func _cycle_graphics_preset() -> void:
+	_res_idx = (_res_idx + 1) % RES_PRESETS.size()
+	_apply_graphics_preset()
+	_show_banner("MODO GRAFICO [O / F5]: %s" % RES_PRESETS[_res_idx].label, 2.5)
+
+
+func _cycle_atmosphere_preset() -> void:
+	var atmo_name := world.cycle_atmosphere_preset()
+	_show_banner("ILUMINACAO & CLIMA [U / F6]: %s" % atmo_name, 2.5)
 
 
 func _toggle_mobile_hud() -> void:
