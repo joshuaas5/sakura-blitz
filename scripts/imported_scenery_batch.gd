@@ -23,6 +23,8 @@ static func bake(root: Node3D, max_distance: float = 100) -> void:
 		mesh.hide()
 
 static func _collect(node: Node, root: Node3D, groups: Dictionary, meshes: Array[MeshInstance3D]) -> void:
+	if node.get_meta("preserve_item_art", false):
+		return
 	if node is MeshInstance3D and node.mesh is ArrayMesh:
 		meshes.append(node)
 		var xf: Transform3D = root.global_transform.affine_inverse() * node.global_transform

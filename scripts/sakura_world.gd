@@ -115,6 +115,9 @@ var combat_sectors: Array[Dictionary] = []
 var stage_physics_ready := false
 var player_grounded := false
 var combat_audio: CombatAudio
+var combat_fx: CombatFx
+var combat_ready_time := 0.0
+var last_attacker_weapon := "BLITZ"
 var _stage_root: Node3D
 var _mats := {}
 var _psx_mats := {}
@@ -251,6 +254,8 @@ func load_mode_and_stage(new_mode: int, new_stage_idx: int) -> Array:
 			LargeArenas.atmosphere(self, current_stage_idx)
 		elif current_stage_idx == 1:
 			HarborAtelier.atmosphere(self)
+		elif current_stage_idx == 2:
+			CanyonAtelier.atmosphere(self)
 		elif current_stage_idx < 5:
 			_add_district_details()
 		elif current_stage_idx == 5:
@@ -266,6 +271,9 @@ func load_mode_and_stage(new_mode: int, new_stage_idx: int) -> Array:
 		combat_audio = CombatAudio.new()
 		_stage_root.add_child(combat_audio)
 		combat_audio.setup(self)
+		combat_fx = CombatFx.new()
+		_stage_root.add_child(combat_fx)
+		combat_fx.setup()
 		spawn_pvp_round(bots_per_round)
 		if match_kind == CombatMatch.CTF:
 			match_controller = CombatMatch.new()
@@ -384,6 +392,8 @@ func _clear_active_stage() -> void:
 	combat_patrol_points.clear()
 	combat_sectors.clear()
 	combat_audio = null
+	combat_fx = null
+	combat_ready_time = 0.0
 	arena_navigation = null
 	clear_enemies()
 	for r in parkour_runners:
@@ -1042,82 +1052,7 @@ func _build_combat_2_shipment_cqc() -> void:
 
 
 func _build_combat_3_sniper_canyon() -> void:
-	# CANION CROSSFIRE / MIRAGE: Long-Range Sniper & Rifle Warfare (56m x 72m)
-	_current_pvp_spawn = Vector3(0.0, 4.2, 26.5)
-	tr_spawns = [
-		Vector3(0.0, 4.2, -26.5), Vector3(-9.5, 4.2, -25.5),
-		Vector3(9.5, 4.2, -25.5), Vector3(-18.5, 2.8, -14.0),
-		Vector3(18.5, 2.8, -14.0), Vector3(-6.0, 0.2, -10.0),
-		Vector3(6.0, 0.2, -10.0), Vector3(0.0, 4.0, -6.0)
-	]
-	var sand := Color("e6ccb2")
-	var sandstone := Color("c89f78")
-	var cliff := Color("8d6346")
-	var wood := Color("7c5234")
-	var trim_ct := Color("00bbf9")
-	var trim_tr := Color("ff2a55")
-
-	# Canyon Floor (y = 0)
-	box(self, -28.0, -0.6, -36.0, 56.0, 0.6, 72.0, sand, true, 0.0, 8)
-	# Canyon Perimeter Cliffs
-	for sx in [-26.0, 24.5]:
-		box(self, sx, 0.0, -36.0, 1.5, 6.5, 72.0, cliff, true, 0.0, 4)
-
-	# South CT Sniper Bastion (z = +21..+33, y = 4.0m) & North TR Sniper Bastion (z = -33..-21, y = 4.0m)
-	for side_val in [-1.0, 1.0]:
-		var side: float = float(side_val)
-		var bz: float = side * 27.0
-		var t_col: Color = trim_ct if side > 0.0 else trim_tr
-		box(self, -18.0, 0.0, bz - 6.0, 36.0, 4.0, 12.0, sandstone, true, 0.0, 4)
-		box(self, -18.2, 3.8, bz - 6.2, 36.4, 0.25, 12.4, t_col, false, 1.2, -1)
-		# Crenellated Sniper Battlements along the front edge
-		var front_z: float = bz - side * 5.8
-		for bx in [-16.0, -10.0, -4.5, 2.5, 8.0, 14.0]:
-			box(self, bx, 4.0, front_z, 2.4, 1.15, 0.45, cliff, true, 0.0, 4)
-		# Watchtower Overlooks on the Bastion Wings
-		CozyProps.wooden_watchtower(self, _stage_root, Vector3(-13.5, 4.0, bz), 3.4)
-		CozyProps.wooden_watchtower(self, _stage_root, Vector3(13.5, 4.0, bz), 3.4)
-		# Stairs from Lower Canyon Floor (y=0) up to Bastion Deck (y=4.0)
-		for st in 10:
-			var sy: float = float(st) * 0.40
-			var sz_pos: float = (bz - side * 6.5) - side * float(9 - st) * 0.65
-			box(self, -12.0, 0.0, sz_pos, 3.6, sy + 0.4, 0.70, wood, true, 0.0, 1)
-			box(self, 8.4, 0.0, sz_pos, 3.6, sy + 0.4, 0.70, wood, true, 0.0, 1)
-
-	# High Central Suspension Bridge (42m Long Sniper Corridor at y = 3.8m)
-	box(self, -2.8, 3.65, -21.0, 5.6, 0.35, 42.0, wood, true, 0.0, 1)
-	box(self, -3.0, 4.0, -21.0, 0.25, 0.9, 42.0, Color("ffd166"), true, 0.8, -1)
-	box(self, 2.75, 4.0, -21.0, 0.25, 0.9, 42.0, Color("ffd166"), true, 0.8, -1)
-	RetroModels.torii_gate(self, _stage_root, Vector3(0.0, 4.0, -10.0), 5.6, 4.5, 0.0)
-	RetroModels.torii_gate(self, _stage_root, Vector3(0.0, 4.0, 10.0), 5.6, 4.5, 0.0)
-	# Bridge Cover Crates
-	box(self, -2.2, 4.0, -4.5, 1.5, 1.1, 1.5, sandstone, true, 0.0, 1)
-	box(self, 0.7, 4.0, 4.5, 1.5, 1.1, 1.5, sandstone, true, 0.0, 1)
-
-	# East & West Elevated Cliff Flank Walkways (x = +-19.5, y = 2.6m)
-	for side_x in [-21.5, 17.5]:
-		box(self, side_x, 0.0, -21.0, 4.0, 2.6, 42.0, sandstone.darkened(0.08), true, 0.0, 4)
-		for cz in [-12.0, 0.0, 12.0]:
-			box(self, side_x + 1.2, 2.6, cz, 1.6, 1.2, 0.5, cliff, true, 0.0, 4)
-
-	# Broad stairs make the cliff flanks reachable without a jump pad.
-	for side in [-1.0, 1.0]:
-		for z in [-14.0, 12.0]:
-			for step in 9:
-				var x: float = 12.6 + step * 0.6
-				box(self, x if side > 0 else -x - 0.65, 0, z, 0.65, (step + 1) * (2.6 / 9), 2.0, wood, true, 0, 1)
-
-	# Lower Canyon Trench Cover Pillars & Jump-Pads
-	for cz in [-14.0, -5.0, 5.0, 14.0]:
-		box(self, -8.5, 0.0, cz, 2.2, 2.4, 1.2, cliff, true, 0.0, 4)
-		box(self, 6.3, 0.0, cz, 2.2, 2.4, 1.2, cliff, true, 0.0, 4)
-	for jp in [Vector3(-15.0, 0.1, 0.0), Vector3(15.0, 0.1, 0.0)]:
-		cyl(self, jp, 1.2, 1.3, 0.18, Color("00f5d4"), 12, 2.0, true)
-		kz_jumppads.append(jp)
-
-	_add_weapon_pad(Vector3(0.0, 4.04, 0.0), "PONTE SNIPER + AWP", Color("ffd166"))
-	_add_weapon_pad(Vector3(0.0, 0.04, 0.0), "OASIS DO CANION + VIDA", Color("2ec4b6"))
-	_add_weapon_pad(Vector3(0.0, 4.04, 24.0), "ARSENAL CT", Color("00bbf9"))
+	CanyonAtelier.build(self)
 
 
 func _build_combat_4_cyber_vertigo() -> void:
@@ -1146,7 +1081,7 @@ func _build_combat_4_cyber_vertigo() -> void:
 		Vector3(-18.5, 0.1, 18.5), Vector3(18.5, 0.1, 18.5),
 		Vector3(-18.5, 0.1, -18.5), Vector3(18.5, 0.1, -18.5)
 	]:
-		cyl(self, jp, 1.35, 1.45, 0.20, cyan, 14, 2.2, true)
+		ItemArt.jump_pad(_stage_root, jp)
 		kz_jumppads.append(jp)
 
 	# Floor 1 Neon Server Monoliths for Cover
@@ -1188,12 +1123,11 @@ func _build_crate_stair(base: Vector3, dir_z: float, c_wood: Color, c_mil: Color
 	box(self, base.x - 0.65, 0.0, base.z - 0.65 - dir_z * 2.70, 1.3, 2.95, 1.3, c_wood.darkened(0.08), true, 0.0, 1)
 
 
-func _add_weapon_pad(pos: Vector3, label: String, col: Color) -> void:
-	box(self, pos.x - 1.1, pos.y, pos.z - 0.65, 2.2, 0.06, 1.3, Color("222836"), false, 0.0, 0)
-	box(self, pos.x - 0.95, pos.y + 0.06, pos.z - 0.5, 1.9, 0.05, 1.0, col, false, 1.4, -1)
-	box(self, pos.x - 0.55, pos.y + 0.12, pos.z - 0.08, 1.1, 0.08, 0.16, Color("1a1c24"), false, 0.0, 0)
-	box(self, pos.x - 0.15, pos.y + 0.12, pos.z + 0.08, 0.22, 0.07, 0.26, Color("c85a28"), false, 0.0, 0)
-	floor_weapon_pads.append({"pos": pos, "label": label, "cd": 0.0})
+func _add_weapon_pad(pos: Vector3, label: String, _col: Color) -> void:
+	var station := SupplyStation.new()
+	_stage_root.add_child(station)
+	station.setup(pos)
+	floor_weapon_pads.append({"pos": pos, "label": label, "cd": 0.0, "visual": station})
 
 
 # ================================================================================================
@@ -1398,15 +1332,19 @@ func _on_bot_defeated(bot: EnemyBot, was_headshot: bool, hit_pos: Vector3) -> vo
 		var killer: Dictionary = bot_scoreboard[bot.last_damage_by]
 		killer.kills += 1
 		killer.pts = killer.kills * 100
-		bot_frag_feed.emit(bot.last_damage_by, bot.bot_name, "BLITZ")
+		bot_frag_feed.emit(bot.last_damage_by, bot.bot_name, bot.last_damage_weapon)
 
 
-func spawn_enemy_orb(pos: Vector3, dir: Vector3, spd: float, dmg: float, col: Color, shooter: EnemyBot = null) -> void:
+func spawn_enemy_orb(pos: Vector3, dir: Vector3, spd: float, dmg: float, col: Color, shooter: EnemyBot = null, weapon_tag: String = "BLITZ") -> void:
 	if game_mode != MODE_COMBAT:
 		return
-	var mi := ball(_stage_root, pos, 0.14, col, 6, 2.5)
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	enemy_orbs.append({"node": mi, "vel": dir * spd, "dmg": dmg, "life": 2.4, "owner_name": shooter.bot_name if is_instance_valid(shooter) else "BOT", "owner_rid": shooter.get_rid() if is_instance_valid(shooter) else RID()})
+	var mi := ItemArt.projectile(_stage_root, pos, dir)
+	enemy_orbs.append({"node": mi, "vel": dir * spd, "dmg": dmg, "life": 2.4, "owner_name": shooter.bot_name if is_instance_valid(shooter) else "BOT", "owner_rid": shooter.get_rid() if is_instance_valid(shooter) else RID(), "weapon_tag": weapon_tag})
+
+func surface_impact(at: Vector3, normal: Vector3) -> void:
+	if is_instance_valid(combat_fx):
+		var color := Color("efc987") if current_stage_idx in [1, 3, 4, 8, 10] else Color("d8bc97")
+		combat_fx.impact(at, normal, color)
 
 
 func spawn_tracer(from_pos: Vector3, to_pos: Vector3, col: Color, thickness: float = 0.025) -> void:
@@ -1448,45 +1386,39 @@ func spawn_damage_number(pos: Vector3, amount: int, is_crit: bool) -> void:
 
 
 func spawn_pickup(pos: Vector3, kind: String) -> void:
-	var tp := _target_p(self)
-	var col := Color("2ec4b6")
-	var g := Node3D.new()
-	g.position = pos
-	tp.add_child(g)
-	box(g, -0.22, -0.14, -0.22, 0.44, 0.28, 0.44, col, false, 1.5, -1)
-	pickups.append({"node": g, "kind": kind, "life": 15.0})
+	var visual := ItemArt.pickup(_target_p(self), pos)
+	pickups.append({"node": visual, "kind": kind, "life": 15.0})
 
 
 func spawn_killcam_dummy(foot_pos: Vector3, look_target: Vector3) -> Node3D:
-	var tp := _target_p(self)
-	var g := Node3D.new()
-	g.position = foot_pos
-	tp.add_child(g)
-	var dir := look_target - foot_pos
-	dir.y = 0.0
-	if dir.length() > 0.05:
-		g.rotation.y = atan2(dir.x, dir.z)
-	var dark := Color("1c2029")
-	var crimson := Color("e63956")
-	var skin := Color("e0b190")
-	box(g, -0.20, 0.0, -0.10, 0.16, 0.72, 0.20, dark)
-	box(g, 0.04, 0.0, -0.10, 0.16, 0.72, 0.20, dark)
-	box(g, -0.24, 0.70, -0.14, 0.48, 0.62, 0.28, crimson)
-	box(g, -0.22, 0.76, -0.16, 0.44, 0.44, 0.32, dark)
-	box(g, -0.16, 1.32, -0.16, 0.32, 0.32, 0.32, skin)
-	box(g, -0.18, 1.48, -0.18, 0.36, 0.18, 0.36, crimson)
-	box(g, -0.14, 1.42, 0.12, 0.28, 0.08, 0.08, Color("ffd166"), false, 2.0, -1)
-	return g
+	var actor := EnemyBot.new()
+	actor.world = self
+	actor.bot_name = "Bot_Cobalto"
+	actor.position = foot_pos
+	_target_p(self).add_child(actor)
+	actor.set_physics_process(false)
+	actor._root = Node3D.new()
+	actor.add_child(actor._root)
+	CozyAvatar.build(actor)
+	var direction := look_target - foot_pos
+	direction.y = 0
+	if direction.length() > 0.05:
+		actor._root.rotation.y = atan2(direction.x, direction.z)
+	return actor
 
 
-func hit_target_body(_body: Node3D) -> void:
-	pass
+func hit_target_body(body: Node3D) -> void:
+	if is_instance_valid(body) and body.has_meta("is_target"):
+		body.hide()
 
 
 func _physics_process(delta: float) -> void:
 	stage_physics_ready = true
 	if game_mode == MODE_COMBAT:
 		if combat_is_finished:
+			return
+		if combat_ready_time > 0:
+			combat_ready_time = maxf(0, combat_ready_time - delta)
 			return
 		player_spawn_guard = maxf(0.0, player_spawn_guard - delta)
 		combat_time_left = maxf(0.0, combat_time_left - delta)
@@ -1607,6 +1539,8 @@ func _physics_process(delta: float) -> void:
 
 	# Floor weapon/ammo pads in Combat Mode
 	for wp in floor_weapon_pads:
+		if is_instance_valid(wp.get("visual")):
+			(wp.visual as SupplyStation).set_cooldown(float(wp.cd))
 		if float(wp.cd) > 0.0:
 			wp.cd = float(wp.cd) - delta
 		elif player_pos.distance_to(wp.pos as Vector3) < 1.65:
@@ -1660,9 +1594,13 @@ func _physics_process(delta: float) -> void:
 		if not impact.is_empty():
 			var target: Object = impact.collider
 			if target is EnemyBot:
+				(target as EnemyBot).last_damage_weapon = str(orb.weapon_tag)
 				(target as EnemyBot).apply_hit(float(orb.dmg), impact.position, (orb.vel as Vector3).normalized() * 2, 1.5, str(orb.owner_name))
 			elif target is CharacterBody3D and player_spawn_guard <= 0 and not same_team(str(orb.owner_name), "PLAYER"):
+				last_attacker_weapon = str(orb.weapon_tag)
 				player_damaged.emit(float(orb.dmg), impact.position - (orb.vel as Vector3).normalized() * 4, str(orb.owner_name))
+			elif target is StaticBody3D:
+				surface_impact(impact.position, impact.normal)
 			n.queue_free()
 			enemy_orbs.remove_at(i)
 			continue

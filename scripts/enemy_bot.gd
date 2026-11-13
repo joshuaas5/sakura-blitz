@@ -38,6 +38,9 @@ const RUNNER_COLORS := [
 
 var skill := BotDifficulty.get_preset(1)
 var last_damage_by := "PLAYER"
+var last_damage_weapon := "BLITZ"
+var _precision_charge := 0.0
+var _aim_warning: MeshInstance3D
 var _target_bot: EnemyBot
 var _target_player := false
 var _has_target := false
@@ -197,6 +200,16 @@ func _build_visuals() -> void:
 		if team_id >= 0:
 			var badge := _part(_hp_bar_root, Vector3(0, 0.25, 0), Vector3(0.17, 0.17, 0.17), Color("93e7c3") if team_id == 0 else Color("f08c91"), 0, true, false)
 			badge.rotation.z = PI / 4
+		if kind == 1:
+			_aim_warning = MeshInstance3D.new()
+			_aim_warning.mesh = BoxMesh.new()
+			var warning := StandardMaterial3D.new()
+			warning.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			warning.albedo_color = Color("92ccb4") if team_id == 0 else Color("eaa26b")
+			_aim_warning.material_override = warning
+			_aim_warning.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			add_child(_aim_warning)
+			_aim_warning.hide()
 
 
 func _part(parent: Node3D, pos: Vector3, sz: Vector3, col: Color, emit: float = 0.0, unshaded: bool = false, track: bool = true) -> MeshInstance3D:
@@ -218,7 +231,7 @@ func _part(parent: Node3D, pos: Vector3, sz: Vector3, col: Color, emit: float = 
 func _physics_process(delta: float) -> void:
 	if _dead or world == null or not is_instance_valid(world):
 		return
-	if world.get("enemies_paused") == true:
+	if world.get("enemies_paused") == true or (not is_runner and world.combat_ready_time > 0):
 		return
 
 	_t += delta
@@ -330,7 +343,8 @@ func _physics_process(delta: float) -> void:
 			velocity.x = lerpf(velocity.x, push.x * move_speed, delta * 7.0)
 			velocity.z = lerpf(velocity.z, push.z * move_speed, delta * 7.0)
 	else:
-		var adv := 0.65 if dist > 18.0 else (-0.6 if dist < 6.0 or (hp < 35 and world.bot_difficulty == 2) else 0.0)
+		var preferred := 11.0 if kind == 2 else (26.0 if kind == 1 else 18.0)
+		var adv := 0.8 if dist > preferred else (-0.6 if dist < 6.0 or (hp < 35 and world.bot_difficulty == 2) else 0.0)
 		var spd := move_speed * (0.40 if _is_crouching else float(skill.strafe))
 		var wish := (fwd * adv + right * _strafe_dir).normalized()
 		velocity.x = lerpf(velocity.x, wish.x * spd, delta * 8.0)
@@ -365,8 +379,28 @@ func _physics_process(delta: float) -> void:
 	if has_los and dist < 52.0:
 		_fire_cd -= delta
 		if _fire_cd <= 0.0:
-			_fire_cd = float(skill.interval) * _rng.randf_range(0.9, 1.1)
-			_fire_at_player(eye_to, dist)
+			if kind == 1:
+				if _precision_charge <= 0:
+					_precision_charge = clampf(float(skill.reaction) * 0.3 + 0.2, 0.22, 0.45)
+				_precision_charge -= delta
+				var muzzle := global_position + Vector3.UP * 1.35
+				(_aim_warning.mesh as BoxMesh).size = Vector3(0.014, 0.014, muzzle.distance_to(eye_to))
+				_aim_warning.global_position = (muzzle + eye_to) * 0.5
+				var aim_direction := eye_to - muzzle
+				if aim_direction.length_squared() > 0.01:
+					_aim_warning.look_at(eye_to, Vector3.RIGHT if absf(aim_direction.normalized().y) > 0.98 else Vector3.UP)
+				_aim_warning.show()
+				if _precision_charge <= 0:
+					_aim_warning.hide()
+					_fire_cd = float(skill.interval) * 2.1
+					_fire_at_player(eye_to, dist)
+			else:
+				_fire_cd = float(skill.interval) * (0.70 if kind == 2 else 1.0) * _rng.randf_range(0.9, 1.1)
+				_fire_at_player(eye_to, dist)
+	else:
+		_precision_charge = 0
+		if is_instance_valid(_aim_warning):
+			_aim_warning.hide()
 
 
 func _process_parkour_runner(delta: float) -> void:
@@ -477,9 +511,11 @@ func _fire_at_player(target_pos: Vector3, dist: float) -> void:
 	var spread := float(skill.spread) * (0.7 + dist * 0.018)
 	var aim_error := Vector3(_rng.randf_range(-spread, spread), _rng.randf_range(-spread * 0.45, spread * 0.45), _rng.randf_range(-spread, spread))
 	var dir := (target_pos + aim_error - muzzle).normalized()
-	world.spawn_enemy_orb(muzzle + dir * 0.55, dir, 48.0, 18.0, Color("f1c782"), self)
+	var damage := (13.0 if dist < 14 else 9.0) if kind == 2 else (42.0 if kind == 1 else (18.0 if dist < 28 else 14.0))
+	var tag: String = ["ASSALTO", "PRECISÃO", "BRISA SMG"][kind]
+	world.spawn_enemy_orb(muzzle + dir * 0.55, dir, 96.0 if kind == 1 else 60.0, damage, Color("f1c782"), self, tag)
 	if world.combat_audio != null:
-		world.combat_audio.play_at(["smg_shoot", "shotgun_shoot", "rail_shoot"][kind], muzzle, -13)
+		world.combat_audio.play_at(["smg_shoot", "rail_shoot", "brisa_shoot"][kind], muzzle, -13)
 		world.combat_audio.noise(muzzle, self)
 
 
@@ -566,6 +602,9 @@ func _choose_target() -> void:
 		_target_memory = opponent.global_position
 	if was_player != _target_player or previous != _target_bot:
 		_fire_cd = maxf(_fire_cd, float(skill.reaction))
+		_precision_charge = 0
+		if is_instance_valid(_aim_warning):
+			_aim_warning.hide()
 	if _has_target:
 		_memory_until = _t + float(skill.memory)
 		if not world.combat_patrol_points.is_empty():

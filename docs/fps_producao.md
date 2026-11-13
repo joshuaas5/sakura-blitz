@@ -31,6 +31,22 @@ Lobby abre em tiro e separa modo, dificuldade e lotação. HUD mostra placar rea
 
 Indicador direcional de dano, ícones separados de tiro e munição, metal e laca com acabamento refinado, bandeiras animadas e relógio de fachada. O resultado usa a vitória da equipe, inclui empates e exibe os dois lados.
 
+## Lote de acabamento: Cânion, combate e itens
+
+O Cânion Âmbar foi reconstruído com rochas estratificadas, mirantes cobertos, ponte de madeira, postos botânicos, riacho e cenário externo. A ponte, os acessos e os três níveis de combate continuam conectados. Abertura de três segundos com instruções do modo e número de jogadores; jogadores e bots aguardam a mesma fase de preparação, sem gastar tempo da partida.
+
+Bots de assalto, precisão e avanço usam intervalos, alcance preferido, dano e áudio diferentes. O atirador de precisão sinaliza o disparo antes de atirar. Impactos de superfície usam um conjunto reutilizável de 32 marcas; disparos não criam cubos novos a cada colisão.
+
+Resultados com ações fixas, classificação expansível, acertos por cartucho, melhor sequência, capturas, ganhos da sessão e progresso real de maestria. Gastos na loja não diminuem o total exibido como ganho da partida.
+
+### Arte de itens obrigatória
+
+Requisito do usuário: nenhum item novo com arte provisória. Os pontos de suprimento que usavam uma arma feita de blocos foram substituídos por estações com estojo, carregadores, coração, sprites e indicação de reposição. Os cubos de coleta viraram estojos de campo com arte importada; discos de impulso foram trocados por botões modelados. Projéteis usam o modelo de dardo do pack. O estande de treino tem um alvo importado, com posição física e área de acerto correspondentes. A reprise usa o mesmo avatar acabado do jogo.
+
+Blaster Kit 2.1 e seleção de itens do Platformer Kit 1.1, publicados pelo Kenney e baixados das páginas do autor no OpenGameArt. Originais, sprites, atlas, licenças CC0 e hashes acompanham os assets. `ItemArt` centraliza o catálogo: não gera cubos substitutos quando falta arte. `SupplyStation` preserva seus modelos e animação no agrupamento do cenário. Licenças incluídas nos presets de export, sem gerar APK nesta etapa.
+
+Revisão visual nativa e captura dos componentes realizadas. Os 442 percursos e verificações de navegação passaram após a reconstrução do Cânion. A revisão geral de todos os sistemas permanece para o fim do lote, conforme orientação do usuário. A substituição dos demais visuais antigos continua; isto não declara que todos os mapas chegaram ao acabamento final.
+
 ## Validação pendente do lote
 
 Antes da última ampliação de cenário e HUD, houve verificações focadas de equipes e bandeiras, incluindo transporte físico por bots; percursos das arenas grandes também foram exercitados. A primeira suíte geral detectou uma expectativa antiga de seis bots na Estação, atualizada para oito. A suíte geral final ainda não foi repetida após o lote mais recente, por orientação do usuário. Não tratar esta produção como release validada.

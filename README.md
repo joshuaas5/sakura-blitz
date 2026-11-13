@@ -30,6 +30,7 @@ Para regenerar no PC configurado: `./tools/build_android_test.ps1`. O script exp
 - **Economia:** moedas por desempenho, desafio diário resgatável uma vez e loja com cosméticos. Upgrades comprados com moedas de jogo dão até +3% de dano; skins não alteram atributos. Não há compra com dinheiro real nesta versão.
 - **Visual e áudio:** Vila Floral com assets CC0 importados, HUD com molduras ilustradas, cinco armas importadas, skins pintadas e prévias 3D reais na loja e três loops musicais sintetizados para o projeto.
 - **Porto Cobalto:** contêineres corrugados, escadas e passarelas de aço com guarda-corpos, sinalização, mar, armazéns e guindastes do Factory Kit CC0. Agrupamento por cor de vértice, sombras conforme qualidade, ambiente de ondas e passos metálicos. Detalhes e limites em `docs/porto_atelier.md`.
+- **Acabamento em produção:** Cânion Âmbar reconstruído, abertura de partida, resumo com precisão e maestria, papéis distintos para os bots e impactos reutilizáveis. Suprimentos, coletas, impulsos e projéteis recebem modelos/sprites licenciados; o treino usa um alvo importado. Mudanças no código local, ainda fora do APK 0.8.0.
 
 ## Controles
 

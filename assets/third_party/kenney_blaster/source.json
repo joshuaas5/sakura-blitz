@@ -1,0 +1,17 @@
+{
+  "source": "https://opengameart.org/content/blaster-kit",
+  "license": "CC0-1.0",
+  "files_sha256": {
+    "License.txt": "bece5f4d99cca9dcf86931221a69909862ff6cc95e1735462ee678516a1063e2",
+    "Textures/colormap.png": "4d0867c3c3c8c539106f91fbc0987d0e1b7d2811362d1daed593169c7d3b0fdc",
+    "bullet-foam.glb": "af03c14f053f64c9d351643ec3d5d0a05210e1234fcd2534f7dac3deab7fa515",
+    "clip-large.glb": "47dff38cf9636abf15cf518324f1612d9409e6b1066d99da249047219e41379e",
+    "clip-small.glb": "3501c4c2a1671379643219fc1ea581c9162da0986363cf0f7b1a214c647b5c37",
+    "crate-small.glb": "00ed47c02a5016c11ce5ea0bd54888d120f3a112c5eab79dc4bd4ab878ceb805",
+    "crate-wide.glb": "0a17a51b274d238c09ade21674b70742bd5f1703f7b0e8974b6d0b2b92a58c8b",
+    "target-large.glb": "e55c0b3652823909268ffeda38f08f53e900ea259ff5834a3e35e386a9220e88",
+    "target-small.glb": "6f2e8fe26b13c8fdeecaab2c4a3309ec3243e17ce4a22c40951b14e0c14833dc",
+    "Sprites/clip-large.png": "91bedef35d8ca2778502c92f1e433f7cb2456e06e3eca3400ebaba0d9ac62080",
+    "Sprites/crate-wide.png": "1ee6b903ed8758f2a58126f96bcd92852a344c1c96fe919191a091ff72128590"
+  }
+}

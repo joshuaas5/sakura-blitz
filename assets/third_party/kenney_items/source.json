@@ -1,0 +1,17 @@
+{
+  "source": "https://opengameart.org/content/platformer-kit",
+  "license": "CC0-1.0",
+  "files_sha256": {
+    "License.txt": "94349c942b1b6f04093b75f508558b5e5e2d7a82f2c1cc66820d028b34a33d67",
+    "button.glb": "d577db667386cfeda0256965e6daaecf3371428fad7f2c5a980c31178bbf0398",
+    "coinGold.glb": "086fcc251ba17d6b56252562fdb305ca7330dd0203a23c233a277f811b62d181",
+    "heart.glb": "e5204409fff326aab49ae9eeaadd5443c7d722854bf9ce2a3d7ceb0c302b4205",
+    "jewel.glb": "15c0ec620366197123dc513e96858533878490cfc8874fdf9e0f5664d301ce21",
+    "sign.glb": "d5f81b083924f0e75dd1e93474b5a7c64249151a8db1ee47b082ef595f4f47c0",
+    "Sprites/button.png": "b8f931d44a599a279517cad3570f94cb460a2828dad9cc4c4516ad3f704fefe7",
+    "Sprites/coinGold.png": "38f54c8170df4757db13093d576a7a0672136506cdd1a5ce6e0d927eb81eaa14",
+    "Sprites/heart.png": "c6ef83c3b42b41444a4613d83132c8dc98fb85947edac1109e250eae72b31751",
+    "Sprites/jewel.png": "39bb8172e880e986a5fe35794f4848726e7d733372220eca7aaef796e18c1fee",
+    "Sprites/sign.png": "c8108685a5669958305c5613cc700b8cdc417b03e9088008c65b0ca4a884149c"
+  }
+}

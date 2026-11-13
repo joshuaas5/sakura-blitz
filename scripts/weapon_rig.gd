@@ -742,7 +742,7 @@ func _trigger_slash_ribbon(combo_step: int, is_heavy: bool) -> void:
 
 
 func try_fire(moving_speed: float, heavy_melee: bool = false) -> bool:
-	if world.game_mode != SakuraWorld.MODE_COMBAT or is_reloading or fire_cd > 0.0:
+	if world.game_mode != SakuraWorld.MODE_COMBAT or world.combat_ready_time > 0 or world.combat_is_finished or is_reloading or fire_cd > 0.0:
 		return false
 	var w: Dictionary = WEAPONS[current_idx]
 	var sk: Dictionary = WEAPON_SKINS[active_skin_idx]
@@ -784,7 +784,7 @@ func try_fire(moving_speed: float, heavy_melee: bool = false) -> bool:
 				res["bot_name"] = bot.bot_name
 				hit_registered.emit(res, current_idx)
 			else:
-				world.spawn_voxel_burst(hit.position, Color("00f5d4"), 4)
+				world.surface_impact(hit.position, hit.normal)
 		return true
 
 	if int(ammo[current_idx]) <= 0:
@@ -872,7 +872,7 @@ func try_fire(moving_speed: float, heavy_melee: bool = false) -> bool:
 			elif collider is Node3D and (collider as Node3D).has_meta("is_target"):
 				targets[collider] = hit.position
 			elif pellet < 3:
-				world.spawn_voxel_burst(hit.position, Color("d8e2eb"), 3)
+				world.surface_impact(hit.position, hit.normal)
 		if pellet < 3:
 			world.spawn_tracer(muzzle_world if not is_scoped_in() else (origin + Vector3(0, -0.1, 0)), tracer_end, tracer_col, 0.045 if current_idx == 1 else 0.024)
 	for victim in victims:

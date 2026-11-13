@@ -62,6 +62,7 @@ var server_mode: ServerMode = ServerMode.FY_ICEWORLD_PVP
 var current_mode := SakuraWorld.MODE_COMBAT
 var _scoreboard: MatchScoreboard
 var _last_damage_from := Vector3.ZERO
+var match_record := MatchRecord.new()
 var current_stage := 0
 
 var _vp: SubViewport
@@ -246,6 +247,9 @@ func _ready() -> void:
 	_hub = SakuraHub.new()
 	add_child(_hub)
 	_hub.setup(profile)
+	var intro := MatchIntro.new()
+	add_child(intro)
+	intro.setup(self)
 	_hub.play_requested.connect(_start_from_hub)
 	_hub.resume_requested.connect(_resume_from_hub)
 	_hub.profile_changed.connect(_profile_menu_changed)
@@ -340,7 +344,7 @@ func _apply_graphics_preset() -> void:
 	_vp.msaa_3d = p.msaa
 	_vp_tex.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR if bool(p.linear) else CanvasItem.TEXTURE_FILTER_NEAREST
 	if is_instance_valid(world) and is_instance_valid(world.sun):
-		world.sun.shadow_enabled = current_mode == 0 and (current_stage == 1 or current_stage >= 5) and _res_idx > 0
+		world.sun.shadow_enabled = current_mode == 0 and (current_stage in [1, 2] or current_stage >= 5) and _res_idx > 0
 
 
 func _build_player() -> void:
@@ -844,7 +848,11 @@ func _open_hud_editor() -> void:
 func _start_training() -> void:
 	if size.y > size.x and not _automation:
 		return
+	var selected_kind: int = profile.data.match_kind
+	profile.data.match_kind = CombatMatch.FFA
 	_start_from_hub(0, 5)
+	profile.data.match_kind = selected_kind
+	world.combat_ready_time = 0
 	if not is_instance_valid(_training):
 		_training = TrainingGuide.new()
 		add_child(_training)
@@ -1079,9 +1087,11 @@ func _select_mode_and_stage(mode_idx: int, stage_idx: int) -> void:
 	streak = 0
 	_pf_score_stack.clear()
 	killfeed.clear()
+	match_record.reset(profile.data.weapon_kills)
 	current_mode = clampi(mode_idx, 0, 1)
 	current_stage = clampi(stage_idx, 0, SakuraHub.MAPS[current_mode].size() - 1)
 	var sp := world.load_mode_and_stage(current_mode, current_stage)
+	world.combat_ready_time = 3.0 if current_mode == 0 and not _automation else 0.0
 
 	_body.global_position = sp[0]
 	_body.velocity = Vector3.ZERO
@@ -1107,7 +1117,11 @@ func _select_mode_and_stage(mode_idx: int, stage_idx: int) -> void:
 
 	weapons.visible = current_mode == 0
 	_apply_graphics_preset()
-	_show_banner("Rota verde: segura. Centro: atalho. Boa corrida!" if current_mode == 1 else "Treino com bots • abates rendem moedas e maestria", 4.0)
+	if current_mode == 1:
+		_show_banner("Rota verde: segura. Centro: atalho. Boa corrida!", 4.0)
+	else:
+		_banner_timer = 0
+		_banner_label.text = ""
 
 
 func _save_kz_checkpoint() -> void:
@@ -1208,6 +1222,9 @@ func _physics_process(delta: float) -> void:
 	# Movement inputs (Keyboard + Mobile 360° Virtual Analog Stick)
 	var in_x := (1.0 if Input.is_key_pressed(KEY_D) else 0.0) - (1.0 if Input.is_key_pressed(KEY_A) else 0.0) + _mobile_move_vec.x
 	var in_z := (1.0 if Input.is_key_pressed(KEY_S) else 0.0) - (1.0 if Input.is_key_pressed(KEY_W) else 0.0) + _mobile_move_vec.y
+	if current_mode == 0 and world.combat_ready_time > 0:
+		in_x = 0
+		in_z = 0
 	var input_vec := Vector2(in_x, in_z)
 	if input_vec.length() > 1.0:
 		input_vec = input_vec.normalized()
@@ -1222,6 +1239,9 @@ func _physics_process(delta: float) -> void:
 	var joy_sprint := _mobile_move_vec.length() > 0.72 and _mobile_move_vec.y < -0.25
 	_sprinting = (Input.is_key_pressed(KEY_SHIFT) or joy_sprint or current_mode == SakuraWorld.MODE_PARKOUR) and in_z < -0.1 and not _crouching and (current_mode == 1 or (not weapons.want_ads and weapons.ads_alpha < 0.1))
 	var jump_held := Input.is_key_pressed(KEY_SPACE) or _mobile_jump_held
+	if current_mode == 0 and world.combat_ready_time > 0:
+		jump_held = false
+		_jump_buffer = 0
 	if jump_held:
 		_jump_buffer = 0.15
 	elif _jump_buffer > 0.0:
@@ -1332,7 +1352,7 @@ func _physics_process(delta: float) -> void:
 func _tick_weapon_trigger(h_speed: float) -> void:
 	var pressed := _fire_press_pending
 	_fire_press_pending = false
-	if current_mode != SakuraWorld.MODE_COMBAT or _shop_open or _paused or _hub_open or _killcam_active:
+	if current_mode != SakuraWorld.MODE_COMBAT or world.combat_ready_time > 0 or _shop_open or _paused or _hub_open or _killcam_active:
 		_body.set_meta("fire_was", false)
 		return
 	var held := (_mouse_captured and not _mobile_hud_enabled and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)) or _mobile_fire_held
@@ -1440,6 +1460,9 @@ func _push_pf_score_popup(txt: String, col: Color = Color("ffd166"), fsize: int 
 
 func _award_progression(add_coins: int, add_rp: int, reason: String = "") -> void:
 	_queue_save()
+	if current_mode == 0 and _session_started:
+		match_record.coins += maxi(0, add_coins)
+		match_record.xp += maxi(0, add_rp)
 	coins += add_coins
 	rp += add_rp
 	var new_rank := 0
@@ -1475,6 +1498,7 @@ func _on_ammo_updated(cur_ammo: int, cur_res: int, reloading: bool) -> void:
 
 
 func _on_shot_fired(_weapon_idx: int, kick_pitch: float, kick_yaw: float) -> void:
+	match_record.fired(_weapon_idx)
 	world.player_spawn_guard = 0
 	if _weapon_idx == 3 and world.combat_audio != null:
 		world.combat_audio.noise(world.player_pos, null, 0.25)
@@ -1483,6 +1507,8 @@ func _on_shot_fired(_weapon_idx: int, kick_pitch: float, kick_yaw: float) -> voi
 
 
 func _on_hit_registered(result: Dictionary, _weapon_idx: int) -> void:
+	if not result.get("target", false) and float(result.get("dmg", 0)) > 0:
+		match_record.hit(_weapon_idx)
 	_hitmarker_timer = 0.18
 	_hitmarker_crit = bool(result.get("headshot", false)) or bool(result.get("killed", false))
 
@@ -1494,6 +1520,7 @@ func _on_enemy_killed(was_headshot: bool, bot_name: String, hit_pos: Vector3) ->
 		_push_pf_score_popup("MAESTRIA: %s DESBLOQUEADO!" % ("OURO" if mastery == 50 else "SILENCIADOR"), Color("f4d593"), 18)
 	_haptic(25)
 	streak += 1
+	match_record.best_streak = maxi(match_record.best_streak, streak)
 	world.ct_score = kills
 	if was_headshot:
 		headshots += 1
@@ -1635,7 +1662,7 @@ func _on_player_damaged(amount: float, _from_pos: Vector3, attacker_name: String
 		_yaw = sp[1]
 		_pitch = 0
 		_body.velocity = Vector3.ZERO
-		_push_killfeed("%s  //  AK-47  //  VOCE" % attacker_name)
+		_push_killfeed("%s  //  %s  //  VOCE" % [attacker_name, world.last_attacker_weapon])
 		_show_banner("%s eliminou você • novo ponto de entrada" % attacker_name, 2.4)
 
 
@@ -2350,6 +2377,20 @@ func _haptic(duration: int) -> void:
 
 
 func _run_foundation_qa() -> void:
+	if OS.get_cmdline_user_args().has("--item-preview"):
+		DisplayServer.window_set_size(Vector2i(844, 390))
+		_mobile_hud_enabled = true
+		_start_training()
+		_training.step = 3
+		_training._update_text()
+		for frame in 40:
+			await get_tree().physics_frame
+		await _save_shot("fps_atelier_training.png")
+		get_tree().quit()
+		return
+	if OS.get_cmdline_user_args().has("--atelier-batch"):
+		await _run_atelier_batch_preview()
+		return
 	if OS.get_cmdline_user_args().has("--teams"):
 		await _run_team_qa()
 		return
@@ -2522,20 +2563,11 @@ func _show_combat_result(standings: Array, place: int, reward: int) -> void:
 	_mouse_captured = false
 	if is_instance_valid(_result_panel):
 		_result_panel.queue_free()
-	var v := _result_contents()
-	var title := "VITÓRIA!" if place == 1 else ("EMPATE" if place == 0 else "PARTIDA CONCLUÍDA / %dº" % place)
-	if world.match_kind != CombatMatch.FFA and place == 2:
-		title = "EQUIPE CORAL VENCEU"
-	v.add_child(_hub._label(title, 28, Color("93e7c3")))
-	if world.match_kind != CombatMatch.FFA:
-		v.add_child(_hub._label("MENTA %d × %d CORAL • %s" % [world.team_scores[0], world.team_scores[1], CombatMatch.LABELS[world.match_kind]], 18))
-	v.add_child(_hub._label("Bots %s • +%d moedas" % [BotDifficulty.get_preset(world.bot_difficulty).name, reward], 18))
-	for row in standings:
-		var team_label: String = " / " + CombatMatch.TEAM_NAMES[int(row.get("team_id", 0))] if world.match_kind != CombatMatch.FFA else ""
-		v.add_child(_hub._label("%d. %s%s    %d abates / %d mortes" % [row.rank, row.name, team_label, row.kills, row.deaths], 16, Color("93e7c3") if row.is_player else Color("c3d3da")))
-	v.add_child(_hub._button("Revanche", func(): _start_from_hub(0, current_stage), true))
-	v.add_child(_hub._button("Próxima arena", func(): _start_from_hub(0, (current_stage + 1) % SakuraWorld.COMBAT_STAGE_DEFS.size())))
-	v.add_child(_hub._button("Voltar ao lobby", _open_hub))
+	var report := MatchResults.new()
+	_result_panel = report
+	add_child(report)
+	report.setup(self, standings, place)
+
 
 func _toggle_scoreboard() -> void:
 	if current_mode != SakuraWorld.MODE_COMBAT or _hub_open or _paused:
@@ -3107,4 +3139,64 @@ func _run_team_qa() -> void:
 			for frame in 12:
 				await get_tree().process_frame
 			await _save_shot("teams_10_scoreboard.png")
+	get_tree().quit()
+
+func _run_atelier_batch_preview() -> void:
+	DisplayServer.window_set_size(Vector2i(1280, 720))
+	profile.data.match_kind = CombatMatch.FFA
+	profile.data.aim_tip_seen = true
+	_start_from_hub(0, 2)
+	world.enemies_paused = true
+	_res_idx = 2
+	_apply_graphics_preset()
+	weapons.select_weapon(4, true)
+	world.combat_ready_time = 2.8
+	for frame in 8:
+		await get_tree().process_frame
+	await _save_shot("fps_atelier_intro.png")
+	world.combat_ready_time = 0
+	_body.position = Vector3(8, 4.1, 30)
+	_yaw = 0.22
+	_pitch = -0.03
+	_banner_timer = 0
+	_banner_label.text = ""
+	for frame in 20:
+		await get_tree().process_frame
+	await _save_shot("fps_atelier_canyon_pc.png")
+	DisplayServer.window_set_size(Vector2i(844, 390))
+	_mobile_hud_enabled = true
+	_res_idx = 0
+	_apply_graphics_preset()
+	_body.position = Vector3(6, 0.1, 12)
+	_yaw = 0.3
+	_pitch = -0.03
+	for frame in 20:
+		await get_tree().process_frame
+	await _save_shot("fps_atelier_canyon_mobile.png")
+	DisplayServer.window_set_size(Vector2i(1280, 720))
+	_res_idx = 2
+	_apply_graphics_preset()
+	set_physics_process(false)
+	_hud.hide()
+	weapons.hide()
+	_cam.global_position = Vector3(2.8, 6.3, 27)
+	_cam.look_at(Vector3(0, 4.6, 24))
+	world.spawn_pickup(Vector3(1.0, 4.5, 24), "heal")
+	for frame in 12:
+		await get_tree().process_frame
+	await _save_shot("fps_atelier_supplies.png")
+	_cam.fov = 58
+	_cam.global_position = Vector3(46, 43, 56)
+	_cam.look_at(Vector3(0, 2, 0))
+	for frame in 16:
+		await get_tree().process_frame
+	await _save_shot("fps_atelier_canyon_overview.png")
+	_show_combat_result(world.get_combat_standings(kills, deaths), 4, 0)
+	for frame in 12:
+		await get_tree().process_frame
+	await _save_shot("fps_atelier_results_pc.png")
+	DisplayServer.window_set_size(Vector2i(844, 390))
+	for frame in 12:
+		await get_tree().process_frame
+	await _save_shot("fps_atelier_results_mobile.png")
 	get_tree().quit()

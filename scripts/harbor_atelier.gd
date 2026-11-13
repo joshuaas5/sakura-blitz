@@ -197,7 +197,7 @@ static func build(w: SakuraWorld) -> void:
 		for z in [-1.4, 1.4]:
 			block(w, Vector3(x, 2.6, z), Vector3(0.16, 0.8, 0.16), STEEL, true)
 	for jp in [Vector3(-15.5, 0.1, 15.5), Vector3(15.5, 0.1, -15.5)]:
-		w.cyl(w, jp, 1.2, 1.3, 0.18, Color("4bd4b4"), 12, 0.5, true)
+		ItemArt.jump_pad(w._stage_root, jp)
 		w.kz_jumppads.append(jp)
 	for p in [Vector3(0, 0.04, 0), Vector3(0, 3.32, 0), Vector3(-12.5, 0.04, 12.5), Vector3(12.5, 0.04, -12.5)]:
 		w._add_weapon_pad(p, "SUPRIMENTOS" if p.y < 1 else "PASSARELA", Color("e7c763"))

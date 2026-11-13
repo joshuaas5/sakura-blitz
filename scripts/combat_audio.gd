@@ -17,7 +17,7 @@ func setup(w: SakuraWorld) -> void:
 	previous_player = w.player_pos
 	for name in ["step_stone", "step_wood", "step_metal", "land_soft"]:
 		streams[name] = load("res://assets/audio/original/%s.wav" % name)
-	for name in ["smg_shoot", "shotgun_shoot", "rail_shoot"]:
+	for name in ["smg_shoot", "shotgun_shoot", "rail_shoot", "brisa_shoot"]:
 		streams[name] = Sfx._streams[name]
 	for i in VOICES:
 		var voice := AudioStreamPlayer3D.new()
