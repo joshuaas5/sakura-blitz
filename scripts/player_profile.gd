@@ -28,7 +28,7 @@ static func defaults() -> Dictionary:
 		"character": 0, "tag": 0, "best_times": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
 		"daily_day": "", "daily_kills": 0, "daily_races": 0, "daily_claimed": false,
 		"sensitivity": 1.0, "ads_sensitivity": 0.55, "aim_mode": MobileAim.HYBRID, "aim_tip_seen": false, "auto_fire": false,
-		"haptics": true, "quality": 0, "bot_difficulty": 1, "music_volume": 0.35, "music_enabled": true,
+		"haptics": true, "quality": 0, "bot_difficulty": 1, "large_population": 0, "match_kind": 0, "music_volume": 0.35, "music_enabled": true,
 		"hud_left_handed": false, "hud_layout": {}, "hud_layout_revision": 2, "tutorial_complete": false, "show_performance": false, "effects_volume": 1.0, "ambience_volume": 0.6
 	}
 
@@ -82,6 +82,9 @@ func read_save() -> void:
 	data.ads_sensitivity = clampf(data.ads_sensitivity, 0.25, 1.0) if is_finite(data.ads_sensitivity) else 0.55
 	data.quality = clampi(data.quality, 0, 3)
 	data.bot_difficulty = clampi(data.bot_difficulty, 0, 2)
+	data.match_kind = clampi(data.match_kind, 0, 2)
+	if not data.large_population in [0, 12, 18, 24]:
+		data.large_population = 0
 	data.music_volume = clampf(data.music_volume, 0.0, 1.0) if is_finite(data.music_volume) else 0.35
 	for key in ["effects_volume", "ambience_volume"]:
 		data[key] = clampf(data[key], 0, 1) if is_finite(data[key]) else 0.6

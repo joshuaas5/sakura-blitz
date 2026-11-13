@@ -83,7 +83,7 @@ func run(g: SakuraBlitzMain) -> bool:
 	scroll.scroll_vertical = 0
 	await wait_frames(g)
 	await tap(g, button(g._hub._grid.get_child(0), "JOGAR"))
-	check(not g._hub_open and g.current_mode == 0 and g.current_stage == 6, "Touch on Play enters selected arena")
+	check(not g._hub_open and g.current_mode == 0 and g.current_stage == 9, "Touch on Play enters the featured large arena")
 	var fire: Vector2 = g._action_rects().fire.get_center()
 	touch(g, fire, true)
 	check(g._touch_actions.size() == 1 and not g._touch_actions.has(99), "GUI emulation cannot duplicate a gameplay finger")

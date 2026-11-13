@@ -39,3 +39,7 @@ shots/aim_*
 shots/harbor_*
 
 __pycache__/
+
+shots/large_*
+
+shots/teams_*

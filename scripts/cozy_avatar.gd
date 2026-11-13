@@ -2,6 +2,22 @@ class_name CozyAvatar
 extends RefCounted
 ## Articulated, palette-based adventurers. All faces point along +Z.
 static var materials: Dictionary = {}
+static var distance_meshes: Dictionary = {}
+
+static func distance_model(bot: EnemyBot) -> MeshInstance3D:
+	var key := posmod(EnemyBot.BOT_NAMES.find(bot.bot_name), 3)
+	if not distance_meshes.has(key):
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		for part in bot._meshes:
+			st.append_from(part.mesh, 0, bot._root.global_transform.affine_inverse() * part.global_transform)
+		distance_meshes[key] = st.commit()
+	var node := MeshInstance3D.new()
+	node.mesh = distance_meshes[key]
+	node.material_override = materials["merged"]
+	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	bot._root.add_child(node)
+	return node
 
 static func part(bot: EnemyBot, parent: Node3D, pos: Vector3, scale: Vector3, color: Color, shape: int = 0) -> MeshInstance3D:
 	var mesh: PrimitiveMesh

@@ -2,6 +2,8 @@
 
 FPS e corrida de obstáculos em Godot 4.7.2, com controles para celular na horizontal. Esta versão é um jogo local contra bots; multiplayer online, pagamentos e contas ainda não estão implementados.
 
+**Produção atual: modo tiro.** O código local acrescenta duas arenas grandes, lotação por mapa, equipes, captura de bandeira e placar de partida. O APK 0.8.0 abaixo corresponde à entrega anterior; estas mudanças ainda não foram empacotadas. Detalhes em `docs/fps_producao.md`.
+
 ## Jogar localmente
 
 No Windows, abra `run.bat`. Ele procura Godot na pasta `../tools/godot/` e depois no PATH. Também é possível importar `project.godot` no Godot 4.7.2 e apertar F5.
@@ -18,7 +20,8 @@ Para regenerar no PC configurado: `./tools/build_android_test.ps1`. O script exp
 
 ## Conteúdo desta versão
 
-- **Nove arenas:** Vila Sakura, Porto Cobalto, Cânion Âmbar, Distrito Neon, Estação Aurora, Vila Floral, Bazar Solar, Docas do Festival e Observatório Lunar. Partidas contra seis bots, com limite de três minutos ou 15 abates, placar real e resultado final.
+- **Onze arenas:** as nove anteriores, Vale do Chá (96 × 88 m) e Terminal Girassol (112 × 76 m). CQC usa seis bots; arenas táticas, oito; grandes, dezoito por padrão. Nas grandes, também é possível escolher 12, 18 ou 24. As grandes duram até cinco minutos; as compactas, três.
+- **Modos de tiro locais:** Cada um por si, Equipes e Captura de Bandeira. Equipes incluem você na divisão equilibrada: 3×3 nas CQC, 4×4 nas táticas e 9×9 nas grandes; Caos permite 12×12. Sem fogo amigo. Bandeiras podem ser roubadas, carregadas, derrubadas, recuperadas e capturadas por jogadores e bots.
 - **Seis corridas:** Festival das Nuvens, Telhados do Sol, Oásis das Marés, Órbita Neon, Jardim do Chá e Fábrica de Brinquedos. Cada percurso tem oito setores, sete corredores, checkpoints sequenciais, rota segura e atalhos.
 - **Arsenal:** seis armas disponíveis desde o início, incluindo Brisa SMG e Flora escopeta, seleção no lobby, prévias 3D, recargas e maestria por arma. A escolha de combate permanece salva entre sessões e corridas.
 - **Bots com níveis:** reação, precisão, frequência de tiro, movimento e velocidade de corrida diferentes; todos têm a mesma vida. Disparos respeitam paredes e os bots também disputam entre si.
@@ -40,7 +43,8 @@ Para regenerar no PC configurado: `./tools/build_android_test.ps1`. O script exp
 | R / F | Recarregar / inspecionar |
 | Esc / L | Lobby / loja |
 | G / B | Voltar ao checkpoint / reiniciar partida |
-| M / Tab | Trocar modo / próximo mapa |
+| M / N | Trocar modo / próximo mapa |
+| Tab / toque no placar | Abrir e fechar a classificação da partida |
 | P / V | Música / controles de toque |
 | H / 7 | Alternar cosméticos já desbloqueados |
 

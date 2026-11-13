@@ -5,7 +5,7 @@ var compact := false
 var map_index := 0
 var parkour := true
 var _thumbnail: Texture2D
-const PALETTES := [Color("ee8eaa"), Color("f2b878"), Color("70cfc6"), Color("a69aef"), Color("a3c98a"), Color("e9a588"), Color("d9b777"), Color("6cbbb9"), Color("8ca5d8")]
+const PALETTES := [Color("ee8eaa"), Color("f2b878"), Color("70cfc6"), Color("a69aef"), Color("a3c98a"), Color("e9a588"), Color("d9b777"), Color("6cbbb9"), Color("8ca5d8"), Color("91bb88"), Color("e5ba72")]
 
 func _ready() -> void:
 	var screenshot := "res://assets/ui/maps/arena_%d.png" % map_index

@@ -60,6 +60,8 @@ enum ServerMode { FY_ICEWORLD_PVP, KZ_BHOP_SURF }
 var _res_idx := 0 # Default to 360p PS1 Retro for Ultra-Fast Mobile & Classic PS1 Look!
 var server_mode: ServerMode = ServerMode.FY_ICEWORLD_PVP
 var current_mode := SakuraWorld.MODE_COMBAT
+var _scoreboard: MatchScoreboard
+var _last_damage_from := Vector3.ZERO
 var current_stage := 0
 
 var _vp: SubViewport
@@ -222,6 +224,12 @@ func _ready() -> void:
 	_vp.add_child(world)
 	world.build()
 	world.combat_finished.connect(_on_combat_finished)
+	world.objective_notice.connect(func(message): _show_banner(message, 2.5); Sfx.play("pickup"))
+	world.objective_scored.connect(func(actor):
+		if actor == "PLAYER":
+			_award_progression(35, 20)
+			_haptic(25)
+	)
 	world.enemy_killed.connect(_on_enemy_killed)
 	world.round_won.connect(_on_round_won)
 	world.kz_stage_reached.connect(_on_kz_stage_reached)
@@ -272,7 +280,7 @@ func _ready() -> void:
 	if args.has("--qa"):
 		_run_foundation_qa.call_deferred()
 		return
-	_select_mode_and_stage(SakuraWorld.MODE_PARKOUR, 0)
+	_select_mode_and_stage(SakuraWorld.MODE_COMBAT, 1)
 	_session_started = false
 	_open_hub()
 
@@ -853,6 +861,9 @@ func _handle_hud_tap_or_click(pos: Vector2, pressed: bool) -> bool:
 	if AtelierHud.pause_rect(self).has_point(pos):
 		_open_hub()
 		return true
+	if current_mode == 0 and Rect2(size.x * 0.5 - 105, 12, 210, 75).has_point(pos):
+		_toggle_scoreboard()
+		return true
 	if current_mode == 1 and AtelierHud.checkpoint_rect(self).has_point(pos):
 		_teleport_kz_checkpoint()
 		return true
@@ -879,6 +890,10 @@ func _input(event: InputEvent) -> void:
 			var k_s := (event as InputEventKey).keycode
 			if k_s == KEY_ESCAPE or k_s == KEY_L:
 				_toggle_shop(0)
+		return
+	if is_instance_valid(_scoreboard) and _scoreboard.visible:
+		if event is InputEventKey and event.pressed and event.keycode in [KEY_TAB, KEY_ESCAPE]:
+			_toggle_scoreboard()
 		return
 
 	if event is InputEventScreenTouch:
@@ -980,6 +995,8 @@ func _input(event: InputEvent) -> void:
 				var next_mode := SakuraWorld.MODE_PARKOUR if current_mode == SakuraWorld.MODE_COMBAT else SakuraWorld.MODE_COMBAT
 				_select_mode_and_stage(next_mode, 0)
 			KEY_TAB:
+				_toggle_scoreboard()
+			KEY_N:
 				_select_mode_and_stage(current_mode, (current_stage + 1) % SakuraHub.MAPS[current_mode].size())
 			KEY_F1:
 				_select_mode_and_stage(current_mode, 0)
@@ -1037,6 +1054,9 @@ func _select_stage(stage_idx: int) -> void:
 
 
 func _select_mode_and_stage(mode_idx: int, stage_idx: int) -> void:
+	if is_instance_valid(_scoreboard):
+		_scoreboard.queue_free()
+		_scoreboard = null
 	_clear_touch_state()
 	_coyote_timer = 0
 	_jump_buffer = 0
@@ -1051,6 +1071,8 @@ func _select_mode_and_stage(mode_idx: int, stage_idx: int) -> void:
 	_session_started = true
 	world.enemies_paused = false
 	world.bot_difficulty = profile.data.bot_difficulty
+	world.large_population = profile.data.large_population
+	world.match_kind = profile.data.match_kind
 	kills = 0
 	deaths = 0
 	headshots = 0
@@ -1333,7 +1355,7 @@ func _apply_mobile_aim_assist(delta: float) -> bool:
 	var on_target := false
 
 	for b in world.enemies:
-		if not is_instance_valid(b):
+		if not is_instance_valid(b) or world.same_team("PLAYER", b.bot_name):
 			continue
 		var chest_p := b.global_position + Vector3(0.0, 1.32, 0.0)
 		var to_b := chest_p - cam_pos
@@ -1582,9 +1604,12 @@ func _on_kz_course_finished(ctime: float, best_t: float, place: int) -> void:
 
 
 func _on_player_damaged(amount: float, _from_pos: Vector3, attacker_name: String) -> void:
+	if world.same_team(attacker_name, "PLAYER"):
+		return
 	if current_mode == SakuraWorld.MODE_PARKOUR or _paused or _hub_open or _shop_open or world.combat_is_finished:
 		return # Zero PvP shooting damage in Parkour Mode!
 	_out_of_combat_t = 0.0
+	_last_damage_from = _from_pos
 	var absorbed := minf(armor, amount * 0.55)
 	armor = maxf(0.0, armor - absorbed)
 	hp = maxf(0.0, hp - (amount - absorbed))
@@ -1592,6 +1617,7 @@ func _on_player_damaged(amount: float, _from_pos: Vector3, attacker_name: String
 	_damage_alpha = 0.36
 	Sfx.play("hurt")
 	if hp <= 0.0:
+		world.record_team_elimination(attacker_name, "PLAYER", _body.global_position)
 		_clear_touch_state()
 		deaths += 1
 		world.player_spawn_guard = 1.5
@@ -1817,6 +1843,14 @@ func _run_automated_test() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_startup_grace = 0.0
+	if OS.get_cmdline_user_args().has("--teams"):
+		var teams = load("res://tests/team_checks.gd").new()
+		get_tree().quit(0 if await teams.run(self) else 1)
+		return
+	if OS.get_cmdline_user_args().has("--large"):
+		var large_checks = load("res://tests/large_arena_checks.gd").new()
+		get_tree().quit(0 if await large_checks.run(self) else 1)
+		return
 	if OS.get_cmdline_user_args().has("--harbor"):
 		var harbor = load("res://tests/harbor_checks.gd").new()
 		get_tree().quit(0 if await harbor.run(self) else 1)
@@ -1940,7 +1974,15 @@ func _run_automated_test() -> void:
 	if not await harbor_checks.run(self):
 		get_tree().quit(1)
 		return
-	print("2 GAME MODES (9 COMBAT ARENAS + 6 MOBILE PARKOUR COURSES) + 7 RUNNER BOTS + MOBILE-FIRST HUD automated test PASSED!")
+	var large_checks = load("res://tests/large_arena_checks.gd").new()
+	if not await large_checks.run(self):
+		get_tree().quit(1)
+		return
+	var team_checks = load("res://tests/team_checks.gd").new()
+	if not await team_checks.run(self):
+		get_tree().quit(1)
+		return
+	print("2 GAME MODES (11 COMBAT ARENAS + 6 MOBILE PARKOUR COURSES) + 7 RUNNER BOTS + MOBILE-FIRST HUD automated test PASSED!")
 	get_tree().quit(0)
 
 
@@ -2216,6 +2258,8 @@ func _save_profile() -> Error:
 
 
 func _open_hub() -> void:
+	if is_instance_valid(_scoreboard):
+		_scoreboard.hide()
 	# A transition to the lobby owns the screen; never leave a shop modal above it.
 	_shop_open = false
 	if is_instance_valid(_shop_panel):
@@ -2306,6 +2350,12 @@ func _haptic(duration: int) -> void:
 
 
 func _run_foundation_qa() -> void:
+	if OS.get_cmdline_user_args().has("--teams"):
+		await _run_team_qa()
+		return
+	if OS.get_cmdline_user_args().has("--large"):
+		await _run_large_qa()
+		return
 	if OS.get_cmdline_user_args().has("--harbor"):
 		await _run_harbor_qa()
 		return
@@ -2453,13 +2503,18 @@ func _on_combat_finished(standings: Array) -> void:
 	for row in standings:
 		if row.is_player:
 			place = row.rank
-	var reward := (150 if place == 1 else 60) if kills > 0 else 0
-	_award_progression(reward, 40 if kills > 0 else 0)
+	if world.match_kind != CombatMatch.FFA:
+		place = 1 if world.team_scores[0] > world.team_scores[1] else (2 if world.team_scores[0] < world.team_scores[1] else 0)
+	var participated := kills > 0 or (is_instance_valid(world.match_controller) and int(world.match_controller.captures.get("PLAYER", 0)) > 0)
+	var reward := (150 if place == 1 else 60) if participated else 0
+	_award_progression(reward, 40 if participated else 0)
 	_save_profile()
 	_show_combat_result.call_deferred(standings, place, reward)
 
 
 func _show_combat_result(standings: Array, place: int, reward: int) -> void:
+	if is_instance_valid(_scoreboard):
+		_scoreboard.hide()
 	_clear_touch_state()
 	_paused = true
 	world.process_mode = Node.PROCESS_MODE_DISABLED
@@ -2468,13 +2523,36 @@ func _show_combat_result(standings: Array, place: int, reward: int) -> void:
 	if is_instance_valid(_result_panel):
 		_result_panel.queue_free()
 	var v := _result_contents()
-	v.add_child(_hub._label("VITÓRIA!" if place == 1 else "PARTIDA CONCLUÍDA / %dº" % place, 28, Color("93e7c3")))
+	var title := "VITÓRIA!" if place == 1 else ("EMPATE" if place == 0 else "PARTIDA CONCLUÍDA / %dº" % place)
+	if world.match_kind != CombatMatch.FFA and place == 2:
+		title = "EQUIPE CORAL VENCEU"
+	v.add_child(_hub._label(title, 28, Color("93e7c3")))
+	if world.match_kind != CombatMatch.FFA:
+		v.add_child(_hub._label("MENTA %d × %d CORAL • %s" % [world.team_scores[0], world.team_scores[1], CombatMatch.LABELS[world.match_kind]], 18))
 	v.add_child(_hub._label("Bots %s • +%d moedas" % [BotDifficulty.get_preset(world.bot_difficulty).name, reward], 18))
 	for row in standings:
-		v.add_child(_hub._label("%d. %s    %d abates / %d mortes" % [row.rank, row.name, row.kills, row.deaths], 16, Color("93e7c3") if row.is_player else Color("c3d3da")))
+		var team_label: String = " / " + CombatMatch.TEAM_NAMES[int(row.get("team_id", 0))] if world.match_kind != CombatMatch.FFA else ""
+		v.add_child(_hub._label("%d. %s%s    %d abates / %d mortes" % [row.rank, row.name, team_label, row.kills, row.deaths], 16, Color("93e7c3") if row.is_player else Color("c3d3da")))
 	v.add_child(_hub._button("Revanche", func(): _start_from_hub(0, current_stage), true))
 	v.add_child(_hub._button("Próxima arena", func(): _start_from_hub(0, (current_stage + 1) % SakuraWorld.COMBAT_STAGE_DEFS.size())))
 	v.add_child(_hub._button("Voltar ao lobby", _open_hub))
+
+func _toggle_scoreboard() -> void:
+	if current_mode != SakuraWorld.MODE_COMBAT or _hub_open or _paused:
+		return
+	if is_instance_valid(_scoreboard) and _scoreboard.visible:
+		_scoreboard.hide()
+		_capture_mouse()
+		return
+	if not is_instance_valid(_scoreboard):
+		_scoreboard = MatchScoreboard.new()
+		add_child(_scoreboard)
+		_scoreboard.setup(self)
+	_clear_touch_state()
+	_mouse_captured = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	_scoreboard.show()
+	_scoreboard.refresh()
 
 
 func _run_combat_qa() -> void:
@@ -2944,4 +3022,89 @@ func _run_harbor_qa() -> void:
 	for frame in 16:
 		await get_tree().process_frame
 	await _save_shot(prefix + "_overview.png")
+	get_tree().quit()
+
+func _run_large_qa() -> void:
+	if OS.get_cmdline_user_args().has("--verify"):
+		var checks = load("res://tests/large_arena_checks.gd").new()
+		if not await checks.run(self):
+			get_tree().quit(1)
+			return
+	for stage in [9, 10]:
+		_start_from_hub(0, stage)
+		world.enemies_paused = true
+		profile.data.aim_tip_seen = true
+		_banner_timer = 0
+		_banner_label.text = ""
+		for quality in [0, 2]:
+			DisplayServer.window_set_size(Vector2i(844, 390))
+			_mobile_hud_enabled = true
+			_hud.show()
+			weapons.show()
+			_res_idx = quality
+			_apply_graphics_preset()
+			set_physics_process(true)
+			_body.position = Vector3(0, 0.1, 29 if stage == 9 else 31)
+			_yaw = 0.1
+			_pitch = -0.025
+			_cam.transform = Transform3D.IDENTITY
+			weapons.select_weapon(4, true)
+			for frame in 24:
+				await get_tree().process_frame
+			await _save_shot("large_%d_mobile_%d.png" % [stage, quality])
+		DisplayServer.window_set_size(Vector2i(1280, 720))
+		set_physics_process(false)
+		_hud.hide()
+		weapons.hide()
+		_cam.fov = 56
+		_cam.global_position = Vector3(62, 66, 78)
+		_cam.look_at(Vector3(0, 0, 0))
+		for frame in 16:
+			await get_tree().process_frame
+		await _save_shot("large_%d_overview.png" % stage)
+	if OS.get_cmdline_user_args().has("--production"):
+		await _run_team_qa()
+		return
+	get_tree().quit()
+
+func _run_team_qa() -> void:
+	if OS.get_cmdline_user_args().has("--verify"):
+		var tests = load("res://tests/team_checks.gd").new()
+		if not await tests.run(self):
+			get_tree().quit(1)
+			return
+	DisplayServer.window_set_size(Vector2i(844, 390))
+	profile.data.match_kind = CombatMatch.CTF
+	profile.data.large_population = 24
+	profile.data.aim_tip_seen = true
+	_hub.mode = 0
+	_hub.page = 0
+	_open_hub()
+	for frame in 12:
+		await get_tree().process_frame
+	await _save_shot("teams_mobile_lobby.png")
+	for stage in [1, 9, 10]:
+		_start_from_hub(0, stage)
+		set_physics_process(true)
+		_cam.transform = Transform3D.IDENTITY
+		world.enemies_paused = true
+		_mobile_hud_enabled = true
+		_res_idx = 0
+		_apply_graphics_preset()
+		_banner_timer = 0
+		_banner_label.text = ""
+		world.player_spawn_guard = 0
+		weapons.select_weapon(4, true)
+		for frame in 20:
+			await get_tree().process_frame
+		await _save_shot("teams_%d_ctf.png" % stage)
+		if stage == 10:
+			world.enemies_paused = false
+			for frame in 900:
+				await get_tree().physics_frame
+			await _save_shot("teams_10_live.png")
+			_toggle_scoreboard()
+			for frame in 12:
+				await get_tree().process_frame
+			await _save_shot("teams_10_scoreboard.png")
 	get_tree().quit()

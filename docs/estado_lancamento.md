@@ -1,12 +1,12 @@
 # Estado atual para lançamento
 
-Referência da implementação local 0.8.0. Os relatórios antigos descrevem as entregas de suas respectivas datas.
+Referência: produção local após 0.8.0, com prioridade no modo tiro. O APK 0.8.0 é anterior às mudanças de mapas grandes e equipes. Não foi gerado novo APK nesta etapa. Os relatórios antigos descrevem suas respectivas entregas.
 
 | Frente | Implementado localmente | Trabalho necessário antes de lançamento comercial |
 | --- | --- | --- |
 | Entrada e mobile | Lobby rolável, toque nativo, editor do HUD, tiro manual com arraste, mira híbrida, tutorial de combate, pausa e retomada | Teste em aparelhos físicos, interrupções do Android, ergonomia e tutorial específico de corrida |
-| Conteúdo | Nove arenas e seis corridas de oito setores; resultados e recordes | Playtests de fluxo, legibilidade, pontos de bloqueio e diversão em cada mapa |
-| Combate | Seis armas, recargas, skins, maestria, colisão e som espacial | Balanceamento humano, acessibilidade da mira e evolução da IA com o arsenal |
+| Conteúdo | Onze arenas de tiro, incluindo duas grandes; cada um por si, equipes e captura de bandeira locais; seis corridas existentes | Consolidar a revisão dos mapas e a bateria de validação após o lote de produção; depois, partidas humanas |
+| Combate | Seis armas, recargas, skins, maestria, equipes sem fogo amigo, objetivos de bandeira, placar tátil e som espacial | Balanceamento humano, acessibilidade da mira, ritmo dos objetivos e evolução da IA com o arsenal |
 | Bots | Fácil/Médio/Difícil, percepção, memória, som, cobertura e flancos | Navegação global nas nove arenas, com pisos e escadas nas cinco antigas; ampliar rotas testadas e sessões humanas prolongadas |
 | Arte | Vila Floral com módulos CC0, Porto Cobalto industrial, Bazar/Docas/Observatório, personagens e armas com prévias 3D | Revisar Vila Sakura, Cânion, Neon, Estação e corridas; aprofundar animações, silhuetas e materiais com orçamento mobile |
 | Desempenho | Qualidade leve padrão, agrupamento de geometria, descarte por mapa e diagnóstico de frames | Medir FPS, memória total, aquecimento e bateria em dispositivos de entrada; corrigir gargalos medidos |

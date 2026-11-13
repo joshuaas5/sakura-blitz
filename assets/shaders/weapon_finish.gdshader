@@ -25,6 +25,13 @@ void fragment() {
 		pattern = step(0.92, fract((p.x + p.y) * 2.0)) * 0.18;
 	}
 	ALBEDO = mix(primary_color.rgb, accent_color.rgb, pattern);
+	// Subtle manufactured grain on the default finish; keep the painted palette.
+	float detail_fade = 1.0 - smoothstep(0.05, 0.5, length(fwidth(local_position.xy)));
+	float brushed = sin(local_position.z * 720.0 + local_position.x * 11.0) * 0.5 + 0.5;
+	if (finish == 0) {
+		float inlay = smoothstep(0.90, 0.97, sin(p.x * 1.2 + p.y * 0.8)) * 0.14;
+		ALBEDO = mix(ALBEDO, accent_color.rgb, inlay) * (0.97 + brushed * 0.035 * detail_fade);
+	}
 	if (finish > 0) {
 		vec3 weights = pow(abs(local_normal), vec3(6.0));
 		weights /= max(dot(weights, vec3(1.0)), 0.001);
@@ -39,7 +46,9 @@ void fragment() {
 			ALBEDO = mix(vec3(0.08, 0.025, 0.02), vec3(0.95, 0.43, 0.08), ALBEDO.r);
 		}
 	}
-	METALLIC = finish == 1 ? 0.55 : 0.25;
-	ROUGHNESS = finish == 1 ? 0.32 : 0.48;
+	METALLIC = finish == 1 ? 0.82 : (finish == 4 ? 0.15 : 0.32);
+	ROUGHNESS = finish == 1 ? 0.24 + brushed * 0.045 * detail_fade : (finish == 4 ? 0.30 : 0.43);
+	RIM = 0.10;
+	RIM_TINT = 0.15;
 	EMISSION = ALBEDO * 0.025;
 }

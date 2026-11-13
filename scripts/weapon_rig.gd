@@ -774,6 +774,8 @@ func try_fire(moving_speed: float, heavy_melee: bool = false) -> bool:
 				var bot := collider as EnemyBot
 				var dmg := (185.0 if heavy_melee else 110.0) * float(sk.dmg_mult) * lvl_dmg_mult
 				var res := bot.apply_hit(dmg, hit.position, fwd * 8.5)
+				if float(res.dmg) <= 0:
+					return true
 				world.spawn_voxel_burst(hit.position, Color("e63956"), 10)
 				world.spawn_damage_number(hit.position, int(res.dmg), bool(res.headshot))
 				Sfx.play("headshot" if bool(res.killed) else "hitmarker")
@@ -880,6 +882,8 @@ func try_fire(moving_speed: float, heavy_melee: bool = false) -> bool:
 		var kb := fwd * (8.5 if current_idx == 1 else 3.5) + Vector3(0, 1.5, 0)
 		# Head multipliers are already included per pellet; never multiply the aggregate again.
 		var res := bot.apply_hit(float(entry.damage), hit_pos, kb, 1.0)
+		if float(res.dmg) <= 0:
+			continue
 		world.spawn_voxel_burst(hit_pos, Color("e63956") if bool(res.headshot) else tracer_col, 10 if bool(res.headshot) else 5)
 		world.spawn_damage_number(hit_pos, int(res.dmg), bool(res.headshot))
 		Sfx.play("headshot" if bool(res.headshot) else "hitmarker")

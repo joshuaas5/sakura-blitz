@@ -13,15 +13,15 @@ const MUTED := Color("9aaeb9")
 const MINT := Color("93e7c3")
 const PINK := Color("f0a5b7")
 const MAPS := [
-	["Vila Sakura", "Porto Cobalto", "Cânion Âmbar", "Distrito Neon", "Estação Aurora", "Vila Floral", "Bazar Solar", "Docas do Festival", "Observatório Lunar"],
+	["Vila Sakura", "Porto Cobalto", "Cânion Âmbar", "Distrito Neon", "Estação Aurora", "Vila Floral", "Bazar Solar", "Docas do Festival", "Observatório Lunar", "Vale do Chá", "Terminal Girassol"],
 	["Festival das Nuvens", "Telhados do Sol", "Oásis das Marés", "Órbita Neon", "Jardim do Chá", "Fábrica de Brinquedos"]
 ]
 const DESCS := [
-	["Pátios, casas e flancos", "Contêineres e combate próximo", "Pontes e linhas de tiro longas", "Passarelas e combate vertical", "Trens • trilhos • três rotas", "Praça • fonte • casas floridas", "Arcadas • mercado • pavilhão do chá", "Cais • armazéns • veleiros", "Planetário • laboratórios • jardins"],
+	["Pátios, casas e flancos", "Contêineres e combate próximo", "Pontes e linhas de tiro longas", "Passarelas e combate vertical", "Trens • trilhos • três rotas", "Praça • fonte • casas floridas", "Arcadas • mercado • pavilhão do chá", "Cais • armazéns • veleiros", "Planetário • laboratórios • jardins", "Bosques • bairro do chá • estufas", "Oficinas abertas • bondes • plataforma"],
 	["Tambores • giros • céu de sakura", "Chaminés • esteiras • pôr do sol", "Surf • ilhas • pontes suspensas", "Plataformas • giros • neon", "Bambus • pontes • saltos de precisão", "Brinquedos • pinball • esteiras"]
 ]
 var profile: PlayerProfile
-var mode := 1
+var mode := 0
 var page := 0
 var can_resume := false
 var _compact := false
@@ -112,7 +112,7 @@ func refresh() -> void:
 	header.add_child(brand)
 	brand.add_child(_label("SAKURA / BLITZ", 26 if size.x < 620 or _compact else 34, PINK))
 	if not _compact:
-		brand.add_child(_label("Um salto. Uma partida. Só mais uma.", 16, MUTED))
+		brand.add_child(_label("Entre na arena. Encontre seu estilo.", 16, MUTED))
 	if not _compact and size.x >= 1000:
 		var portrait := CozyPortrait.new()
 		portrait.outfit = profile.data.character
@@ -149,14 +149,33 @@ func _build_maps() -> void:
 	var intro := HBoxContainer.new()
 	intro.add_theme_constant_override("separation", 10)
 	_body.add_child(intro)
-	intro.add_child(_button("CORRIDA / PARKOUR", func(): mode = 1; _scroll.scroll_vertical = 0; refresh(), mode == 1))
 	intro.add_child(_button("ARENAS / TIRO", func(): mode = 0; _scroll.scroll_vertical = 0; refresh(), mode == 0))
+	intro.add_child(_button("CORRIDA / PARKOUR", func(): mode = 1; _scroll.scroll_vertical = 0; refresh(), mode == 1))
 	if size.y > size.x:
 		_body.add_child(_label("Vire o celular na horizontal para jogar.", 18, MINT))
 	if not _compact:
 		_body.add_child(_label("LOBBY / Escolha sua próxima corrida." if mode == 1 else "LOBBY / Prepare sua partida.", 25))
 	if not _compact:
-		_body.add_child(_label("8 setores • checkpoints • rota segura e atalhos • 7 bots" if mode == 1 else "9 arenas • 6 armas • disputa entre bots • moedas por abate", 16, MUTED))
+		_body.add_child(_label("8 setores • checkpoints • rota segura e atalhos • 7 bots" if mode == 1 else "11 arenas • combate próximo e mapas grandes • 6 armas", 16, MUTED))
+	if mode == 0:
+		var rules := HBoxContainer.new()
+		_body.add_child(rules)
+		var match_select := OptionButton.new()
+		match_select.size_flags_horizontal = SIZE_EXPAND_FILL
+		match_select.custom_minimum_size.y = 44
+		for text in CombatMatch.LABELS:
+			match_select.add_item("MODO / " + text)
+		match_select.select(profile.data.match_kind)
+		rules.add_child(match_select)
+		match_select.item_selected.connect(func(value): profile.data.match_kind = value; profile_changed.emit(); refresh())
+		var population := OptionButton.new()
+		population.size_flags_horizontal = SIZE_EXPAND_FILL
+		population.custom_minimum_size.y = 44
+		for text in ["Lotação por mapa", "Grandes / 12", "Grandes / 18", "Grandes / 24 — Caos"]:
+			population.add_item(text)
+		population.select([0, 12, 18, 24].find(profile.data.large_population))
+		rules.add_child(population)
+		population.item_selected.connect(func(value): profile.data.large_population = [0, 12, 18, 24][value]; profile_changed.emit(); refresh())
 	var difficulty := OptionButton.new()
 	for preset in BotDifficulty.PRESETS:
 		difficulty.add_item("BOTS / " + str(preset.name).to_upper())
@@ -175,7 +194,7 @@ func _build_maps() -> void:
 	_grid.add_theme_constant_override("h_separation", 14)
 	_grid.add_theme_constant_override("v_separation", 14)
 	_body.add_child(_grid)
-	for i in ([6, 7, 8, 5, 0, 1, 2, 3, 4] if mode == 0 else [0, 1, 2, 3, 4, 5]):
+	for i in ([9, 10, 1, 6, 7, 8, 5, 0, 2, 3, 4] if mode == 0 else [0, 1, 2, 3, 4, 5]):
 		var panel := PanelContainer.new()
 		panel.mouse_filter = MOUSE_FILTER_PASS
 		panel.size_flags_horizontal = SIZE_EXPAND_FILL
@@ -192,6 +211,11 @@ func _build_maps() -> void:
 		if not _compact:
 			v.add_child(_label("0%d / %s" % [i + 1, "CORRIDA" if mode == 1 else "ARENA"], 12, MapPostcard.PALETTES[i]))
 		v.add_child(_label(MAPS[mode][i], 18 if _compact else 21))
+		if mode == 0:
+			var count := CombatMatch.population(i, profile.data.match_kind, profile.data.large_population)
+			var population_text := "%d bots" % count if profile.data.match_kind == 0 else "%d × %d" % [(count + 1) / 2, (count + 1) / 2]
+			var scale_text := "GRANDE / %s" % ("96 × 88 m" if i == 9 else "112 × 76 m") if i >= 9 else ("CQC" if i < 2 else "TÁTICO")
+			v.add_child(_label(scale_text + " • " + population_text, 12, MINT))
 		if not _compact:
 			v.add_child(_label(DESCS[mode][i], 14, MUTED))
 		var record := float(profile.data.best_times[i]) if mode == 1 else 0.0

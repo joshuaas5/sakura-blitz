@@ -29,9 +29,9 @@ func setup(g: SakuraBlitzMain) -> void:
 		glyph(action + "_icon", action)
 	glyph("health_icon", "health")
 	glyph("shield_icon", "shield")
-	glyph("ammo_icon", "fire")
+	glyph("ammo_icon", "ammo")
 	glyph("knob", "knob")
-	for key in ["score_text", "clock_text", "hp_text", "armor_text", "ammo_text", "hint_text", "map_name", "mode_text", "weapon_name", "countdown", "leaderboard", "feed_text", "guard_text", "fire_hint", "aim_label", "aim_mode_label"]:
+	for key in ["score_text", "clock_text", "hp_text", "armor_text", "ammo_text", "hint_text", "map_name", "sector_text", "mode_text", "objective_text", "weapon_name", "countdown", "leaderboard", "feed_text", "guard_text", "fire_hint", "aim_label", "aim_mode_label"]:
 		label(key)
 	map_canvas = Control.new()
 	map_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -130,8 +130,19 @@ func sync() -> void:
 				place_number += 1
 		if g.world.player_race_place > 0:
 			place_number = g.world.player_race_place
-	words("score_text", ("— / 8" if g.world.race_countdown > 0 else "%dº / 8" % place_number) if race else "%02d  /  15" % g.kills, Rect2(w * 0.5 - 100, 13, 200, 43), 29)
+	words("score_text", ("— / 8" if g.world.race_countdown > 0 else "%dº / 8" % place_number) if race else "%02d  /  %d" % [g.kills, g.world.combat_kill_limit], Rect2(w * 0.5 - 100, 13, 200, 43), 29)
+	if not race and g.world.match_kind != CombatMatch.FFA:
+		pieces.score_text.text = "%02d  ×  %02d" % [g.world.team_scores[0], g.world.team_scores[1]]
 	words("mode_text", "CHECKPOINT %d / 8" % g.world.kz_active_stage if race else "CADA UM POR SI", Rect2(w * 0.5 - 110, 90, 220, 20), 11)
+	if not race and g.world.match_kind != CombatMatch.FFA:
+		pieces.mode_text.text = "MENTA × CORAL • %s / %d" % ["BANDEIRAS" if g.world.match_kind == CombatMatch.CTF else "ABATES", g.world.combat_kill_limit]
+	var objective := "PEGUE A CORAL • VOLTE À BASE MENTA"
+	if is_instance_valid(g.world.match_controller) and g.world.match_controller.flags[1].carrier == "PLAYER":
+		objective = "VOCÊ TEM A BANDEIRA • VOLTE À BASE"
+		if g.world.match_controller.flags[0].carrier != "" or g.world.match_controller.flags[0].dropped:
+			objective = "RECUPERE SUA BANDEIRA PARA CAPTURAR"
+	words("objective_text", objective, Rect2(w * 0.5 - 175, 112, 350, 22), 11, Color("a4e4c4"))
+	pieces.objective_text.visible = not race and g.world.match_kind == CombatMatch.CTF and g.world.player_spawn_guard <= 0
 	words("guard_text", "PROTEÇÃO AO NASCER • %.1fs" % g.world.player_spawn_guard, Rect2(w * 0.5 - 150, 112, 300, 22), 12, Color("a4e4c4"))
 	pieces.guard_text.visible = not race and g.world.player_spawn_guard > 0
 	place("map", Rect2(16, 14, 124, 124))
@@ -142,6 +153,9 @@ func sync() -> void:
 	map_canvas.queue_redraw()
 	words("map_name", SakuraHub.MAPS[g.current_mode][g.current_stage], Rect2(18, 139 if not race else 18, 200, 24), 13)
 	pieces.map_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	words("sector_text", g.world.combat_sector(g._body.position), Rect2(18, 161, 200, 20), 11, Color("a4e4c4"))
+	pieces.sector_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	pieces.sector_text.visible = not race and not g.world.combat_sectors.is_empty()
 	for i in 2:
 		var key := "hp" if i == 0 else "armor"
 		var y := h - 72 + i * 31
@@ -263,20 +277,41 @@ func _draw_map() -> void:
 	for i in 32:
 		circle.append(Vector2(50, 50) + Vector2.from_angle(i * TAU / 32) * 46)
 	for box in map_boxes:
-		var r := Rect2(Vector2(50, 50) + box.position * 1.25, box.size * 1.25)
+		var r := Rect2(map_point(box.position), box.size * map_scale())
 		var clipped := Geometry2D.intersect_polygons(PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]), circle)
 		for polygon in clipped:
 			map_canvas.draw_colored_polygon(polygon, Color("7e837a"))
+	if is_instance_valid(game.world.match_controller):
+		for team in 2:
+			var at: Vector3 = game.world.match_controller.flags[team].at
+			map_canvas.draw_circle(map_point(Vector2(at.x, at.z)), 3, CombatMatch.COLORS[team])
 	var p := game._body.position
-	var dot := (Vector2(p.x, p.z) * 1.25).limit_length(43) + Vector2(50, 50)
+	var dot := Vector2(50, 50) + (map_point(Vector2(p.x, p.z)) - Vector2(50, 50)).limit_length(43)
 	var dir := Vector2(-sin(game._yaw), -cos(game._yaw))
 	map_canvas.draw_colored_polygon(PackedVector2Array([dot + dir * 7, dot + dir.rotated(2.4) * 5, dot + dir.rotated(-2.4) * 5]), GOLD)
+
+func map_scale() -> float:
+	if game.world.combat_sectors.is_empty():
+		return 1.25
+	# Fit the full rectangular footprint inside the circular frame, including corners.
+	return 86.0 / game.world.combat_bounds.size.length()
+
+func map_point(at: Vector2) -> Vector2:
+	var center := Vector2.ZERO if game.world.combat_sectors.is_empty() else game.world.combat_bounds.get_center()
+	return Vector2(50, 50) + (at - center) * map_scale()
 
 func _draw_reticle() -> void:
 	var g := game
 	if g.current_mode == 1:
 		return
+	_draw_objective_marker()
 	var center := g.size * 0.5
+	if g._damage_alpha > 0 and g._last_damage_from.distance_squared_to(g._body.position) > 0.5:
+		var from := g._last_damage_from - g._body.position
+		var right := Vector3(cos(g._yaw), 0, -sin(g._yaw))
+		var forward := Vector3(-sin(g._yaw), 0, -cos(g._yaw))
+		var angle := atan2(from.dot(right), from.dot(forward)) - PI / 2
+		reticle.draw_arc(center, 72, angle - 0.25, angle + 0.25, 16, Color(0.96, 0.38, 0.39, minf(1, g._damage_alpha * 2.5)), 4, true)
 	var spread := 5 + g._crosshair_spread * 7
 	var color := Color("eb9cad") if g._hitmarker_timer > 0 else INK
 	reticle.draw_circle(center, 1.4, color)
@@ -292,3 +327,42 @@ func _draw_reticle() -> void:
 		var r: Rect2 = g._action_rects().reload
 		var progress := clampf(1.0 - g.weapons.reload_timer / maxf(0.01, g.weapons.reload_duration), 0, 1)
 		reticle.draw_arc(r.get_center(), r.size.x * 0.46, -PI * 0.5, -PI * 0.5 + TAU * progress, 40, Color("9dd8b5"), 2.5, true)
+
+func _draw_objective_marker() -> void:
+	var g := game
+	if not is_instance_valid(g.world.match_controller):
+		return
+	var own: Dictionary = g.world.match_controller.flags[0]
+	var enemy: Dictionary = g.world.match_controller.flags[1]
+	var target: Vector3 = enemy.at
+	var title := "BANDEIRA CORAL"
+	var color: Color = CombatMatch.COLORS[1]
+	if enemy.carrier == "PLAYER":
+		target = own.home
+		title = "BASE MENTA"
+		color = CombatMatch.COLORS[0]
+		if own.dropped or own.carrier != "":
+			target = own.at
+			title = "RECUPERAR MENTA"
+	elif enemy.carrier != "":
+		title = "ESCOLTAR"
+	var meters := g._body.position.distance_to(target)
+	if meters < 3:
+		return
+	var point := g._cam.unproject_position(target + Vector3.UP * 2.8) * (g.size / Vector2(g._vp.size))
+	var safe := Rect2(24, 144, g.size.x - 48, maxf(40, g.size.y - 240))
+	if g._cam.is_position_behind(target):
+		var delta := target - g._body.position
+		var right := Vector3(cos(g._yaw), 0, -sin(g._yaw))
+		point = Vector2(safe.end.x if delta.dot(right) > 0 else safe.position.x, safe.get_center().y)
+	point = point.clamp(safe.position, safe.end)
+	var diamond := PackedVector2Array([point + Vector2(0, -9), point + Vector2(9, 0), point + Vector2(0, 9), point + Vector2(-9, 0)])
+	reticle.draw_colored_polygon(diamond, Color("173b37"))
+	reticle.draw_polyline(PackedVector2Array([diamond[0], diamond[1], diamond[2], diamond[3], diamond[0]]), color, 2, true)
+	reticle.draw_line(point + Vector2(-2, 4), point + Vector2(-2, -4), color, 2)
+	reticle.draw_colored_polygon(PackedVector2Array([point + Vector2(-1, -4), point + Vector2(5, -2), point + Vector2(-1, 0)]), color)
+	var text := "%s / %dm" % [title, int(meters)]
+	var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
+	var at := Vector2(clampf(point.x - width * 0.5, 12, g.size.x - width - 12), point.y + 23)
+	reticle.draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, 3, Color("173b37"))
+	reticle.draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, color)

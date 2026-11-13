@@ -19,15 +19,20 @@ static func grounded(w: SakuraWorld, at: Vector3) -> Variant:
 	query.collision_mask = 1
 	return point if space.intersect_shape(query, 1).is_empty() else null
 
-func choose(w: SakuraWorld, player: bool, seed: int = 0) -> Vector3:
+func choose(w: SakuraWorld, player: bool, seed: int = 0, team: int = -1) -> Vector3:
 	var candidates: Array = w.tr_spawns.duplicate()
 	if player:
 		candidates.append(w._current_pvp_spawn)
+		team = w.team_for("PLAYER")
+	if team >= 0:
+		var side := candidates.filter(func(at): return at.z > 1 if team == 0 else at.z < -1)
+		if not side.is_empty():
+			candidates = side
 	var threats: Array[Vector3] = []
 	for bot in w.enemies:
-		if is_instance_valid(bot) and not bot._dead:
+		if is_instance_valid(bot) and not bot._dead and (team < 0 or bot.team_id != team):
 			threats.append(bot.global_position)
-	if not player:
+	if not player and (team < 0 or team != w.team_for("PLAYER")):
 		threats.append(w.player_pos if w.stage_physics_ready else w._current_pvp_spawn)
 	var best: Vector3 = w._current_pvp_spawn if player else w.tr_spawns[posmod(seed, w.tr_spawns.size())]
 	var best_score := -INF
@@ -41,16 +46,20 @@ func choose(w: SakuraWorld, player: bool, seed: int = 0) -> Vector3:
 				continue
 			at = floor_point
 		valid_count += 1
-		var nearest := 40.0
+		var large := not w.combat_patrol_points.is_empty()
+		var nearest := 200.0 if large else 40.0
 		var exposed := 0
 		for threat in threats:
 			var distance := at.distance_to(threat)
 			nearest = minf(nearest, distance)
-			if w.stage_physics_ready and distance < 36:
+			if w.stage_physics_ready and distance < (48 if large else 36):
 				var ray := PhysicsRayQueryParameters3D.create(threat + Vector3.UP * 1.4, at + Vector3.UP * 1.4, 1)
 				if space.intersect_ray(ray).is_empty():
 					exposed += 1
 		var score := minf(nearest, 30) * 2.0 - exposed * 18.0
+		if large:
+			# Safe cover matters more than sending every respawn to the far corner.
+			score = minf(nearest, 22) * 2 - maxf(0, nearest - 36) * 0.7 - exposed * 24
 		if nearest < 7:
 			score -= (7 - nearest) * 30
 		for previous in recent:

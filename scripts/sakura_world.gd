@@ -7,6 +7,8 @@ extends Node3D
 ##   * Zero PvP shooting deaths! Starts with a 5-4-3-2-1 VAI! Starting Gate and 7 Runner Bots racing you for 1st Place!
 
 signal combat_finished(standings: Array)
+signal objective_notice(message: String)
+signal objective_scored(actor: String)
 
 signal enemy_killed(was_headshot: bool, bot_name: String, hit_pos: Vector3)
 signal round_won(round_num: int, ct_score: int, tr_score: int)
@@ -35,6 +37,8 @@ const COMBAT_STAGE_DEFS := [
 	{"id": 6, "short": "BAZAR SOLAR", "title": "Bazar Solar", "subtitle": "Treino local com bots", "is_pvp": true},
 	{"id": 7, "short": "DOCAS DO FESTIVAL", "title": "Docas do Festival", "subtitle": "Treino local com bots", "is_pvp": true},
 	{"id": 8, "short": "OBSERVATÓRIO LUNAR", "title": "Observatório Lunar", "subtitle": "Treino local com bots", "is_pvp": true},
+	{"id": 9, "short": "VALE DO CHÁ", "title": "Vale do Chá", "subtitle": "Grande • 96 × 88 m", "is_pvp": true},
+	{"id": 10, "short": "TERMINAL GIRASSOL", "title": "Terminal Girassol", "subtitle": "Grande • 112 × 76 m", "is_pvp": true},
 ]
 
 const PARKOUR_STAGE_DEFS := [
@@ -105,6 +109,9 @@ var atmo_idx := 0
 var arena_navigation: ArenaNavigation
 var spawn_director := SpawnDirector.new()
 var combat_cover: Array[AABB] = []
+var combat_bounds := Rect2(-36, -36, 72, 72)
+var combat_patrol_points: Array[Vector3] = []
+var combat_sectors: Array[Dictionary] = []
 var stage_physics_ready := false
 var player_grounded := false
 var combat_audio: CombatAudio
@@ -123,6 +130,10 @@ var round_number := 1
 var ct_score := 0
 var tr_score := 0
 var bots_per_round := 6
+var large_population := 0
+var match_kind := CombatMatch.FFA
+var team_scores: Array[int] = [0, 0]
+var match_controller: CombatMatch
 var _bot_respawn_cd := 0.0
 var _bot_sim_frag_cd := 3.8
 var enemies: Array[EnemyBot] = []
@@ -200,8 +211,15 @@ func load_mode_and_stage(new_mode: int, new_stage_idx: int) -> Array:
 	_clear_active_stage()
 	spawn_director = SpawnDirector.new()
 	stage_physics_ready = false
+	var large := game_mode == MODE_COMBAT and current_stage_idx >= 9
+	bots_per_round = CombatMatch.population(current_stage_idx, match_kind, large_population) if game_mode == MODE_COMBAT else 6
+	team_scores.assign([0, 0])
+	combat_bounds = CombatMatch.MAP_BOUNDS[current_stage_idx] if game_mode == MODE_COMBAT else Rect2(-36, -36, 72, 72)
 	_init_bot_scoreboard()
-	combat_time_left = 180.0
+	combat_time_left = 300.0 if large else 180.0
+	combat_kill_limit = 20 if large else 15
+	if match_kind != CombatMatch.FFA and game_mode == MODE_COMBAT:
+		combat_kill_limit = 3 if match_kind == CombatMatch.CTF else (60 if large else 40)
 	combat_is_finished = false
 	player_spawn_guard = 1.5
 	ct_score = 0
@@ -220,14 +238,18 @@ func load_mode_and_stage(new_mode: int, new_stage_idx: int) -> Array:
 			_build_combat_3_sniper_canyon()
 		elif current_stage_idx == 3:
 			_build_combat_4_cyber_vertigo()
+		elif large:
+			LargeArenas.build(self, current_stage_idx)
 		elif current_stage_idx >= 6:
 			SignatureArenas.build(self, current_stage_idx)
 		elif current_stage_idx == 5:
 			CuratedVillage.build(self)
 		else:
 			ExpansionArenas.build(self, current_stage_idx == 5)
-		apply_atmosphere_preset([0, 1, 1, 2, 1, 0, 0, 0, 2][current_stage_idx])
-		if current_stage_idx == 1:
+		apply_atmosphere_preset([0, 1, 1, 2, 1, 0, 0, 0, 2, 0, 0][current_stage_idx])
+		if large:
+			LargeArenas.atmosphere(self, current_stage_idx)
+		elif current_stage_idx == 1:
 			HarborAtelier.atmosphere(self)
 		elif current_stage_idx < 5:
 			_add_district_details()
@@ -245,6 +267,10 @@ func load_mode_and_stage(new_mode: int, new_stage_idx: int) -> Array:
 		_stage_root.add_child(combat_audio)
 		combat_audio.setup(self)
 		spawn_pvp_round(bots_per_round)
+		if match_kind == CombatMatch.CTF:
+			match_controller = CombatMatch.new()
+			_stage_root.add_child(match_controller)
+			match_controller.setup(self)
 		return [_current_pvp_spawn, 0.0, 0.0]
 	else:
 		_build_parkour_marathon(current_stage_idx)
@@ -330,7 +356,7 @@ func get_combat_standings(player_kills: int, player_deaths: int) -> Array[Dictio
 		"is_player": true,
 		"kills": player_kills,
 		"deaths": player_deaths,
-		"pts": player_kills * 100
+		"pts": player_kills * 100, "team_id": team_for("PLAYER")
 	}]
 	for bname in bot_scoreboard.keys():
 		var d: Dictionary = bot_scoreboard[bname]
@@ -339,7 +365,7 @@ func get_combat_standings(player_kills: int, player_deaths: int) -> Array[Dictio
 			"is_player": false,
 			"kills": int(d.kills),
 			"deaths": int(d.deaths),
-			"pts": int(d.pts)
+			"pts": int(d.pts), "team_id": team_for(str(bname))
 		})
 	rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		if int(a.kills) != int(b.kills):
@@ -353,6 +379,10 @@ func get_combat_standings(player_kills: int, player_deaths: int) -> Array[Dictio
 
 func _clear_active_stage() -> void:
 	combat_cover.clear()
+	match_controller = null
+	combat_bounds = Rect2(-36, -36, 72, 72)
+	combat_patrol_points.clear()
+	combat_sectors.clear()
 	combat_audio = null
 	arena_navigation = null
 	clear_enemies()
@@ -393,6 +423,30 @@ func _clear_active_stage() -> void:
 	if is_instance_valid(_stage_root):
 		_stage_root.free()
 		_stage_root = null
+
+func combat_sector(at: Vector3) -> String:
+	for sector in combat_sectors:
+		if (sector.bounds as Rect2).has_point(Vector2(at.x, at.z)):
+			return sector.name
+	return ""
+
+func team_for(actor: String) -> int:
+	if match_kind == CombatMatch.FFA:
+		return -1
+	if actor in ["PLAYER", "VOCE"]:
+		return 0
+	var index := EnemyBot.BOT_NAMES.find(actor)
+	return 1 - index % 2 if index >= 0 else -1
+
+func same_team(a: String, b: String) -> bool:
+	return match_kind != CombatMatch.FFA and team_for(a) >= 0 and team_for(a) == team_for(b)
+
+func record_team_elimination(killer: String, victim: String, at: Vector3) -> void:
+	if is_instance_valid(match_controller):
+		match_controller.drop_carrier(victim, at)
+	var team := team_for(killer)
+	if match_kind == CombatMatch.TEAMS and team >= 0 and not same_team(killer, victim):
+		team_scores[team] += 1
 
 
 func spawn_pvp_transform() -> Array:
@@ -1304,7 +1358,6 @@ func spawn_pvp_round(bot_count: int = -1) -> void:
 func _spawn_single_combat_bot(seed_offset: int) -> void:
 	if tr_spawns.is_empty() or not is_instance_valid(_stage_root):
 		return
-	var sp := spawn_director.choose(self, false, seed_offset)
 	var bkind := 1 if seed_offset % 4 == 1 else (2 if seed_offset % 3 == 0 else 0)
 	var name_index := 0
 	for candidate in bots_per_round:
@@ -1315,6 +1368,7 @@ func _spawn_single_combat_bot(seed_offset: int) -> void:
 		if not occupied:
 			name_index = candidate
 			break
+	var sp := spawn_director.choose(self, false, seed_offset, team_for(EnemyBot.BOT_NAMES[name_index]))
 	var bot := EnemyBot.spawn_bot(self, _stage_root, sp, bkind, name_index)
 	bot.defeated.connect(_on_bot_defeated)
 	enemies.append(bot)
@@ -1332,6 +1386,7 @@ func clear_enemies() -> void:
 
 
 func _on_bot_defeated(bot: EnemyBot, was_headshot: bool, hit_pos: Vector3) -> void:
+	record_team_elimination(bot.last_damage_by, bot.bot_name, bot.global_position)
 	enemies.erase(bot)
 	if bot_scoreboard.has(bot.bot_name):
 		bot_scoreboard[bot.bot_name]["deaths"] = int(bot_scoreboard[bot.bot_name]["deaths"]) + 1
@@ -1435,9 +1490,13 @@ func _physics_process(delta: float) -> void:
 			return
 		player_spawn_guard = maxf(0.0, player_spawn_guard - delta)
 		combat_time_left = maxf(0.0, combat_time_left - delta)
+		if is_instance_valid(match_controller) and not enemies_paused:
+			match_controller.tick(delta)
 		var leading_score := ct_score
 		for stats in bot_scoreboard.values():
 			leading_score = maxi(leading_score, int(stats.kills))
+		if match_kind != CombatMatch.FFA:
+			leading_score = maxi(team_scores[0], team_scores[1])
 		if combat_time_left <= 0.0 or leading_score >= combat_kill_limit:
 			combat_is_finished = true
 			combat_finished.emit(get_combat_standings(ct_score, tr_score))
@@ -1602,8 +1661,8 @@ func _physics_process(delta: float) -> void:
 			var target: Object = impact.collider
 			if target is EnemyBot:
 				(target as EnemyBot).apply_hit(float(orb.dmg), impact.position, (orb.vel as Vector3).normalized() * 2, 1.5, str(orb.owner_name))
-			elif target is CharacterBody3D and player_spawn_guard <= 0:
-				player_damaged.emit(float(orb.dmg), impact.position, str(orb.owner_name))
+			elif target is CharacterBody3D and player_spawn_guard <= 0 and not same_team(str(orb.owner_name), "PLAYER"):
+				player_damaged.emit(float(orb.dmg), impact.position - (orb.vel as Vector3).normalized() * 4, str(orb.owner_name))
 			n.queue_free()
 			enemy_orbs.remove_at(i)
 			continue
@@ -1661,7 +1720,7 @@ func _physics_process(delta: float) -> void:
 		if enemies.size() < bots_per_round:
 			_bot_respawn_cd -= delta
 			if _bot_respawn_cd <= 0.0:
-				_bot_respawn_cd = 1.35
+				_bot_respawn_cd = 0.65 if bots_per_round >= 12 else 1.35
 				round_number += 1
 				_spawn_single_combat_bot(round_number + enemies.size())
 

@@ -2,6 +2,10 @@
 
 ## Decisões do usuário
 
+- **Prioridade ativa: concluir e polir o modo tiro.** Novas expansões de parkour ficam para outro momento.
+- Produzir conteúdo e acabamento em lotes; concentrar a bateria de testes após a implementação. Não gerar APK a cada entrega; aguardar novo pedido de empacotamento.
+- Preservar arenas CQC e oferecer mapas maiores. A primeira expansão grande usa cerca de seis vezes a área do Porto, com dimensões explícitas no lobby.
+- População adequada a cada arena, com opção de caos nas grandes. Cada um por si, equipes equilibradas e captura de bandeira fazem parte da versão de tiro.
 - Jogo prioritariamente mobile, gratuito para entrar, com arenas de tiro e corridas/parkour.
 - **Primeira pessoa e mapas próprios permanecem.**
 - Cozy/PS1 e a riqueza de cor de Legend of Mana orientam a apresentação, sem reproduzir sua arte.

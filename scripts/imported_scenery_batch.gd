@@ -1,7 +1,7 @@
 class_name ImportedSceneryBatch
 extends RefCounted
 ## Combine imported static surfaces by material and spatial cell. Collision stays separate.
-static func bake(root: Node3D) -> void:
+static func bake(root: Node3D, max_distance: float = 100) -> void:
 	var groups := {}
 	var meshes: Array[MeshInstance3D] = []
 	_collect(root, root, groups, meshes)
@@ -15,7 +15,7 @@ static func bake(root: Node3D) -> void:
 		var merged := MeshInstance3D.new()
 		merged.mesh = st.commit()
 		merged.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-		merged.visibility_range_end = 100
+		merged.visibility_range_end = max_distance
 		root.add_child(merged)
 	for mesh in meshes:
 		# Defer destruction until renderer/resource notifications have drained.

@@ -6,3 +6,5 @@ Fontes: `shots/arena_<id>_hero.png`, copiadas sem composição ou retoque.
 Licenças dos modelos: `THIRD_PARTY_LICENSES.md`.
 
 Porto Cobalto: `shots/harbor_after_overview.png`, gerada por `--qa --harbor`, sem retoque.
+
+Vale do Cha e Terminal Girassol: shots/large_9_overview.png e shots/large_10_overview.png, capturas nativas geradas por --qa --large, sem retoque.

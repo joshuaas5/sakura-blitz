@@ -21,7 +21,7 @@ func run(game: SakuraBlitzMain) -> bool:
 		for bot in game.world.enemies:
 			check(bot.skill.spread == preset.spread and bot.skill.reaction == preset.reaction, "Bot uses selected aim/reaction profile")
 			check(bot.max_hp == 100, "Difficulty must not inflate bot health")
-		check(game.world.enemies.map(func(bot): return bot.bot_name).size() == 6, "Arena has six competitors")
+		check(game.world.enemies.map(func(bot): return bot.bot_name).size() == 8, "Station has eight competitors at its default population")
 	check(BotDifficulty.PRESETS[0].reaction > BotDifficulty.PRESETS[1].reaction and BotDifficulty.PRESETS[1].reaction > BotDifficulty.PRESETS[2].reaction, "Reaction improves across difficulty tiers")
 	check(BotDifficulty.PRESETS[0].spread > BotDifficulty.PRESETS[1].spread and BotDifficulty.PRESETS[1].spread > BotDifficulty.PRESETS[2].spread, "Aim precision improves across tiers")
 	game.set_physics_process(false)

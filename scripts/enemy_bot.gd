@@ -15,6 +15,10 @@ signal runner_finished(bot: EnemyBot, finish_time: float)
 const BOT_NAMES := [
 	"Bot_S1mple", "Bot_FalleN", "Bot_Coldzera", "Bot_Niko",
 	"Bot_Mason", "Bot_Woods", "Bot_Ghost", "Bot_Reznov"
+	, "Bot_Matcha", "Bot_Cobalto", "Bot_Pipa", "Bot_Camélia",
+	"Bot_Mochi", "Bot_Solar", "Bot_Bambu", "Bot_Canela",
+	"Bot_Brisa", "Bot_Âmbar", "Bot_Lótus", "Bot_Jade",
+	"Bot_Nori", "Bot_Coral", "Bot_Cedro", "Bot_Aurora"
 ]
 
 const RUNNER_NAMES := [
@@ -55,6 +59,10 @@ var _foot_distance := 0.0
 var _spawn_check_pending := true
 
 var world: Node3D
+var team_id := -1
+var _full_visuals: Array[MeshInstance3D] = []
+var _distance_mesh: MeshInstance3D
+var _visual_cd := 0.0
 var is_runner := false
 var runner_idx := 0
 var kind := 0 # 0 = Rifleman (AK-47), 1 = Sharpshooter (AWP), 2 = Rusher (SMG/Deagle)
@@ -108,8 +116,10 @@ static func spawn_bot(w: Node3D, parent: Node3D, pos: Vector3, bot_kind: int, id
 	b.position = pos
 	b._rng.randomize()
 	b.bot_name = BOT_NAMES[posmod(idx_seed, BOT_NAMES.size())]
+	b.team_id = w.team_for(b.bot_name)
 	b._strafe_dir = -1.0 if b._rng.randf() < 0.5 else 1.0
 	b.skill = BotDifficulty.get_preset(w.bot_difficulty)
+	b._sense_cd = float(b.skill.think) * float(idx_seed) / maxf(w.bots_per_round, 1)
 	b._fire_cd = float(b.skill.reaction)
 	b.max_hp = 100.0
 	b.hp = 100.0
@@ -179,6 +189,14 @@ func _build_visuals() -> void:
 		bg.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_hp_bar_fill = _part(_hp_bar_root, Vector3(0, 0, 0.01), Vector3(0.76, 0.06, 0.04), Color("ff2a55"), 1.2, true, false)
 		_hp_bar_fill.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_full_visuals.assign(_meshes)
+		_distance_mesh = CozyAvatar.distance_model(self)
+		_distance_mesh.hide()
+		_meshes.append(_distance_mesh)
+		_orig_mats.append(_distance_mesh.material_override)
+		if team_id >= 0:
+			var badge := _part(_hp_bar_root, Vector3(0, 0.25, 0), Vector3(0.17, 0.17, 0.17), Color("93e7c3") if team_id == 0 else Color("f08c91"), 0, true, false)
+			badge.rotation.z = PI / 4
 
 
 func _part(parent: Node3D, pos: Vector3, sz: Vector3, col: Color, emit: float = 0.0, unshaded: bool = false, track: bool = true) -> MeshInstance3D:
@@ -212,6 +230,17 @@ func _physics_process(delta: float) -> void:
 	if _spawn_check_pending:
 		_ensure_clear_spawn()
 		_spawn_check_pending = false
+	_visual_cd -= delta
+	if _visual_cd <= 0 and is_instance_valid(_distance_mesh):
+		_visual_cd = 0.25
+		var distance := global_position.distance_to(world.player_pos)
+		var far := distance > (29 if _distance_mesh.visible else 35)
+		for part in _full_visuals:
+			part.visible = not far
+		_distance_mesh.visible = far
+		_hp_bar_root.visible = distance < 28 or team_id >= 0
+		_hp_bar_fill.visible = distance < 28
+		_hp_bar_root.get_child(0).visible = distance < 28
 	if _flash_timer > 0.0:
 		_flash_timer -= delta
 		if _flash_timer <= 0.0:
@@ -222,7 +251,7 @@ func _physics_process(delta: float) -> void:
 	_sense_cd -= delta
 	_patrol_cd -= delta
 	if _sense_cd <= 0:
-		_sense_cd = float(skill.think)
+		_sense_cd = float(skill.think) * (1.5 if world.bots_per_round >= 18 and global_position.distance_to(world.player_pos) > 32 else 1.0)
 		_choose_target()
 	var ppos: Vector3 = world.player_pos if _target_player else (_target_bot.global_position if is_instance_valid(_target_bot) and not _target_bot._dead else _target_memory)
 	if not _has_target:
@@ -455,7 +484,7 @@ func _fire_at_player(target_pos: Vector3, dist: float) -> void:
 
 
 func apply_hit(dmg: float, hit_pos: Vector3, knockback: Vector3, head_mult: float = 3.2, attacker: String = "PLAYER") -> Dictionary:
-	if _dead or is_runner:
+	if _dead or is_runner or world.same_team(attacker, bot_name):
 		return {"killed": false, "headshot": false, "dmg": 0.0}
 
 	last_damage_by = attacker
@@ -514,7 +543,7 @@ func _choose_target() -> void:
 	var origin := global_position + Vector3.UP * 1.4
 	var space := world.get_world_3d().direct_space_state
 	var player_dist := global_position.distance_to(world.player_pos)
-	if world.player_spawn_guard <= 0 and player_dist < best and _in_view(world.player_pos):
+	if not world.same_team(bot_name, "PLAYER") and world.player_spawn_guard <= 0 and player_dist < best and _in_view(world.player_pos):
 		var query := PhysicsRayQueryParameters3D.create(origin, world.player_pos + Vector3.UP * 1.35, 1)
 		if space.intersect_ray(query).is_empty():
 			_target_player = true
@@ -522,7 +551,7 @@ func _choose_target() -> void:
 			best = player_dist
 			_target_memory = world.player_pos
 	for opponent in world.enemies:
-		if not is_instance_valid(opponent) or opponent == self or opponent._dead:
+		if not is_instance_valid(opponent) or opponent == self or opponent._dead or world.same_team(bot_name, opponent.bot_name):
 			continue
 		var distance := global_position.distance_to(opponent.global_position)
 		if distance >= best or not _in_view(opponent.global_position):
@@ -539,11 +568,19 @@ func _choose_target() -> void:
 		_fire_cd = maxf(_fire_cd, float(skill.reaction))
 	if _has_target:
 		_memory_until = _t + float(skill.memory)
+		if not world.combat_patrol_points.is_empty():
+			_patrol_cd = 0
 	if not _has_target and _patrol_cd <= 0 and _memory_until <= _t:
 		_patrol_cd = 3.0
 		var destinations: Array = world.tr_spawns.filter(func(p): return global_position.distance_to(p) > 8.0)
 		if not destinations.is_empty():
 			_target_memory = destinations[_rng.randi() % destinations.size()]
+		if not world.combat_patrol_points.is_empty():
+			# Retain a reachable sector goal long enough to actually arrive there.
+			var sectors: Array = world.combat_patrol_points.filter(func(p): return global_position.distance_to(p) > 10 and global_position.distance_to(p) < 48)
+			if not sectors.is_empty():
+				_target_memory = sectors[_rng.randi() % sectors.size()]
+			_patrol_cd = clampf(global_position.distance_to(_target_memory) / move_speed * 1.6 + 2, 4, 40)
 
 
 func _in_view(at: Vector3) -> bool:
@@ -566,6 +603,9 @@ func hear_noise(at: Vector3, loudness: float) -> void:
 	tactical_state = "investigate"
 
 func _tactical_destination(visible: bool, threat: Vector3) -> Variant:
+	if world.match_kind == CombatMatch.CTF and is_instance_valid(world.match_controller):
+		tactical_state = "flag"
+		return world.match_controller.bot_goal(self)
 	if _t < _tactical_until:
 		return _tactical_goal
 	tactical_state = "engage" if visible else ("investigate" if _memory_until > _t else "patrol")
