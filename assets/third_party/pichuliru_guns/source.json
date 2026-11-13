@@ -1,0 +1,24 @@
+{
+  "author": "Pichuliru",
+  "license": "CC0-1.0",
+  "sources": [
+    "https://opengameart.org/content/cc0-flat-guns-east",
+    "https://opengameart.org/content/cc0-flat-guns-west",
+    "https://opengameart.org/content/cc0-flat-gun-attachments"
+  ],
+  "sha256": {
+    "Pistol_Full_West.glb": "d8a284503309a7fcb215326034db5b0b2151a9b6920c39d018f975ff4b6fd84b",
+    "Rifle_Assault_East.glb": "8b3d3f90afbff9a699c3e2a14574ff0c5a687f1faf6dc4b51ba4a5629ea07783",
+    "Sniper_Rifle_West.glb": "c757564169f2d72e9fb4677be425f617d575fd76808ec32d9730d769548fb0d5",
+    "attachments/Reflex_West.glb": "62cf8a779edb91cb0eeb57197715fa84af30aba9967a50bfd1063f2c24b8cb84",
+    "attachments/Scope_West.glb": "a3c20e2c59273abd280f1a5ddb4f3ec104ca46fac3c06cbd2cf81664ee7cf195",
+    "attachments/Suppressor_West.glb": "0b7a598791ae01f212efd1df9817227b6514c52287c870bc72639dfff83897a4",
+    "prepared/Pistol_Full_West.glb": "82507aab63deec16395fcd589a2d8d62946f5f12747c54e2c42bc4712b207606",
+    "prepared/Rifle_Assault_East.glb": "1d1d807501c6e8d25a2f1e90953705ef923201266915bd94acf4038507621e6d",
+    "prepared/Sniper_Rifle_West.glb": "41758bfb7b64b4fd360e2bbcb69db5f7fd79c9198b1b43970ed2f5dc6533233f",
+    "Shotgun_Auto_West.glb": "74f3c88add8079acd744ae2851f215a4c2d05a7ac60c53e84f116131a7d8d67a",
+    "SMG_Full_West.glb": "844bcd58125cd874951fb9c79b759fbd39282ab56a25a8c0598c4f9f25dd1ad8",
+    "prepared/Shotgun_Auto_West.glb": "6bacdfc7a86e8487da2f88eae86a437a3d6ec68dd4bbcfb113b322b3c49b0eb3",
+    "prepared/SMG_Full_West.glb": "abb1c148ec8fb1e13abaab5cd2fe75cca6f530bbb2fb89c23f6ea24dd7ac8eef"
+  }
+}

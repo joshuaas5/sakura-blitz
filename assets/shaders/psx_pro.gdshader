@@ -9,6 +9,7 @@ uniform vec4 albedo : source_color = vec4(1.0);
 uniform float emission = 0.0;
 uniform bool use_vcol = false;
 uniform sampler2DArray tex : filter_nearest, repeat_enable;
+uniform sampler2D painted_stone : source_color, filter_linear_mipmap, repeat_enable;
 uniform int kind = -1;
 uniform float tex_k = 1.0;
 uniform float tiles = 0.5;
@@ -42,6 +43,10 @@ void fragment() {
 		float m = texture(tex, vec3(uv * tiles, float(k))).r * 2.0;
 		float m_clamped = clamp(m, 0.80, 1.18);
 		c *= mix(1.0, m_clamped, tex_k * dist_fade);
+		if (k == 8) {
+			vec3 paint = texture(painted_stone, uv * 0.20).rgb;
+			c = mix(c, paint * mix(vec3(1.0), albedo.rgb, 0.25), 0.88);
+		}
 	}
 
 	// Deterministic World-Space Sun + Sky Dome + Bounce Lighting (100% immune to camera rotation)

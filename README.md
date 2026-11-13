@@ -1,98 +1,102 @@
-# SAKURA BLITZ — Mobile-First F2P Crossplay FPS & Mega Parkour
+# Sakura Blitz
 
-![Godot 4.7](https://img.shields.io/badge/Godot-4.7.2-478cbf?logo=godotengine&logoColor=white)
-![Platform](https://img.shields.io/badge/Platforms-Mobile%20(iOS%2FAndroid)%20%7C%20PC%20Crossplay-brightgreen)
-![Cloudflare Pages](https://img.shields.io/badge/Cloudflare_Pages-sakura--blitz.pages.dev-f38020?logo=cloudflare&logoColor=white)
-![Build](https://img.shields.io/badge/CI%2FCD-GitHub_Actions_%E2%9E%9E_Cloudflare_Pages-blue)
+FPS e corrida de obstáculos em Godot 4.7.2, com controles para celular na horizontal. Esta versão é um jogo local contra bots; multiplayer online, pagamentos e contas ainda não estão implementados.
 
-**SAKURA BLITZ** é um jogo competitivo, ágil e viciante em **3D Low-Poly / Retro-Moderno**, projetado com foco **Mobile-First** para **iOS (Safari / PWA / App Store)**, **Android (Chrome / PWA / Google Play)** e **PC Desktop Crossplay**.
+## Jogar localmente
 
-O jogo conta com **dois modos de jogo completamente distintos**, cada um com sua dinâmica, atmosfera e progressão:
+No Windows, abra `run.bat`. Ele procura Godot na pasta `../tools/godot/` e depois no PATH. Também é possível importar `project.godot` no Godot 4.7.2 e apertar F5.
 
----
+O lobby permite escolher modo, mapa e bots **Fácil, Médio ou Difícil**. A dificuldade escolhida vale para a próxima partida. Continuar mantém a partida pausada e sua dificuldade original.
 
-## 🎮 Teste Online no Navegador (Cloudflare Pages)
+### APK de teste no Android
 
-Acesse diretamente em qualquer celular ou PC:
-👉 **[https://sakura-blitz.pages.dev/](https://sakura-blitz.pages.dev/)**
+`export/android/SakuraBlitz-0.7.0-test.apk` — transfira para o aparelho e abra para instalar **Sakura Blitz Teste**. O app usa tela horizontal, ativa controles de toque automaticamente e começa na qualidade leve. A qualidade pode ser alterada em Ajustes no lobby.
 
-> Cada commit enviado para a branch `main` no GitHub dispara automaticamente o GitHub Actions, que compila o export Web do Godot 4 e faz o deploy instantâneo na Cloudflare Pages.
+Build local de teste: Android 7.0/API 24 ou superior, ARM 32/64 bits, versão `0.7.0-test`, pacote `com.joshuaas5.sakurablitz.test`. Assinatura de depuração local; apenas permissão de vibração. Ainda requer teste de desempenho e ergonomia no aparelho real.
 
----
+Para regenerar no PC configurado: `./tools/build_android_test.ps1`. O script exporta, verifica assinatura e alinhamento de 16 KB, inspeciona o manifesto e grava SHA256 em `export/android/`. Usa o SDK instalado em `C:/android-sdk`; aceita `-Godot` e `-AndroidSdk` para outros caminhos.
 
-## 🕹️ Dois Modos de Jogo Completamente Diferentes
+## Conteúdo desta versão
 
-### 1. 🎯 Modo Tiro / Combate Letal (Estilo Phantom Forces / BO2)
-*Disputa intensa de PvP contra bots inteligentes com foco em dopamina pura de eliminações.*
+- **Nove arenas:** Vila Sakura, Porto Cobalto, Cânion Âmbar, Distrito Neon, Estação Aurora, Vila Floral, Bazar Solar, Docas do Festival e Observatório Lunar. Partidas contra seis bots, com limite de três minutos ou 15 abates, placar real e resultado final.
+- **Seis corridas:** Festival das Nuvens, Telhados do Sol, Oásis das Marés, Órbita Neon, Jardim do Chá e Fábrica de Brinquedos. Cada percurso tem oito setores, sete corredores, checkpoints sequenciais, rota segura e atalhos.
+- **Arsenal:** seis armas disponíveis desde o início, incluindo Brisa SMG e Flora escopeta, seleção no lobby, prévias 3D, recargas e maestria por arma. A escolha de combate permanece salva entre sessões e corridas.
+- **Bots com níveis:** reação, precisão, frequência de tiro, movimento e velocidade de corrida diferentes; todos têm a mesma vida. Disparos respeitam paredes e os bots também disputam entre si.
+- **Mobile:** analógico esquerdo, câmera à direita, pulo com arraste para olhar, tiro automático opcional, recarga automática, assistência de subida em obstáculos baixos e tolerância no salto.
+- **Perfil local:** moedas, equipamentos, recordes, preferências e maestria salvos com arquivo de recuperação. Ouro aos 50 abates por arma; silenciador cosmético aos 100 abates nas armas de fogo.
+- **Economia:** moedas por desempenho, desafio diário resgatável uma vez e loja com cosméticos. Upgrades comprados com moedas de jogo dão até +3% de dano; skins não alteram atributos. Não há compra com dinheiro real nesta versão.
+- **Visual e áudio:** Vila Floral com assets CC0 importados, HUD com molduras ilustradas, cinco armas importadas, skins pintadas e prévias 3D reais na loja e três loops musicais sintetizados para o projeto.
 
-- **4 Arenas Táticas**:
-  1. **Vila BO2 (Nuketown / Hijacked)**: Pátio central com bunkers, passarelas superiores e faixas de callouts vibrantes.
-  2. **Shipment CQC**: Labirinto de contêineres e corredores estreitos para confrontos corpo a corpo alucinantes.
-  3. **Sniper Canyon**: Vale aberto cercado de torres altas e linhas de visão longas para duelos de AWP.
-  4. **Cyber-Vertigo 3-Floor**: Complexo vertical de três andares com elevadores, rampas e combate multinível.
-- **Dopamina de Abate (Phantom Forces)**:
-  - **Kill Siphon**: +30 HP curados instantaneamente + 25 de Escudo + recarga imediata de munição a cada abate.
-  - **Burst de Adrenalina**: +35% de velocidade de corrida por 2 segundos após matar.
-  - **Ragdoll Físico 3D**: O bot derrotado é arremessado fisicamente para trás pela inércia do tiro fatal.
-  - **Stack de Pontos no Centro da Tela**: Notificações empilhadas de pontuação (`INIMIGO ELIMINADO +100`, `HEADSHOT FATAL +50`, `DOUBLE KILL +100`, `LONGSHOT +75`).
-  - **Placar Dinâmico ao Vivo**: Tabela no topo da tela exibindo as eliminações em tempo real entre você e os 6 bots da partida.
-- **Arsenal Balanceado**:
-  - **AK-47**: Dano 42 (3.2x Headshot fatal).
-  - **AWP Sniper**: Dano 140 (1-shot fatal em qualquer parte do corpo).
-  - **Deagle .50**: Dano 58 (3.0x Headshot fatal).
-  - **Karambit Tática**: Dano 110 (1-hit kill nas costas e combate corpo a corpo).
+## Controles
 
----
+| Entrada | Ação |
+| --- | --- |
+| WASD / mouse | Andar / olhar |
+| Espaço | Pular; manter pressionado repete o salto ao pousar |
+| Shift / Ctrl | Correr / agachar |
+| Botões esquerdo / direito do mouse | Atirar / mirar |
+| 1–6 / Q | Selecionar arma / troca rápida |
+| R / F | Recarregar / inspecionar |
+| Esc / L | Lobby / loja |
+| G / B | Voltar ao checkpoint / reiniciar partida |
+| M / Tab | Trocar modo / próximo mapa |
+| P / V | Música / controles de toque |
+| H / 7 | Alternar cosméticos já desbloqueados |
 
-### 2. 🏃 Modo Corrida Parkour (Estilo Fall Guys Marathon)
-*Corrida pura de habilidade e reflexos contra 7 bots corredores sem tiros ou mortes por PvP.*
+## Desenvolvimento e validação
 
-- **Zero Mortes por Tiro**: No modo parkour não há armas de fogo — a disputa é exclusivamente de agilidade, saltos e timing.
-- **Portão de Largada com Contagem Regressiva**:
-  - `5... 4... 3... 2... 1... VAI!` com trava física de largada que abre para todos os corredores simultaneamente.
-- **7 Bots Corredores Competitivos**:
-  - Cada bot possui inteligência de navegação em tempo real, pulando nos tambores, calculando desvios e disputando o 1º lugar até a linha de chegada.
-- **4 Maratonas Longas e Difíceis (335m a 380m cada)**:
-  1. **Mega Marathon Fall Guys (350m)**: Tambores elásticos Lily-Leaper, martelos gigantes giratórios (Big Yeetus), pêndulos balançantes, empurradores hidráulicos e piso de azulejos falsos (Tip-Toe).
-  2. **Cozy Rooftops Skyline (335m)**: Telhados em alturas vertiginosas, chaminés de vapor com impulso ascendente, tirolesas e gaps técnicos de bunnyhop.
-  3. **CS:GO KZ & Surf Valley (380m)**: Rampas de surfe com física de atrito nulo, escadas KZ de precisão cirúrgica e jump pads hipersônicos.
-  4. **Cyber-Vertigo Spiral (340m)**: Espiral futurista ascendente de plataformas móveis, lasergates de repulsão e ventoinhas de salto.
+Execute a partir da raiz, com Godot no PATH:
 
----
+```powershell
+godot --headless --editor --import --path .
+godot --headless --fixed-fps 60 --path . -- --test
+godot --path . -- --qa
+godot --headless --path . --export-release Web build/web/index.html
+python -m http.server 8765 --bind 127.0.0.1 --directory build/web
+```
 
-## 📱 Controles Mobile-First (iOS & Android)
+O último comando serve o build em `http://127.0.0.1:8765/`. O navegador exige HTTP; não abra o HTML diretamente. A exportação exige os templates 4.7.2. A QA salva capturas ignoradas pelo Git em `shots/foundation_*.png` e imprime métricas do renderizador.
 
-A HUD do jogo foi concebida para touch nativo com alta sensibilidade:
-- **Analógico Virtual 360° (Lado Esquerdo)**: Posicionamento dinâmico ao toque, com anel externo para corrida automática (Auto-Sprint).
-- **Controle de Mira com Aim-Assist (Lado Direito)**: Arraste livre para mirar, com magnetismo suave de mira sobre alvos próximos.
-- **Disparo em Garra (Claw Button)**: Botão de tiro tático no canto superior esquerdo para mira e disparo simultâneos com 3 ou 4 dedos.
-- **Auto-Fire Opcional**: Disparo automático inteligente ao passar a mira sobre um bot adversário no modo de tiro.
-- **Troca Rápida de Modos e Fases**: Botões dedicados no topo para alternar instantaneamente entre Modo Tiro e Modo Parkour, trocar de mapa ou reiniciar a corrida.
+`--test` usa perfil descartável e simula percursos completos. Uma mensagem `EXPECTED DIAGNOSTIC` seguida de erro de leitura é intencional: verifica a recuperação de um save corrompido. O resultado final e o código de saída determinam sucesso ou falha.
 
----
+Detalhes e próximos passos: [expansão mobile](docs/expansao_mobile.md). Procedência dos novos áudios: [músicas originais](assets/audio/original/README.md).
 
-## 💻 Controles de Teclado & Mouse (PC)
+## Estado da publicação
 
-| Tecla | Ação |
-|---|---|
-| `W, A, S, D` | Movimentação / Strafing |
-| `Espaço` | Pulo / Bunnyhop |
-| `Shift` | Correr / Adrenalina |
-| `Ctrl / C` | Agachar |
-| `LMB (Botão Esquerdo)` | Disparar / Golpear com Faca |
-| `RMB (Botão Direito)` | Mirar (Sight Red Dot 3D / Luneta AWP) |
-| `R` | Recarregar Arma |
-| `1, 2, 3` | Primária (AK/AWP), Secundária (Deagle), Faca (Karambit) |
-| `TAB` | Alternar entre Modo Tiro e Modo Parkour |
-| `M` | Próximo Mapa / Fase daquele Modo |
-| `P` | Ligar / Desligar Rádio dos Mapas |
-| `V` | Alternar Exibição dos Controles Touch na Tela |
+O repositório contém um workflow de deploy para Cloudflare Pages ao enviar mudanças para `main`. Alterações locais não atualizam o [site publicado](https://sakura-blitz.pages.dev/). Esta expansão foi validada no Godot nativo e exportada para web; compatibilidade no navegador e desempenho em celulares reais ainda precisam de testes. Não há garantia de 60 FPS em aparelhos de 3–4 GB.
 
----
+## Rework Atelier
 
-## 🛠️ Tecnologias e Arquitetura
+Abra `run.bat`, selecione **Combate → Vila Floral** e use **L** para a loja ou **F** para inspecionar. A Vila Floral aparece primeiro na lista de arenas. O novo HUD funciona em todos os mapas; o cenário reconstruído está concentrado nessa arena.
 
-- **Engine**: Godot Engine 4.7.2 Stable (GL Compatibility Mobile Renderer).
-- **Single-Thread Web Build**: Roda em 60/120 FPS sem bloqueios de segurança em navegadores móveis.
-- **Shader Analítico PSX-Pro**: Iluminação 100% calculada por pixel no mundo, sem artefatos de flickering em sombras e texturas.
-- **Hospedagem & CI/CD**: Cloudflare Pages + Edge Worker streaming com WebAssembly compactado via gzip (redução de 38MB para 9.5MB).
+Capturas adicionais: `godot --path . -- --qa --art`. Detalhes: [implementação Atelier](docs/rework_atelier.md). Licenças: [assets de terceiros](THIRD_PARTY_LICENSES.md).
+
+## Novas arenas temáticas
+
+No lobby, escolha **Combate** e selecione **Bazar Solar**, **Docas do Festival** ou **Observatório Lunar**. Cada uma tem composição própria, assets CC0 e navegação por caminhos para os bots. Detalhes e limites da validação em [docs/arenas_assinatura.md](docs/arenas_assinatura.md).
+
+## Mobile 0.3.0
+
+Em **Ajustes**, use **Organizar botões na tela** para mover os controles, ajustar tamanho/opacidade e escolher modo canhoto. **Treino guiado** ensina movimento, câmera, salto e tiro na Vila Floral. O HUD salvo acompanha o perfil local.
+
+Ative **Mostrar FPS e tempo dos quadros** para medir no aparelho. Após jogar, abra **Copiar diagnóstico da última partida** e cole o relatório para análise. Detalhes e limites: [mobile_primeira_entrega.md](docs/mobile_primeira_entrega.md).
+
+## Menu e Vila Floral — 0.4.0
+
+Navegação por toque corrigida no lobby, loja e resultados; abas fixas e cartões compactos no celular. A Vila Floral recebeu uma casa do chá atravessável, navegação por caminhos para os bots, mobiliário e ambientação sonora 3D. Ajustes incluem volumes independentes de efeitos e ambiente. [Implementação e validação](docs/fases_mobile_vila.md).
+
+## Combate 0.5.0
+
+Reaparecimento avalia distância dos adversários, exposição e espaço livre nas nove arenas. Bots têm campo de visão, memória limitada, investigação por sons e busca de cobertura; no Difícil, podem procurar flancos onde há navegação integrada. Passos e tiros de bots têm posição 3D. A proteção ao nascer aparece no HUD e termina ao atacar. [Implementação e limites](docs/combate_fase3.md).
+
+## Estabilidade 0.5.1
+
+Corrigidos comandos residuais após morte/pausa, navegação pelo botão Voltar na loja e separação das medições entre partidas repetidas. Dano tardio não altera o jogador nos menus. [Reprodução e validação](docs/revisao_estabilidade.md).
+
+## Arsenal 0.6.0
+
+Brisa e Flora usam modelos CC0, peças animadas e efeitos sonoros sintetizados próprios. A escopeta resolve oito projéteis por cartucho, com queda de dano pela distância e um único evento de dano/abate por vítima. Saves antigos de quatro armas migram preservando os índices originais, a carteira e os desbloqueios. Detalhes em [arsenal_fase3.md](docs/arsenal_fase3.md); visão geral de lançamento em [estado_lancamento.md](docs/estado_lancamento.md).
+
+## Navegação 0.7.0
+
+As nove arenas têm navegação global. Nas cinco antigas, os bots agora seguem rotas entre pisos e sobem escadas com teste da cápsula contra colisões. Foram corrigidos acessos do Porto Cobalto, Cânion Âmbar, Distrito Neon e Estação Aurora, além de spawns bloqueados. A suíte completa passou em 1.873 verificações. Detalhes e limitações em [navegacao_fase3.md](docs/navegacao_fase3.md). O APK continua sendo uma versão de teste local contra bots, sem contas, multiplayer ou compras reais.

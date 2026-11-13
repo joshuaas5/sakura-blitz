@@ -1,0 +1,157 @@
+class_name WeaponCatalog
+extends RefCounted
+## Append-only indices preserve existing mastery and equipped cosmetics.
+const FIREARMS := [0, 1, 2, 4, 5]
+const DEFINITIONS := [
+	{
+		"name": "AK-47 COMMANDO",
+		"sub": "Fuzil de Assalto • 3 Tiros Corpo / 1-Tap Headshot (RMB)",
+		"dmg": 42.0,
+		"head_mult": 3.2, # 134 dmg -> Instant 1-tap headshot!
+		"rate": 0.092,
+		"mag": 32,
+		"reserve": 160,
+		"spread_hip": 0.016,
+		"spread_ads": 0.0008,
+		"recoil_kick": 0.048,
+		"recoil_up": 0.018,
+		"ads_pos": Vector3(0.0, -0.124, -0.30),
+		"ads_fov": 54.0,
+		"speed_mult": 0.97,
+		"color": Color("ffd166"),
+		"sfx": "smg_shoot",
+		"auto": true,
+		"scoped": false,
+		"melee": false
+	},
+	{
+		"name": "AWP / L96A1 ARCTIC",
+		"sub": "Sniper Bolt-Action • 1 Tiro Fatal Quickscope (RMB)",
+		"dmg": 140.0,
+		"head_mult": 2.5, # 350 dmg -> Instant kill
+		"rate": 0.80,
+		"mag": 10,
+		"reserve": 50,
+		"spread_hip": 0.042,
+		"spread_ads": 0.0001,
+		"recoil_kick": 0.12,
+		"recoil_up": 0.058,
+		"ads_pos": Vector3(0.0, -0.11, -0.22),
+		"ads_fov": 26.0,
+		"speed_mult": 0.90,
+		"color": Color("fff3b0"),
+		"sfx": "shotgun_shoot",
+		"auto": false,
+		"scoped": true,
+		"melee": false
+	},
+	{
+		"name": "DESERT EAGLE .50",
+		"sub": "Pistola Pesada • 2 Tiros Corpo / 1-Tap Headshot (RMB)",
+		"dmg": 58.0,
+		"head_mult": 3.0, # 174 dmg -> 1-tap headshot!
+		"rate": 0.21,
+		"mag": 8,
+		"reserve": 56,
+		"spread_hip": 0.014,
+		"spread_ads": 0.0008,
+		"recoil_kick": 0.088,
+		"recoil_up": 0.045,
+		"ads_pos": Vector3(0.0, -0.085, -0.32),
+		"ads_fov": 60.0,
+		"speed_mult": 1.00,
+		"color": Color("ffd166"),
+		"sfx": "rail_shoot",
+		"auto": false,
+		"scoped": false,
+		"melee": false
+	},
+	{
+		"name": "KARAMBIT TÁTICA",
+		"sub": "Garra Curva CS:GO (+18% Velocidade Parkour + Hit Kill)",
+		"dmg": 110.0,
+		"head_mult": 2.0,
+		"rate": 0.30,
+		"mag": 1,
+		"reserve": 1,
+		"spread_hip": 0.0,
+		"spread_ads": 0.0,
+		"recoil_kick": -0.14,
+		"recoil_up": -0.12,
+		"ads_pos": Vector3(0.18, -0.18, -0.36),
+		"ads_fov": 78.0,
+		"speed_mult": 1.18,
+		"color": Color("00f5d4"),
+		"sfx": "double_jump",
+		"auto": false,
+		"scoped": false,
+		"melee": true
+	},
+	{
+		"name": "BRISA • SMG",
+		"short": "BRISA SMG",
+		"id": "brisa",
+		"role": "Mobilidade • curta distância",
+		"dmg": 24.0,
+		"head_mult": 1.8,
+		"rate": 0.065,
+		"mag": 28,
+		"reserve": 168,
+		"spread_hip": 0.012,
+		"spread_ads": 0.003,
+		"recoil_kick": 0.033,
+		"recoil_up": 0.011,
+		"ads_pos": Vector3(0, -0.124, -0.30),
+		"ads_fov": 60.0,
+		"speed_mult": 1.04,
+		"color": Color("8cd8cc"),
+		"sfx": "brisa_shoot",
+		"auto": true,
+		"scoped": false,
+		"melee": false,
+		"reload": 1.5,
+		"falloff_start": 12.0,
+		"falloff_end": 32.0,
+		"min_damage": 12.0,
+		"siphon": 4
+	},
+	{
+		"name": "FLORA • ESCOPETA",
+		"short": "FLORA",
+		"id": "flora",
+		"role": "Impacto • combate próximo",
+		"dmg": 14.0,
+		"head_mult": 1.3,
+		"rate": 0.72,
+		"mag": 8,
+		"reserve": 48,
+		"spread_hip": 0.075,
+		"spread_ads": 0.045,
+		"recoil_kick": 0.11,
+		"recoil_up": 0.048,
+		"ads_pos": Vector3(0, -0.145, -0.39),
+		"ads_fov": 60.0,
+		"speed_mult": 0.94,
+		"color": Color("e6b5bd"),
+		"sfx": "flora_shoot",
+		"auto": false,
+		"scoped": false,
+		"melee": false,
+		"reload": 2.1,
+		"pellets": 8,
+		"range": 35.0,
+		"falloff_start": 5.0,
+		"falloff_end": 20.0,
+		"min_damage": 3.0,
+		"siphon": 1
+	}
+]
+
+static func label_for(idx: int) -> String:
+	return str(DEFINITIONS[idx].get("short", ["AK-47", "L96 • SNIPER", "PISTOLA .50", "KARAMBIT", "BRISA SMG", "FLORA"][idx]))
+
+static func damage_at_distance(idx: int, distance: float) -> float:
+	var w: Dictionary = DEFINITIONS[idx]
+	var start := float(w.get("falloff_start", 115.0))
+	var end := float(w.get("falloff_end", 116.0))
+	return lerpf(float(w.dmg), float(w.get("min_damage", w.dmg)), clampf((distance - start) / maxf(0.01, end - start), 0, 1))

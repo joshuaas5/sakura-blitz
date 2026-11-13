@@ -6,6 +6,8 @@ extends Node3D
 ## - MODO 1: MODO PARKOUR — FALL GUYS RACE (4 Hardcore 8-Sector Marathons: 335m to 380m long!)
 ##   * Zero PvP shooting deaths! Starts with a 5-4-3-2-1 VAI! Starting Gate and 7 Runner Bots racing you for 1st Place!
 
+signal combat_finished(standings: Array)
+
 signal enemy_killed(was_headshot: bool, bot_name: String, hit_pos: Vector3)
 signal round_won(round_num: int, ct_score: int, tr_score: int)
 signal kz_stage_reached(stage_idx: int, stage_name: String, course_time: float, cp_pos: Vector3)
@@ -24,66 +26,26 @@ const MODE_COMBAT := 0
 const MODE_PARKOUR := 1
 
 const COMBAT_STAGE_DEFS := [
-	{
-		"id": 0,
-		"short": "F1 VILA BO2",
-		"title": "TIRO 1/4 // VILA SAKURA x BO2 NUKETOWN",
-		"subtitle": "Combate Misto (Casas 2 Andares, Onibus e Pontes)  |  [M] Mudar p/ Modo Parkour  |  [F1-F4] Mapas",
-		"is_pvp": true
-	},
-	{
-		"id": 1,
-		"short": "F2 SHIPMENT CQC",
-		"title": "TIRO 2/4 // ARENA SHIPMENT & KILLHOUSE (CLOSE QUARTERS)",
-		"subtitle": "Combate Curta Distancia Frenetico (Containers, Passarela Superior e Brechas)  |  [M] Modo Parkour",
-		"is_pvp": true
-	},
-	{
-		"id": 2,
-		"short": "F3 SNIPER CANYON",
-		"title": "TIRO 3/4 // DESFILADEIRO CROSSFIRE (LONG QUARTERS & SNIPER)",
-		"subtitle": "Combate Longa Distancia (2 Bastioes Sniper, Ponte Suspensa de 44m e Trincheira)  |  [M] Modo Parkour",
-		"is_pvp": true
-	},
-	{
-		"id": 3,
-		"short": "F4 CYBER VERTIGO",
-		"title": "TIRO 4/4 // TORRE CYBER-VERTIGO (3 ANDARES + JUMP-PADS)",
-		"subtitle": "Combate Vertical Insano em 3 Andares no Topo do Arranha-Ceu  |  [M] Mudar p/ Modo Parkour",
-		"is_pvp": true
-	}
+	{"id": 0, "short": "VILA SAKURA", "title": "Vila Sakura", "subtitle": "Treino local com bots", "is_pvp": true},
+	{"id": 1, "short": "PORTO COBALTO", "title": "Porto Cobalto", "subtitle": "Treino local com bots", "is_pvp": true},
+	{"id": 2, "short": "CÂNION ÂMBAR", "title": "Cânion Âmbar", "subtitle": "Treino local com bots", "is_pvp": true},
+	{"id": 3, "short": "DISTRITO NEON", "title": "Distrito Neon", "subtitle": "Treino local com bots", "is_pvp": true},
+	{"id": 4, "short": "ESTAÇÃO AURORA", "title": "Estação Aurora", "subtitle": "Treino local com bots", "is_pvp": true},
+	{"id": 5, "short": "VILA FLORAL", "title": "Vila Floral", "subtitle": "Treino local com bots", "is_pvp": true},
+	{"id": 6, "short": "BAZAR SOLAR", "title": "Bazar Solar", "subtitle": "Treino local com bots", "is_pvp": true},
+	{"id": 7, "short": "DOCAS DO FESTIVAL", "title": "Docas do Festival", "subtitle": "Treino local com bots", "is_pvp": true},
+	{"id": 8, "short": "OBSERVATÓRIO LUNAR", "title": "Observatório Lunar", "subtitle": "Treino local com bots", "is_pvp": true},
 ]
 
 const PARKOUR_STAGE_DEFS := [
-	{
-		"id": 0,
-		"short": "F1 EL PANADERO",
-		"title": "CORRIDA 1/4 // MARATONA EL PANADERO EXTREME (335m • 8 SETORES)",
-		"subtitle": "Disputa Contra 7 Bots! Tambores Lily Leapers, Pendulos, See-Saws, Pinball & Big Yeetus!",
-		"is_pvp": false
-	},
-	{
-		"id": 1,
-		"short": "F2 SLIME CLIMB",
-		"title": "CORRIDA 2/4 // SLIME CLIMB & DEATHRUN HARDCORE (350m • 8 SETORES)",
-		"subtitle": "Disputa Contra 7 Bots! Paredes Empurradoras, Jump Showdown, Grade Tip-Toe 30 Pisos & Door Dash!",
-		"is_pvp": false
-	},
-	{
-		"id": 2,
-		"short": "F3 SURF ODYSSEY",
-		"title": "CORRIDA 3/4 // CS:GO SURF & KZ ODYSSEY (365m • 8 SETORES)",
-		"subtitle": "Disputa Contra 7 Bots! 10 Blocos Bhop, 5 Rampas de Surf, Torre Tripla KZ & Gangorras Aereas!",
-		"is_pvp": false
-	},
-	{
-		"id": 3,
-		"short": "F4 OMEGA GAUNTLET",
-		"title": "CORRIDA 4/4 // FALL GUYS OMEGA GAUNTLET (380m • 8 SETORES)",
-		"subtitle": "A Maratona Suprema de 380m! Todos os Obstaculos Combinados ate a Coroa Real!",
-		"is_pvp": false
-	}
+	{"id": 0, "short": "FESTIVAL DAS NUVENS", "title": "Festival das Nuvens", "subtitle": "Treino local com bots", "is_pvp": false},
+	{"id": 1, "short": "TELHADOS DO SOL", "title": "Telhados do Sol", "subtitle": "Treino local com bots", "is_pvp": false},
+	{"id": 2, "short": "OÁSIS DAS MARÉS", "title": "Oásis das Marés", "subtitle": "Treino local com bots", "is_pvp": false},
+	{"id": 3, "short": "ÓRBITA NEON", "title": "Órbita Neon", "subtitle": "Treino local com bots", "is_pvp": false},
+	{"id": 4, "short": "JARDIM DO CHÁ", "title": "Jardim do Chá", "subtitle": "Treino local com bots", "is_pvp": false},
+	{"id": 5, "short": "FÁBRICA DE BRINQUEDOS", "title": "Fábrica de Brinquedos", "subtitle": "Treino local com bots", "is_pvp": false},
 ]
+
 
 const ATMO_PRESETS := [
 	{
@@ -95,8 +57,8 @@ const ATMO_PRESETS := [
 		"amb_e": 0.74,
 		"sun_c": Color("fff2dc"),
 		"sun_e": 0.52,
-		"sat": 1.20,
-		"con": 1.07
+		"sat": 1.02,
+		"con": 1.02
 	},
 	{
 		"name": "GOLDEN HOUR BO2 (POR DO SOL)",
@@ -107,8 +69,8 @@ const ATMO_PRESETS := [
 		"amb_e": 0.68,
 		"sun_c": Color("ffb76b"),
 		"sun_e": 0.64,
-		"sat": 1.26,
-		"con": 1.09
+		"sat": 1.06,
+		"con": 1.03
 	},
 	{
 		"name": "FESTIVAL CREPUSCULO SAKURA",
@@ -119,11 +81,16 @@ const ATMO_PRESETS := [
 		"amb_e": 0.56,
 		"sun_c": Color("ff9ebb"),
 		"sun_e": 0.44,
-		"sat": 1.28,
-		"con": 1.11
+		"sat": 1.08,
+		"con": 1.04
 	}
 ]
 
+var combat_time_left := 180.0
+var combat_kill_limit := 15
+var combat_is_finished := false
+var player_spawn_guard := 1.5
+var bot_difficulty := 1
 var game_mode := MODE_COMBAT
 var current_stage_idx := 0
 var player_pos := Vector3(0.0, 0.2, 15.2)
@@ -135,6 +102,12 @@ var env: Environment
 var sky_mat: ProceduralSkyMaterial
 var atmo_idx := 0
 
+var arena_navigation: ArenaNavigation
+var spawn_director := SpawnDirector.new()
+var combat_cover: Array[AABB] = []
+var stage_physics_ready := false
+var player_grounded := false
+var combat_audio: CombatAudio
 var _stage_root: Node3D
 var _mats := {}
 var _psx_mats := {}
@@ -167,6 +140,7 @@ var player_race_place := 0
 var _start_gate_node: Node3D
 var parkour_runners: Array[EnemyBot] = []
 var race_waypoints: Array[Vector3] = []
+var race_fast_waypoints: Array[Vector3] = []
 
 var kz_ladders: Array[AABB] = []
 var surf_ramps: Array[Dictionary] = []
@@ -188,7 +162,7 @@ var speed_conveyors: Array[Dictionary] = []
 var kz_active_stage := 0
 var kz_running := false
 var kz_time := 0.0
-var kz_best_times := [0.0, 0.0, 0.0, 0.0]
+var kz_best_times := [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 var kz_best_time := 0.0
 var kz_start_pad := Vector3(0.0, 0.2, 16.5)
 var kz_finish_pad := Vector3(0.0, 12.0, -330.0)
@@ -207,7 +181,7 @@ func build() -> void:
 
 func _init_bot_scoreboard() -> void:
 	bot_scoreboard.clear()
-	for bname in EnemyBot.BOT_NAMES:
+	for bname in EnemyBot.BOT_NAMES.slice(0, bots_per_round):
 		bot_scoreboard[bname] = {"kills": 0, "deaths": 0, "pts": 0}
 
 
@@ -222,8 +196,16 @@ func get_stage_defs_for_mode() -> Array:
 
 func load_mode_and_stage(new_mode: int, new_stage_idx: int) -> Array:
 	game_mode = clampi(new_mode, 0, 1)
-	current_stage_idx = clampi(new_stage_idx, 0, 3)
+	current_stage_idx = clampi(new_stage_idx, 0, get_stage_defs_for_mode().size() - 1)
 	_clear_active_stage()
+	spawn_director = SpawnDirector.new()
+	stage_physics_ready = false
+	_init_bot_scoreboard()
+	combat_time_left = 180.0
+	combat_is_finished = false
+	player_spawn_guard = 1.5
+	ct_score = 0
+	tr_score = 0
 
 	_stage_root = Node3D.new()
 	_stage_root.name = "StageRoot_%d_%d" % [game_mode, current_stage_idx]
@@ -236,15 +218,39 @@ func load_mode_and_stage(new_mode: int, new_stage_idx: int) -> Array:
 			_build_combat_2_shipment_cqc()
 		elif current_stage_idx == 2:
 			_build_combat_3_sniper_canyon()
-		else:
+		elif current_stage_idx == 3:
 			_build_combat_4_cyber_vertigo()
+		elif current_stage_idx >= 6:
+			SignatureArenas.build(self, current_stage_idx)
+		elif current_stage_idx == 5:
+			CuratedVillage.build(self)
+		else:
+			ExpansionArenas.build(self, current_stage_idx == 5)
+		apply_atmosphere_preset([0, 1, 1, 2, 1, 0, 0, 0, 2][current_stage_idx])
+		if current_stage_idx < 5:
+			_add_district_details()
+		elif current_stage_idx == 5:
+			CuratedVillage.atmosphere(self)
+		else:
+			SignatureArenas.atmosphere(self, current_stage_idx)
 		kz_running = false
 		race_countdown = 0.0
+		_bake_static_scenery()
+		if current_stage_idx < 5:
+			arena_navigation = SurfaceNavigation.for_stage(_stage_root, current_stage_idx)
+		CombatTactics.collect_cover(_stage_root, combat_cover)
+		combat_audio = CombatAudio.new()
+		_stage_root.add_child(combat_audio)
+		combat_audio.setup(self)
 		spawn_pvp_round(bots_per_round)
 		return [_current_pvp_spawn, 0.0, 0.0]
 	else:
 		_build_parkour_marathon(current_stage_idx)
 		kz_best_time = float(kz_best_times[current_stage_idx])
+		_bake_static_scenery()
+		combat_audio = CombatAudio.new()
+		_stage_root.add_child(combat_audio)
+		combat_audio.setup(self)
 		start_parkour_race()
 		return [kz_start_pad, 0.0, 0.0]
 
@@ -274,7 +280,7 @@ func _spawn_parkour_runners() -> void:
 		return
 	for i in 7:
 		var lane_x := (float(i) - 3.0) * 1.45
-		var sp := kz_start_pad + Vector3(lane_x, 0.1, -0.6 - float(i % 2) * 0.9)
+		var sp := kz_start_pad + Vector3(lane_x, 0.1, -3.2 - float(i % 2) * 0.9)
 		var runner := EnemyBot.spawn_parkour_runner(self, _stage_root, sp, i)
 		runner.runner_finished.connect(_on_runner_finished)
 		parkour_runners.append(runner)
@@ -344,6 +350,9 @@ func get_combat_standings(player_kills: int, player_deaths: int) -> Array[Dictio
 
 
 func _clear_active_stage() -> void:
+	combat_cover.clear()
+	combat_audio = null
+	arena_navigation = null
 	clear_enemies()
 	for r in parkour_runners:
 		if is_instance_valid(r):
@@ -375,6 +384,7 @@ func _clear_active_stage() -> void:
 	speed_conveyors.clear()
 	floor_weapon_pads.clear()
 	race_waypoints.clear()
+	race_fast_waypoints.clear()
 	tr_spawns.clear()
 	_start_gate_node = null
 
@@ -384,7 +394,8 @@ func _clear_active_stage() -> void:
 
 
 func spawn_pvp_transform() -> Array:
-	return [_current_pvp_spawn, 0.0, 0.0]
+	var point := spawn_director.choose(self, true)
+	return [point, atan2(point.x, point.z), 0.0]
 
 
 func spawn_kz_transform() -> Array:
@@ -404,27 +415,20 @@ func _target_p(parent: Node3D) -> Node3D:
 
 
 func spawn_kenney_model(parent: Node3D, glb_name: String, pos: Vector3, sc: Vector3 = Vector3.ONE, rot_y: float = 0.0) -> Node3D:
-	var tp := _target_p(parent)
 	var res_path := "res://assets/models/kenney/" + glb_name
-	var abs_path := ProjectSettings.globalize_path(res_path)
-	if not FileAccess.file_exists(abs_path):
+	if not ResourceLoader.exists(res_path):
 		return null
-	if not _glb_cache.has(abs_path):
-		var doc := GLTFDocument.new()
-		var state := GLTFState.new()
-		if doc.append_from_file(abs_path, state) == OK:
-			var proto := doc.generate_scene(state)
-			if proto != null:
-				_glb_cache[abs_path] = proto
-	if _glb_cache.has(abs_path):
-		var inst := (_glb_cache[abs_path] as Node).duplicate() as Node3D
-		if inst != null:
-			inst.position = pos
-			inst.scale = sc
-			inst.rotation.y = rot_y
-			tp.add_child(inst)
-			return inst
-	return null
+	if not _glb_cache.has(res_path):
+		_glb_cache[res_path] = load(res_path) as PackedScene
+	var packed: PackedScene = _glb_cache[res_path]
+	if packed == null:
+		return null
+	var instance := packed.instantiate() as Node3D
+	instance.position = pos
+	instance.scale = sc
+	instance.rotation.y = rot_y
+	_target_p(parent).add_child(instance)
+	return instance
 
 
 func psx_mat(c: Color, emit: float = 0.0, unshaded: bool = false, forced_kind: int = -2) -> Material:
@@ -440,7 +444,7 @@ func psx_mat(c: Color, emit: float = 0.0, unshaded: bool = false, forced_kind: i
 		if emit > 0.0:
 			m.emission_enabled = true
 			m.emission = c
-			m.emission_energy_multiplier = emit * 0.65
+			m.emission_energy_multiplier = emit * 0.12
 		if unshaded:
 			m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		_mats[skey] = m
@@ -454,10 +458,12 @@ func psx_mat(c: Color, emit: float = 0.0, unshaded: bool = false, forced_kind: i
 	var sm := ShaderMaterial.new()
 	sm.shader = PSX_ALPHA if glassy else PSX
 	sm.set_shader_parameter("albedo", c)
-	sm.set_shader_parameter("emission", emit)
+	sm.set_shader_parameter("emission", emit * 0.25)
 	sm.set_shader_parameter("use_vcol", false)
 	sm.set_shader_parameter("kind", k)
 	sm.set_shader_parameter("tex", RetroTex.array())
+	if not glassy:
+		sm.set_shader_parameter("painted_stone", preload("res://assets/textures/cozy/painted_limestone.png"))
 	_psx_mats[pkey] = sm
 	return sm
 
@@ -704,11 +710,17 @@ func add_bumper_pillar(pos: Vector3, rad: float, h: float, col: Color) -> void:
 
 func add_speed_conveyor(x: float, y: float, z: float, sx: float, sz: float, boost_vec: Vector3, col: Color) -> void:
 	box(self, x, y - 0.25, z, sx, 0.25, sz, Color("1e222d"), true, 0.0, 2)
-	var stripes := maxi(4, int(sz / 1.4))
-	var step_z := sz / float(stripes)
-	for i in stripes:
-		var c := col if i % 2 == 0 else Color("ffd166")
-		box(self, x + 0.2, y + 0.01, z + i * step_z + 0.1, sx - 0.4, 0.04, step_z * 0.65, c, false, 1.5, -1)
+	var belt := MeshInstance3D.new()
+	var plane := PlaneMesh.new()
+	plane.size = Vector2(sx - 0.2, sz)
+	belt.mesh = plane
+	belt.position = Vector3(x + sx * 0.5, y + 0.02, z + sz * 0.5)
+	var mat := ShaderMaterial.new()
+	mat.shader = preload("res://assets/shaders/conveyor.gdshader")
+	mat.set_shader_parameter("belt_color", col)
+	mat.set_shader_parameter("direction", signf(boost_vec.z))
+	belt.material_override = mat
+	_target_p(self).add_child(belt)
 	speed_conveyors.append({
 		"aabb": AABB(Vector3(x - 0.1, y - 0.2, z - 0.1), Vector3(sx + 0.2, 1.1, sz + 0.2)),
 		"vel": boost_vec
@@ -868,6 +880,9 @@ func _build_sky_and_lights() -> void:
 
 
 func apply_atmosphere_preset(idx: int) -> String:
+	sun.shadow_enabled = false
+	env.fog_enabled = false
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	atmo_idx = posmod(idx, ATMO_PRESETS.size())
 	var p: Dictionary = ATMO_PRESETS[atmo_idx]
 	if is_instance_valid(sky_mat):
@@ -896,10 +911,10 @@ func cycle_atmosphere_preset() -> String:
 func _build_combat_1_vila_bo2() -> void:
 	_current_pvp_spawn = Vector3(0.0, 0.2, 15.2)
 	tr_spawns = [
-		Vector3(-12.5, 0.2, -14.5), Vector3(12.5, 0.2, -14.5),
-		Vector3(-4.2, 0.2, -14.5), Vector3(4.2, 0.2, -14.5),
-		Vector3(-13.5, 0.2, -2.5), Vector3(13.5, 0.2, -2.5),
-		Vector3(-10.5, 0.2, 8.5), Vector3(10.5, 0.2, 8.5)
+		Vector3(-15.6, 0.2, -8.5), Vector3(15.6, 0.2, -8.5),
+		Vector3(-2, 0.2, -15.5), Vector3(2, 0.2, -15.5),
+		Vector3(-15.6, 0.2, 7), Vector3(15.6, 0.2, 7),
+		Vector3(0, 0.2, 10.5), Vector3(0, 0.2, -10.5)
 	]
 	var grass_col := Color("6ab04c")
 	var cobble_floor := Color("d8cfc2")
@@ -922,14 +937,14 @@ func _build_combat_1_vila_bo2() -> void:
 		box(self, side_x, 0.0, -18.0, 0.45, 1.35, 36.0, warm_stone, true, 0.0, 4)
 		box(self, side_x - 0.05, 1.35, -18.1, 0.55, 0.16, 36.2, timber_wall, false, 0.0, 1)
 
-	CozyProps.cozy_chalet(self, self, Vector3(-13.5, 0.0, 13.5), 6.2, 4.4, 6.2, Color("f7ecd8"), Color("b84a39"))
-	CozyProps.cozy_chalet(self, self, Vector3(13.5, 0.0, 13.5), 6.2, 4.4, 6.2, Color("f5e4c8"), Color("3d6b58"))
-	CozyProps.cozy_chalet(self, self, Vector3(-13.5, 0.0, -13.5), 6.2, 4.4, 6.2, Color("f5e4c8"), Color("4a6984"))
-	CozyProps.cozy_chalet(self, self, Vector3(13.5, 0.0, -13.5), 6.2, 4.4, 6.2, Color("f7ecd8"), Color("b84a39"))
+	CozyProps.cozy_chalet(self, _stage_root, Vector3(-13.5, 0.0, 13.5), 6.2, 4.4, 6.2, Color("f7ecd8"), Color("b84a39"))
+	CozyProps.cozy_chalet(self, _stage_root, Vector3(13.5, 0.0, 13.5), 6.2, 4.4, 6.2, Color("f5e4c8"), Color("3d6b58"))
+	CozyProps.cozy_chalet(self, _stage_root, Vector3(-13.5, 0.0, -13.5), 6.2, 4.4, 6.2, Color("f5e4c8"), Color("4a6984"))
+	CozyProps.cozy_chalet(self, _stage_root, Vector3(13.5, 0.0, -13.5), 6.2, 4.4, 6.2, Color("f7ecd8"), Color("b84a39"))
 
-	CozyProps.nuketown_bus(self, self, Vector3(-3.8, 0.0, 0.0), PI * 0.5, Color("e63946"))
-	CozyProps.nuketown_bus(self, self, Vector3(3.8, 0.0, 0.0), -PI * 0.5, Color("00a8e8"))
-	RetroModels.torii_gate(self, self, Vector3(0.0, 0.0, 0.0), 4.6, 4.3, 0.0)
+	CozyProps.nuketown_bus(self, _stage_root, Vector3(-3.8, 0.0, 0.0), PI * 0.5, Color("e63946"))
+	CozyProps.nuketown_bus(self, _stage_root, Vector3(3.8, 0.0, 0.0), -PI * 0.5, Color("00a8e8"))
+	RetroModels.torii_gate(self, _stage_root, Vector3(0.0, 0.0, 0.0), 4.6, 4.3, 0.0)
 
 	var bunker_coords := [
 		{"p": Vector2(-7.2, -7.2), "c": Color("3d6b58"), "team": Color("00f5d4")},
@@ -946,13 +961,13 @@ func _build_combat_1_vila_bo2() -> void:
 		box(self, bc.x - 3.02, 2.55, bc.y - 3.02, 6.04, 0.22, 6.04, stripe_c, false, 1.1, -1)
 		box(self, bc.x - 3.25, 3.4, bc.y - 3.25, 6.5, 0.28, 6.5, roof_c, true, 0.0, 3)
 
-	CozyProps.market_stall(self, self, Vector3(-12.2, 0.0, 7.6), PI * 0.5, Color("e63946"), Color("fff8ee"))
+	CozyProps.market_stall(self, _stage_root, Vector3(-12.2, 0.0, 7.6), PI * 0.5, Color("e63946"), Color("fff8ee"))
 	bouncy_awnings.append(AABB(Vector3(-13.5, 2.1, 6.0), Vector3(2.6, 0.8, 3.2)))
-	CozyProps.market_stall(self, self, Vector3(12.2, 0.0, -7.6), -PI * 0.5, Color("2a9d8f"), Color("fff8ee"))
+	CozyProps.market_stall(self, _stage_root, Vector3(12.2, 0.0, -7.6), -PI * 0.5, Color("2a9d8f"), Color("fff8ee"))
 	bouncy_awnings.append(AABB(Vector3(10.9, 2.1, -9.2), Vector3(2.6, 0.8, 3.2)))
 
-	CozyProps.wooden_watchtower(self, self, Vector3(-14.8, 0.0, 0.0), 3.5)
-	CozyProps.wooden_watchtower(self, self, Vector3(14.8, 0.0, 0.0), 3.5)
+	CozyProps.wooden_watchtower(self, _stage_root, Vector3(-14.8, 0.0, 0.0), 3.5)
+	CozyProps.wooden_watchtower(self, _stage_root, Vector3(14.8, 0.0, 0.0), 3.5)
 	_build_crate_stair(Vector3(-11.2, 0.0, -7.6), -1.0, crate_wood, crate_mil)
 	_build_crate_stair(Vector3(11.2, 0.0, 7.6), 1.0, crate_wood, crate_mil)
 
@@ -963,7 +978,7 @@ func _build_combat_1_vila_bo2() -> void:
 	for i in 10:
 		var ang := i * TAU / 10.0 + 0.25
 		var tp := Vector3(cos(ang) * 22.8, 0.0, sin(ang) * 22.8)
-		RetroModels.sakura_tree(self, self, tp, 1.55, 500 + i * 17, i % 3 != 0)
+		RetroModels.sakura_tree(self, _stage_root, tp, 1.55, 500 + i * 17, i % 3 != 0)
 
 
 func _build_combat_2_shipment_cqc() -> void:
@@ -971,8 +986,8 @@ func _build_combat_2_shipment_cqc() -> void:
 	_current_pvp_spawn = Vector3(0.0, 0.2, 16.5)
 	tr_spawns = [
 		Vector3(-14.0, 0.2, -14.0), Vector3(14.0, 0.2, -14.0),
-		Vector3(0.0, 0.2, -15.5), Vector3(-14.5, 0.2, 0.0),
-		Vector3(14.5, 0.2, 0.0), Vector3(-9.0, 0.2, -6.5),
+		Vector3(0.0, 0.2, -18), Vector3(-12.5, 0.2, 0.0),
+		Vector3(12.5, 0.2, 0.0), Vector3(-9.0, 0.2, -6.5),
 		Vector3(9.0, 0.2, -6.5), Vector3(0.0, 3.6, 0.0)
 	]
 	var asphalt := Color("2b303c")
@@ -1016,8 +1031,14 @@ func _build_combat_2_shipment_cqc() -> void:
 	# Wooden Killhouse Assault Ramps up to the Catwalk & Container Roofs
 	for rx in [-8.5, 8.5]:
 		for step in 8:
-			box(self, rx - 1.2, step * 0.40, 12.8 + step * 0.55, 2.4, 0.42, 0.60, wood_ply, true, 0.0, 1)
-			box(self, rx - 1.2, step * 0.40, -12.8 - step * 0.55, 2.4, 0.42, 0.60, wood_ply, true, 0.0, 1)
+			box(self, rx - 1.2, step * 0.40, 16.1 - step * 0.55, 2.4, 0.42, 0.60, wood_ply, true, 0.0, 1)
+			box(self, rx - 1.2, step * 0.40, -16.7 + step * 0.55, 2.4, 0.42, 0.60, wood_ply, true, 0.0, 1)
+
+	# Landings connect container roofs to the central catwalk, with no jump gaps.
+	for rx in [-8.5, 8.5]:
+		for z in [-4.9, 1.9]:
+			box(self, rx - 1.2, 3.05, z, 2.4, 0.25, 3.0, Color("383f52"), true, 0, 2)
+			box(self, rx - 1.2, 3.31, z, 0.10, 0.03, 3.0, Color("ffd166"), false, 0.8, -1)
 
 	# Plywood Killhouse Cover Walls in the Center Plaza
 	box(self, -4.2, 0.0, -1.8, 0.35, 2.2, 3.6, wood_ply, true, 0.0, 1)
@@ -1080,8 +1101,8 @@ func _build_combat_3_sniper_canyon() -> void:
 		for bx in [-16.0, -10.0, -4.5, 2.5, 8.0, 14.0]:
 			box(self, bx, 4.0, front_z, 2.4, 1.15, 0.45, cliff, true, 0.0, 4)
 		# Watchtower Overlooks on the Bastion Wings
-		CozyProps.wooden_watchtower(self, self, Vector3(-13.5, 4.0, bz), 3.4)
-		CozyProps.wooden_watchtower(self, self, Vector3(13.5, 4.0, bz), 3.4)
+		CozyProps.wooden_watchtower(self, _stage_root, Vector3(-13.5, 4.0, bz), 3.4)
+		CozyProps.wooden_watchtower(self, _stage_root, Vector3(13.5, 4.0, bz), 3.4)
 		# Stairs from Lower Canyon Floor (y=0) up to Bastion Deck (y=4.0)
 		for st in 10:
 			var sy: float = float(st) * 0.40
@@ -1093,8 +1114,8 @@ func _build_combat_3_sniper_canyon() -> void:
 	box(self, -2.8, 3.65, -21.0, 5.6, 0.35, 42.0, wood, true, 0.0, 1)
 	box(self, -3.0, 4.0, -21.0, 0.25, 0.9, 42.0, Color("ffd166"), true, 0.8, -1)
 	box(self, 2.75, 4.0, -21.0, 0.25, 0.9, 42.0, Color("ffd166"), true, 0.8, -1)
-	RetroModels.torii_gate(self, self, Vector3(0.0, 4.0, -10.0), 5.6, 4.5, 0.0)
-	RetroModels.torii_gate(self, self, Vector3(0.0, 4.0, 10.0), 5.6, 4.5, 0.0)
+	RetroModels.torii_gate(self, _stage_root, Vector3(0.0, 4.0, -10.0), 5.6, 4.5, 0.0)
+	RetroModels.torii_gate(self, _stage_root, Vector3(0.0, 4.0, 10.0), 5.6, 4.5, 0.0)
 	# Bridge Cover Crates
 	box(self, -2.2, 4.0, -4.5, 1.5, 1.1, 1.5, sandstone, true, 0.0, 1)
 	box(self, 0.7, 4.0, 4.5, 1.5, 1.1, 1.5, sandstone, true, 0.0, 1)
@@ -1103,7 +1124,14 @@ func _build_combat_3_sniper_canyon() -> void:
 	for side_x in [-21.5, 17.5]:
 		box(self, side_x, 0.0, -21.0, 4.0, 2.6, 42.0, sandstone.darkened(0.08), true, 0.0, 4)
 		for cz in [-12.0, 0.0, 12.0]:
-			box(self, side_x + 0.6, 2.6, cz, 2.8, 1.2, 0.5, cliff, true, 0.0, 4)
+			box(self, side_x + 1.2, 2.6, cz, 1.6, 1.2, 0.5, cliff, true, 0.0, 4)
+
+	# Broad stairs make the cliff flanks reachable without a jump pad.
+	for side in [-1.0, 1.0]:
+		for z in [-14.0, 12.0]:
+			for step in 9:
+				var x: float = 12.6 + step * 0.6
+				box(self, x if side > 0 else -x - 0.65, 0, z, 0.65, (step + 1) * (2.6 / 9), 2.0, wood, true, 0, 1)
 
 	# Lower Canyon Trench Cover Pillars & Jump-Pads
 	for cz in [-14.0, -5.0, 5.0, 14.0]:
@@ -1160,13 +1188,13 @@ func _build_combat_4_cyber_vertigo() -> void:
 	box(self, 12.5, 3.4, -12.5, 5.5, 0.30, 25.0, deck_mid, true, 0.0, 2)
 	# Ramps from Floor 1 to Floor 2
 	for st in 9:
-		box(self, -2.2, st * 0.40, 12.5 + (8 - st) * 0.65, 4.4, 0.42, 0.70, cyan.darkened(0.25), true, 0.4, 0)
-		box(self, -2.2, st * 0.40, -12.5 - (8 - st) * 0.65, 4.4, 0.42, 0.70, pink.darkened(0.25), true, 0.4, 0)
+		box(self, -2.2, st * 0.41, 7.3 + st * 0.65, 4.4, 0.42, 0.70, cyan.darkened(0.25), true, 0.4, 0)
+		box(self, -2.2, st * 0.41, -8.0 - st * 0.65, 4.4, 0.42, 0.70, pink.darkened(0.25), true, 0.4, 0)
 
 	# Floor 3: Central High Penthouse Helipad Deck (y = 7.2m)
 	box(self, -6.5, 6.9, -6.5, 13.0, 0.35, 13.0, deck_dark, true, 0.0, 2)
 	box(self, -6.6, 7.25, -6.6, 13.2, 0.18, 13.2, gold, false, 1.6, -1)
-	RetroModels.torii_gate(self, self, Vector3(0.0, 7.25, 0.0), 5.2, 4.2, 0.0)
+	RetroModels.torii_gate(self, _stage_root, Vector3(0.0, 7.25, 0.0), 5.2, 4.2, 0.0)
 	# Ramps from Floor 2 (x = +-12.5, y = 3.6m) up to Floor 3 Penthouse (x = +-6.5, y = 7.2m)
 	for st in 9:
 		var rx := 6.5 + (8 - st) * 0.68
@@ -1199,257 +1227,7 @@ func _add_weapon_pad(pos: Vector3, label: String, col: Color) -> void:
 # ================================================================================================
 
 func _build_parkour_marathon(course_idx: int) -> void:
-	var pink := Color("ff2a85")
-	var cyan := Color("00f5d4")
-	var gold := Color("ffd166")
-	var purple := Color("8338ec")
-	var coral := Color("ff4757")
-	var lime := Color("8ac926")
-	var cobble := Color("d8cfc2")
-
-	kz_start_pad = Vector3(0.0, 0.2, 16.5)
-	race_waypoints.clear()
-	race_waypoints.append(Vector3(0.0, 0.2, 12.0))
-
-	# Abyss Floor Visual (Slime / Lava / Canyon Valley far below at y = -5.5m)
-	var abyss_col := Color("6ab04c") if course_idx == 0 else (Color("ff2a55") if course_idx == 1 else (Color("1e3799") if course_idx == 2 else Color("7209b7")))
-	box(self, -34.0, -6.2, -400.0, 68.0, 0.5, 430.0, abyss_col, false, 0.6 if course_idx != 0 else 0.0, 5)
-
-	# Decorative Clouds & Sakura Trees along the 360m Marathon Corridor
-	for i in 22:
-		var tz := 12.0 - i * 16.5
-		spawn_kenney_model(self, "cloud.glb", Vector3((-1.0 if i % 2 == 0 else 1.0) * 18.0, 14.0 + (i % 3) * 2.5, tz), Vector3(3.8, 2.8, 3.8))
-
-	# Starting Paddock (8-Lane Fall Guys Starting Grid at z = +11..+21)
-	box(self, -7.5, -1.0, 11.0, 15.0, 1.0, 10.0, cobble, true, 0.0, 8)
-	for lane_i in 8:
-		var lx := -5.25 + lane_i * 1.5
-		var lc := pink if lane_i % 2 == 0 else cyan
-		box(self, lx - 0.55, 0.02, 14.2, 1.1, 0.06, 3.6, lc, false, 1.3, -1)
-	RetroModels.torii_gate(self, self, Vector3(0.0, 0.0, 12.5), 9.5, 5.2, 0.0)
-
-	# Physical 5-4-3-2-1 Starting Gate Barrier (Drops when countdown reaches 0!)
-	_start_gate_node = Node3D.new()
-	_start_gate_node.position = Vector3.ZERO
-	_stage_root.add_child(_start_gate_node)
-	box(_start_gate_node, -7.2, 0.0, 13.4, 14.4, 3.2, 0.35, Color(1.0, 0.18, 0.52, 0.72), true, 2.0, -1)
-	box(_start_gate_node, -7.4, 3.1, 13.3, 14.8, 0.30, 0.55, gold, false, 2.2, -1)
-
-	# 8-Sector Course Recipes (Each sector is ~42m long -> ~350m-380m total!)
-	var recipes := [
-		# Course 0: EL PANADERO EXTREME (335m)
-		["DRUMS", "PENDULUMS", "SEESAWS", "CONVEYOR_PINBALL", "MOVING_GAPS", "HAMMERS", "DRUMS_HIGH", "SWEEPERS"],
-		# Course 1: SLIME CLIMB HARDCORE (350m)
-		["MOVING_GAPS", "PUSHERS", "SWEEPERS", "TIPTOE", "CONVEYOR_PUSHERS", "DOORDASH_HAMMERS", "FALLING_BRIDGE", "JUMPPAD_TOWER"],
-		# Course 2: CS:GO SURF & KZ ODYSSEY (365m)
-		["BHOP_ZIGZAG", "SURF_DUAL", "PENDULUMS", "SURF_TRIPLE", "KZ_LADDERS", "SEESAWS", "MOVING_GAPS", "HAMMERS"],
-		# Course 3: FALL GUYS OMEGA GAUNTLET (380m)
-		["DRUMS", "PUSHERS", "SURF_DUAL", "SWEEPERS", "SEESAWS", "TIPTOE", "CONVEYOR_PINBALL", "OMEGA_CLIMB"]
-	]
-	var seq: Array = recipes[clampi(course_idx, 0, recipes.size() - 1)]
-	var cur_z := 11.0
-	var cur_y := 0.0
-
-	for s_idx in 8:
-		var kind := str(seq[s_idx])
-		var res := _build_parkour_sector(s_idx + 1, kind, cur_z, cur_y, pink, cyan, gold, purple, coral, lime)
-		cur_z = float(res.z)
-		cur_y = float(res.y)
-
-	# Final Golden Crown Sanctuary at the end of Sector 8!
-	kz_finish_pad = Vector3(0.0, cur_y + 0.2, cur_z - 5.5)
-	race_waypoints.append(kz_finish_pad)
-	_add_finish_sanctuary(Vector3(0.0, cur_y, cur_z - 5.5), "COROA DO CAMPEAO")
-
-
-func _build_parkour_sector(s_num: int, kind: String, z_in: float, y_in: float,
-		pink: Color, cyan: Color, gold: Color, purple: Color, coral: Color, lime: Color) -> Dictionary:
-	var z := z_in
-	var y := y_in
-	var title := "SETOR %d/8: %s" % [s_num, kind]
-
-	if kind == "DRUMS" or kind == "DRUMS_HIGH":
-		title = "SETOR %d/8: TAMBORES LILY LEAPERS!" % s_num
-		for i in 7:
-			var dx := sin(float(i) * 1.35) * 2.3
-			z -= 5.4
-			y += 0.55 if kind == "DRUMS_HIGH" else 0.25
-			add_bouncy_drum(Vector3(dx, y, z), 1.45, pink if i % 2 == 0 else cyan, gold)
-			race_waypoints.append(Vector3(dx, y + 0.3, z))
-			if i % 2 == 1:
-				_add_kz_ring(Vector3(dx, y + 2.5, z - 2.2), s_num * 10 + i)
-		z -= 4.8
-
-	elif kind == "PENDULUMS":
-		title = "SETOR %d/8: PONTE ESTREITA DOS 4 PENDULOS!" % s_num
-		var len_p := 40.0
-		# Narrow 2.8m bridge so pendulums sweep the entire width!
-		box(self, -1.4, y - 0.35, z - len_p, 2.8, 0.35, len_p, Color("8a5a36"), true, 0.0, 1)
-		for i in 4:
-			var pz := z - 7.0 - i * 8.8
-			add_swinging_pendulum(Vector3(0.0, y, pz), 6.2, 6.4, 2.65 + i * 0.22, i * 1.45, pink if i % 2 == 0 else cyan)
-			race_waypoints.append(Vector3(0.0, y + 0.2, pz))
-		z -= len_p
-
-	elif kind == "SEESAWS":
-		title = "SETOR %d/8: 5 GANGORRAS SEE-SAW INCLINADAS!" % s_num
-		for i in 5:
-			z -= 4.2
-			var ss_col := pink if i % 2 == 0 else (cyan if i % 3 == 0 else gold)
-			add_tilting_seesaw(Vector3(0.0, y, z - 3.0), 6.4, 5.6, 0.42, 1.85 + i * 0.18, i * 1.5, ss_col)
-			race_waypoints.append(Vector3(0.0, y + 0.3, z - 3.0))
-			z -= 4.0
-
-	elif kind == "CONVEYOR_PINBALL":
-		title = "SETOR %d/8: ESTEIRA CONTRA-FLUXO & PINBALL!" % s_num
-		var clen := 38.0
-		# Conveyor pulls you BACKWARD (-7.5 u/s) while you dodge 8 Pinball Bumpers and 2 Pendulums!
-		add_speed_conveyor(-2.6, y, z - clen, 5.2, clen, Vector3(0.0, 0.0, 7.2), purple)
-		for i in 8:
-			var bx := (-1.3 if i % 2 == 0 else 1.3) if i % 3 != 0 else 0.0
-			var bz := z - 4.0 - i * 4.2
-			add_bumper_pillar(Vector3(bx, y, bz), 0.68, 1.7, pink if i % 2 == 0 else cyan)
-			if i % 2 == 0:
-				race_waypoints.append(Vector3(-bx * 0.5, y + 0.2, bz))
-		add_swinging_pendulum(Vector3(0.0, y, z - clen * 0.5), 6.4, 6.4, 2.8, 0.7, coral)
-		z -= clen
-
-	elif kind == "MOVING_GAPS":
-		title = "SETOR %d/8: 6 PLATAFORMAS MOVEIS NO ABISMO!" % s_num
-		for i in 6:
-			z -= 6.2
-			y += 0.20
-			var dir_s := 1.0 if i % 2 == 0 else -1.0
-			_add_moving_platform(
-				Vector3(0.0, y, z),
-				Vector3(2.8, 0.38, 2.8),
-				Vector3(3.4 * dir_s, 0.0, 0.0),
-				2.15 + i * 0.18,
-				i * 1.1,
-				cyan if i % 2 == 0 else pink
-			)
-			race_waypoints.append(Vector3(0.0, y + 0.3, z))
-		z -= 4.5
-
-	elif kind == "HAMMERS" or kind == "DOORDASH_HAMMERS":
-		title = "SETOR %d/8: CORREDOR DOS 4 BIG YEETUS!" % s_num
-		var hlen := 38.0
-		box(self, -2.2, y - 0.35, z - hlen, 4.4, 0.35, hlen, Color("232738"), true, 0.0, 2)
-		if kind == "DOORDASH_HAMMERS":
-			for d_z in [z - 8.0, z - 22.0]:
-				box(self, -2.2, y, d_z, 1.4, 2.5, 0.45, coral, true, 0.8, 0)
-				box(self, 0.8, y, d_z, 1.4, 2.5, 0.45, coral, true, 0.8, 0)
-		for i in 4:
-			var hz := z - 5.5 - i * 8.2
-			add_spinning_hammer(Vector3(0.0, y, hz), 2.5, (3.6 if i % 2 == 0 else -3.6), gold, pink if i % 2 == 0 else cyan)
-			race_waypoints.append(Vector3(0.0, y + 0.2, hz))
-		z -= hlen
-
-	elif kind == "PUSHERS" or kind == "CONVEYOR_PUSHERS":
-		title = "SETOR %d/8: SLIME CLIMB — 7 PAREDES EMPURRADORAS!" % s_num
-		var plen := 40.0
-		box(self, -1.65, y - 0.35, z - plen, 3.3, 0.35, plen, Color("262b3d"), true, 0.0, 2)
-		if kind == "CONVEYOR_PUSHERS":
-			add_speed_conveyor(-1.6, y + 0.02, z - plen, 3.2, plen, Vector3(0.0, 0.0, 6.2), coral)
-		for i in 7:
-			var side := -1.0 if i % 2 == 0 else 1.0
-			var pz := z - 4.2 - i * 5.0
-			add_sliding_pusher(
-				Vector3(side * 2.5, y + 0.05, pz),
-				Vector3(2.4, 2.1, 3.2),
-				-side,
-				2.7,
-				3.2 + (i % 3) * 0.45,
-				i * 1.25,
-				pink if i % 2 == 0 else cyan
-			)
-			race_waypoints.append(Vector3(0.0, y + 0.2, pz))
-		z -= plen
-
-	elif kind == "SWEEPERS":
-		title = "SETOR %d/8: 4 ARENAS JUMP SHOWDOWN!" % s_num
-		for i in 4:
-			z -= 8.8
-			_add_sweeper_island(Vector3(0.0, y, z), 3.4, (2.35 if i % 2 == 0 else -2.55) * (1.0 + i * 0.08))
-			race_waypoints.append(Vector3(0.0, y + 0.2, z))
-			if i < 3:
-				box(self, -0.75, y - 0.25, z - 5.2, 1.5, 0.25, 2.0, gold, true, 0.8, 0)
-		z -= 5.2
-
-	elif kind == "TIPTOE" or kind == "FALLING_BRIDGE":
-		title = "SETOR %d/8: GRADE TIP-TOE (30 PISOS NA LAVA)!" % s_num
-		for row in 10:
-			var rz := z - 3.2 - row * 3.3
-			var safe_col := (row + 1) % 3
-			for col_i in 3:
-				var cx := (col_i - 1) * 2.35
-				if col_i == safe_col and kind == "TIPTOE":
-					box(self, cx - 0.95, y - 0.28, rz - 0.95, 1.9, 0.28, 1.9, Color("2e3548"), true, 0.3, 2)
-					if row % 2 == 0:
-						race_waypoints.append(Vector3(cx, y + 0.2, rz))
-				else:
-					_add_falling_tile(Vector3(cx, y - 0.14, rz), Vector3(1.9, 0.28, 1.9))
-					if kind == "FALLING_BRIDGE" and col_i == 1 and row % 2 == 0:
-						race_waypoints.append(Vector3(0.0, y + 0.2, rz))
-		z -= 36.0
-
-	elif kind == "BHOP_ZIGZAG":
-		title = "SETOR %d/8: 10 BLOCOS DE BUNNYHOP PRO!" % s_num
-		for i in 10:
-			var bx := (-1.65 if i % 2 == 0 else 1.65)
-			z -= 4.1
-			y += 0.15
-			box(self, bx - 1.0, y - 0.35, z - 1.0, 2.0, 0.35, 2.0, Color("222738"), true, 0.0, 2)
-			box(self, bx - 1.05, y - 0.04, z - 1.05, 2.1, 0.06, 2.1, cyan if i % 2 == 0 else pink, false, 1.5, -1)
-			race_waypoints.append(Vector3(bx, y + 0.2, z))
-		z -= 3.8
-
-	elif kind == "SURF_DUAL" or kind == "SURF_TRIPLE":
-		var r_cnt := 3 if kind == "SURF_TRIPLE" else 2
-		title = "SETOR %d/8: CANION DE SURF CS:GO (%d RAMPAS)!" % [s_num, r_cnt]
-		for i in r_cnt:
-			var rx := (-1.6 if i % 2 == 0 else 1.6) if r_cnt == 3 else 0.0
-			_add_surf_ramp(Vector3(rx, y - 0.8, z - 7.5), 5.6, 3.2, 13.0, cyan if i % 2 == 0 else pink)
-			_add_kz_ring(Vector3(rx, y + 2.2, z - 7.5), s_num * 10 + i)
-			race_waypoints.append(Vector3(rx, y + 1.8, z - 7.5))
-			z -= 14.5
-			box(self, -2.0, y - 0.3, z - 2.2, 4.0, 0.3, 2.8, Color("23293a"), true, 0.0, 2)
-			race_waypoints.append(Vector3(0.0, y + 0.2, z - 1.0))
-			z -= 2.8
-
-	elif kind == "KZ_LADDERS":
-		title = "SETOR %d/8: TORRE DUPLA DE ESCADAS KZ!" % s_num
-		for t_i in 2:
-			var tx := -2.0 if t_i == 0 else 2.0
-			var h := 5.2
-			box(self, tx - 1.5, y, z - 4.2, 3.0, h, 3.0, Color("23293a"), true, 0.0, 2)
-			for r in 10:
-				box(self, tx - 0.55, y + 0.35 + r * 0.48, z - 1.15, 1.1, 0.09, 0.12, gold if t_i == 0 else cyan, false, 1.6, -1)
-			kz_ladders.append(AABB(Vector3(tx - 0.85, y, z - 1.55), Vector3(1.7, h + 0.6, 0.95)))
-			y += h
-			race_waypoints.append(Vector3(tx, y + 0.2, z - 2.7))
-			z -= 5.2
-		box(self, -2.5, y - 0.3, z - 3.5, 5.0, 0.3, 4.0, Color("23293a"), true, 0.0, 2)
-		z -= 3.5
-
-	else: # JUMPPAD_TOWER or OMEGA_CLIMB
-		title = "SETOR %d/8: ESCALADA REAL FALL MOUNTAIN!" % s_num
-		for i in 5:
-			z -= 6.5
-			y += 1.6
-			box(self, -2.4, y - 0.35, z - 2.4, 4.8, 0.35, 4.8, Color("23293a"), true, 0.0, 2)
-			var jp := Vector3(0.0, y + 0.05, z)
-			cyl(self, jp, 1.1, 1.2, 0.18, lime if i % 2 == 0 else pink, 12, 2.0, true)
-			kz_jumppads.append(jp)
-			if i % 2 == 1:
-				add_spinning_hammer(Vector3(0.0, y, z - 1.2), 2.4, 3.8, gold, cyan)
-			race_waypoints.append(Vector3(0.0, y + 0.3, z))
-		z -= 4.5
-
-	# Sector Landing Pad + Auto-Checkpoint Archway!
-	box(self, -3.2, y - 0.4, z - 4.6, 6.4, 0.4, 4.8, Color("222738"), true, 0.0, 2)
-	add_checkpoint_arch(Vector3(0.0, y, z - 2.4), s_num, title, gold if s_num % 2 == 0 else cyan)
-	return {"z": z - 4.6, "y": y}
+	ParkourCourses.build(self, course_idx)
 
 
 func _add_moving_platform(base_pos: Vector3, sz: Vector3, amp: Vector3, spd: float, phase: float, col: Color) -> void:
@@ -1512,7 +1290,7 @@ func _add_sweeper_island(center: Vector3, radius: float, rot_spd: float) -> void
 func _add_finish_sanctuary(center: Vector3, _badge: String) -> void:
 	box(self, center.x - 4.8, center.y - 0.5, center.z - 4.8, 9.6, 0.5, 9.6, Color("f5ebe0"), true, 0.0, 2)
 	box(self, center.x - 5.0, center.y - 0.05, center.z - 5.0, 10.0, 0.12, 10.0, Color("ffd166"), false, 1.6, -1)
-	RetroModels.torii_gate(self, self, center + Vector3(0, 0, 1.8), 6.2, 4.8, 0.0)
+	RetroModels.torii_gate(self, _stage_root, center + Vector3(0, 0, 1.8), 6.2, 4.8, 0.0)
 	cyl(self, center, 1.55, 1.65, 0.22, Color("ffd166"), 16, 2.2, true)
 	ball(self, center + Vector3(0, 2.2, 0), 0.72, Color("ffd166"), 12, 2.4)
 	spawn_kenney_model(self, "flag.glb", center + Vector3(-3.6, 0.0, -2.5), Vector3(2.4, 2.4, 2.4))
@@ -1606,16 +1384,18 @@ func spawn_pvp_round(bot_count: int = -1) -> void:
 func _spawn_single_combat_bot(seed_offset: int) -> void:
 	if tr_spawns.is_empty() or not is_instance_valid(_stage_root):
 		return
-	# Pick a spawn point away from the player so bots don't spawn on top of you
-	var best_sp := tr_spawns[posmod(seed_offset, tr_spawns.size())]
-	for attempt in 4:
-		var cand := tr_spawns[_rng.randi() % tr_spawns.size()]
-		if cand.distance_to(player_pos) > 10.0:
-			best_sp = cand
-			break
-	var sp := best_sp + Vector3(_rng.randf_range(-0.8, 0.8), 0.0, _rng.randf_range(-0.8, 0.8))
+	var sp := spawn_director.choose(self, false, seed_offset)
 	var bkind := 1 if seed_offset % 4 == 1 else (2 if seed_offset % 3 == 0 else 0)
-	var bot := EnemyBot.spawn_bot(self, _stage_root, sp, bkind, round_number * 5 + seed_offset)
+	var name_index := 0
+	for candidate in bots_per_round:
+		var occupied := false
+		for existing in enemies:
+			if is_instance_valid(existing) and existing.bot_name == EnemyBot.BOT_NAMES[candidate]:
+				occupied = true
+		if not occupied:
+			name_index = candidate
+			break
+	var bot := EnemyBot.spawn_bot(self, _stage_root, sp, bkind, name_index)
 	bot.defeated.connect(_on_bot_defeated)
 	enemies.append(bot)
 
@@ -1637,15 +1417,21 @@ func _on_bot_defeated(bot: EnemyBot, was_headshot: bool, hit_pos: Vector3) -> vo
 		bot_scoreboard[bot.bot_name]["deaths"] = int(bot_scoreboard[bot.bot_name]["deaths"]) + 1
 	spawn_voxel_burst(hit_pos, Color("ff2a55") if was_headshot else Color("ffd166"), 16 if was_headshot else 10)
 	spawn_pickup(bot.global_position + Vector3(0, 0.45, 0), "heal")
-	enemy_killed.emit(was_headshot, bot.bot_name, hit_pos)
+	if bot.last_damage_by == "PLAYER":
+		enemy_killed.emit(was_headshot, bot.bot_name, hit_pos)
+	elif bot_scoreboard.has(bot.last_damage_by):
+		var killer: Dictionary = bot_scoreboard[bot.last_damage_by]
+		killer.kills += 1
+		killer.pts = killer.kills * 100
+		bot_frag_feed.emit(bot.last_damage_by, bot.bot_name, "BLITZ")
 
 
-func spawn_enemy_orb(pos: Vector3, dir: Vector3, spd: float, dmg: float, col: Color) -> void:
+func spawn_enemy_orb(pos: Vector3, dir: Vector3, spd: float, dmg: float, col: Color, shooter: EnemyBot = null) -> void:
 	if game_mode != MODE_COMBAT:
 		return
 	var mi := ball(_stage_root, pos, 0.14, col, 6, 2.5)
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	enemy_orbs.append({"node": mi, "vel": dir * spd, "dmg": dmg, "life": 2.4})
+	enemy_orbs.append({"node": mi, "vel": dir * spd, "dmg": dmg, "life": 2.4, "owner_name": shooter.bot_name if is_instance_valid(shooter) else "BOT", "owner_rid": shooter.get_rid() if is_instance_valid(shooter) else RID()})
 
 
 func spawn_tracer(from_pos: Vector3, to_pos: Vector3, col: Color, thickness: float = 0.025) -> void:
@@ -1722,7 +1508,20 @@ func hit_target_body(_body: Node3D) -> void:
 	pass
 
 
-func _process(delta: float) -> void:
+func _physics_process(delta: float) -> void:
+	stage_physics_ready = true
+	if game_mode == MODE_COMBAT:
+		if combat_is_finished:
+			return
+		player_spawn_guard = maxf(0.0, player_spawn_guard - delta)
+		combat_time_left = maxf(0.0, combat_time_left - delta)
+		var leading_score := ct_score
+		for stats in bot_scoreboard.values():
+			leading_score = maxi(leading_score, int(stats.kills))
+		if combat_time_left <= 0.0 or leading_score >= combat_kill_limit:
+			combat_is_finished = true
+			combat_finished.emit(get_combat_standings(ct_score, tr_score))
+			return
 	_t += delta
 	if _hazard_cd > 0.0:
 		_hazard_cd -= delta
@@ -1844,17 +1643,18 @@ func _process(delta: float) -> void:
 				rn.rotation.z += delta * 1.8
 			if float(rg.cd) > 0.0:
 				rg.cd = float(rg.cd) - delta
-			elif (player_pos + Vector3(0, 0.9, 0)).distance_to(rg.pos as Vector3) < 2.4:
-				rg.cd = 4.0
+			elif kz_running and not bool(rg.get("collected", false)) and (player_pos + Vector3(0, 0.9, 0)).distance_to(rg.pos as Vector3) < 1.6:
+				rg["collected"] = true
+				rn.visible = false
 				Sfx.play("cash_buy", 1.1)
 				kz_ring_collected.emit(int(rg.idx))
 		for cp in kz_checkpoints:
 			var cp_p: Vector3 = cp.pos
-			if int(cp.stage) > kz_active_stage and player_pos.distance_to(cp_p) < 4.2:
+			if kz_running and int(cp.stage) == kz_active_stage + 1 and absf(player_pos.x - cp_p.x) < float(cp.get("width", 4.2)) and absf(player_pos.z - cp_p.z) < 2.4 and absf(player_pos.y - cp_p.y) < 2.5:
 				kz_active_stage = int(cp.stage)
 				Sfx.play("ring_pass")
 				kz_stage_reached.emit(kz_active_stage, str(cp.name), kz_time, cp_p)
-		if player_pos.distance_to(kz_finish_pad) < 3.5 and kz_running:
+		if player_pos.distance_to(kz_finish_pad) < 3.5 and kz_running and kz_active_stage == kz_checkpoints.size():
 			kz_running = false
 			race_finished_count += 1
 			player_race_place = race_finished_count
@@ -1873,9 +1673,17 @@ func _process(delta: float) -> void:
 			continue
 		orb.life -= delta
 		var step_v: Vector3 = (orb.vel as Vector3) * delta
+		var query := PhysicsRayQueryParameters3D.create(n.position, n.position + step_v, 1 | 2 | 4)
+		if (orb.owner_rid as RID).is_valid():
+			query.exclude = [orb.owner_rid]
+		var impact := get_world_3d().direct_space_state.intersect_ray(query)
 		n.position += step_v
-		if game_mode == MODE_COMBAT and n.position.distance_to(player_pos + Vector3(0, 1.0, 0)) < 0.78:
-			player_damaged.emit(float(orb.dmg), n.position, "TR_Operador")
+		if not impact.is_empty():
+			var target: Object = impact.collider
+			if target is EnemyBot:
+				(target as EnemyBot).apply_hit(float(orb.dmg), impact.position, (orb.vel as Vector3).normalized() * 2, 1.5, str(orb.owner_name))
+			elif target is CharacterBody3D and player_spawn_guard <= 0:
+				player_damaged.emit(float(orb.dmg), impact.position, str(orb.owner_name))
 			n.queue_free()
 			enemy_orbs.remove_at(i)
 			continue
@@ -1937,16 +1745,33 @@ func _process(delta: float) -> void:
 				round_number += 1
 				_spawn_single_combat_bot(round_number + enemies.size())
 
-		# Bots also fight each other across the arena so the Kill Leaderboard stays fiercely competitive!
-		_bot_sim_frag_cd -= delta
-		if _bot_sim_frag_cd <= 0.0:
-			_bot_sim_frag_cd = _rng.randf_range(4.2, 7.5)
-			var names := EnemyBot.BOT_NAMES
-			var k_name: String = names[_rng.randi() % names.size()]
-			var v_name: String = names[_rng.randi() % names.size()]
-			if k_name != v_name and bot_scoreboard.has(k_name) and bot_scoreboard.has(v_name):
-				bot_scoreboard[k_name]["kills"] = int(bot_scoreboard[k_name]["kills"]) + 1
-				bot_scoreboard[k_name]["pts"] = int(bot_scoreboard[k_name]["kills"]) * 100
-				bot_scoreboard[v_name]["deaths"] = int(bot_scoreboard[v_name]["deaths"]) + 1
-				var wtags := ["AK-47 [HS]", "AWP", "DEAGLE [HS]", "KARAMBIT"]
-				bot_frag_feed.emit(k_name, v_name, wtags[_rng.randi() % wtags.size()])
+
+
+func _add_district_details() -> void:
+	# Silhouettes outside combat routes; no invisible decorative collisions.
+	for i in 4:
+		var props := DistrictProps.new()
+		var p := Vector3(-23 if i % 2 == 0 else 23, 0, -18 + i * 11)
+		match current_stage_idx:
+			0:
+				props.pavilion(p, Color("c48383") if i % 2 == 0 else Color("86b6ad"), i)
+				props.car(p + Vector3(0, 0, 4), Color("dec58d"), PI * 0.5)
+			1:
+				props.tower(p, Color("e8b16e"), i)
+				props.car(p + Vector3(0, 0, 4), Color("69a9be"))
+			2:
+				props.island(p, Color("d8b482"), i)
+			3:
+				props.tower(p, Color("8d9fe3"), i)
+		props.flush(_stage_root)
+
+
+func _bake_static_scenery() -> void:
+	var excluded: Array[Node] = []
+	if is_instance_valid(_start_gate_node):
+		excluded.append(_start_gate_node)
+	for collection in [moving_platforms, falling_tiles, _sweeper_pivots, spinning_hammers, sliding_pushers, swinging_pendulums, tilting_seesaws, kz_rings]:
+		for item in collection:
+			if item.has("node") and is_instance_valid(item.node):
+				excluded.append(item.node)
+	StaticSceneryBatch.bake(_stage_root, excluded)

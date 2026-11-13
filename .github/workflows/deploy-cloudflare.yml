@@ -51,6 +51,15 @@ jobs:
           echo "=== 3. Godot Version Verification ==="
           godot --version
 
+      - name: Import and verify gameplay
+        run: |
+          set -euo pipefail
+          godot --headless --editor --import --quit > import.log 2>&1
+          if grep -E 'SCRIPT ERROR:|Parse Error:' import.log; then exit 1; fi
+          timeout 180 godot --headless --fixed-fps 60 -- --test > gameplay-checks.log 2>&1
+          cat gameplay-checks.log
+          if grep -E 'SCRIPT ERROR:|Parse Error:' gameplay-checks.log; then exit 1; fi
+
       - name: Build Web Export
         run: |
           set -euo pipefail

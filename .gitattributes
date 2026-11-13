@@ -1,0 +1,3 @@
+# Preserve original third-party bytes and provenance hashes across platforms.
+assets/third_party/** -text
+assets/ui/blossom/OFL.txt -text

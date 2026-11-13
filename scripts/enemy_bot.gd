@@ -23,14 +23,36 @@ const RUNNER_NAMES := [
 ]
 
 const RUNNER_COLORS := [
-	Color("ff2a85"), # Hot Pink Fall Guys
-	Color("00f5d4"), # Neon Cyan
-	Color("ffbe0b"), # Gold Crown
-	Color("8ac926"), # Slime Lime
-	Color("9b5de5"), # Cyber Purple
-	Color("ff6b35"), # Sunset Orange
-	Color("00bbf9")  # Electric Blue
+	Color("db8da9"), # Petal
+	Color("78c6c0"), # Mint
+	Color("e4bc76"), # Honey
+	Color("a4bc7e"), # Leaf
+	Color("a394cf"), # Lilac
+	Color("ddaa84"), # Peach
+	Color("89b2ce")  # Sky
 ]
+
+var skill := BotDifficulty.get_preset(1)
+var last_damage_by := "PLAYER"
+var _target_bot: EnemyBot
+var _target_player := false
+var _has_target := false
+var _target_memory := Vector3.ZERO
+var _sense_cd := 0.0
+var _steer_cd := 0.0
+var _steered_dir := Vector3.ZERO
+var _route := PackedVector3Array()
+var _route_cursor := 0
+var _route_cd := 0.0
+var navigation_steps := 0
+var _patrol_cd := 0.0
+var _memory_until := 0.0
+var _tactical_cd := 0.0
+var _tactical_until := 0.0
+var _tactical_goal := Vector3.ZERO
+var tactical_state := "patrol"
+var _foot_distance := 0.0
+var _spawn_check_pending := true
 
 var world: Node3D
 var is_runner := false
@@ -82,14 +104,17 @@ static func spawn_bot(w: Node3D, parent: Node3D, pos: Vector3, bot_kind: int, id
 	b.world = w
 	b.is_runner = false
 	b.kind = bot_kind
+	b.runner_idx = idx_seed
 	b.position = pos
 	b._rng.randomize()
 	b.bot_name = BOT_NAMES[posmod(idx_seed, BOT_NAMES.size())]
 	b._strafe_dir = -1.0 if b._rng.randf() < 0.5 else 1.0
-	b._fire_cd = b._rng.randf_range(0.85, 1.65)
+	b.skill = BotDifficulty.get_preset(w.bot_difficulty)
+	b._fire_cd = float(b.skill.reaction)
 	b.max_hp = 100.0
 	b.hp = 100.0
-	b.move_speed = 4.9 if bot_kind == 2 else (4.5 if bot_kind == 0 else 3.9)
+	b.move_speed = float(b.skill.speed) * (1.05 if bot_kind == 2 else (0.9 if bot_kind == 1 else 1.0))
+	b._target_memory = pos
 	b.score_value = 100
 	parent.add_child(b)
 	b._build_visuals()
@@ -106,9 +131,8 @@ static func spawn_parkour_runner(w: Node3D, parent: Node3D, pos: Vector3, r_idx:
 	b._rng.randomize()
 	b.bot_name = RUNNER_NAMES[posmod(r_idx, RUNNER_NAMES.size())]
 	b.lane_offset = (float(r_idx % 5) - 2.0) * 0.48
-	# Competitive Fall-Guys runner speeds so top bots push the player hard!
-	var base_spds := [7.55, 7.35, 7.15, 6.95, 6.80, 6.60, 6.45]
-	b.move_speed = float(base_spds[posmod(r_idx, base_spds.size())]) + b._rng.randf_range(-0.12, 0.12)
+	b.skill = BotDifficulty.get_preset(w.bot_difficulty)
+	b.move_speed = float(b.skill.race_speed) + (3 - r_idx) * 0.10
 	b.max_hp = 100.0
 	b.hp = 100.0
 	parent.add_child(b)
@@ -119,6 +143,7 @@ static func spawn_parkour_runner(w: Node3D, parent: Node3D, pos: Vector3, r_idx:
 func _build_visuals() -> void:
 	collision_layer = 0 if is_runner else 4
 	collision_mask = 1
+	floor_snap_length = 0.5 if not is_runner else 0.1
 
 	var cs := CollisionShape3D.new()
 	var cap := CapsuleShape3D.new()
@@ -135,10 +160,7 @@ func _build_visuals() -> void:
 
 	_root = Node3D.new()
 	add_child(_root)
-	if is_runner:
-		_build_runner_visuals()
-	else:
-		_build_operator()
+	CozyAvatar.build(self)
 
 	_hp_bar_root = Node3D.new()
 	_hp_bar_root.position = Vector3(0, 2.06, 0)
@@ -147,8 +169,8 @@ func _build_visuals() -> void:
 	if is_runner:
 		_name_lbl = Label3D.new()
 		_name_lbl.text = bot_name
-		_name_lbl.font_size = 24
-		_name_lbl.outline_size = 8
+		_name_lbl.font_size = 16
+		_name_lbl.outline_size = 3
 		_name_lbl.modulate = RUNNER_COLORS[posmod(runner_idx, RUNNER_COLORS.size())].lightened(0.25)
 		_name_lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		_hp_bar_root.add_child(_name_lbl)
@@ -175,101 +197,6 @@ func _part(parent: Node3D, pos: Vector3, sz: Vector3, col: Color, emit: float = 
 	return mi
 
 
-func _build_runner_visuals() -> void:
-	var suit_col: Color = RUNNER_COLORS[posmod(runner_idx, RUNNER_COLORS.size())]
-	var trim_col := Color("ffffff")
-	var visor_col := Color("161922")
-	var shoe_col := suit_col.darkened(0.35)
-
-	_leg_l = Node3D.new()
-	_leg_l.position = Vector3(-0.15, 0.76, 0)
-	_root.add_child(_leg_l)
-	_part(_leg_l, Vector3(0, -0.30, 0), Vector3(0.20, 0.60, 0.22), suit_col.darkened(0.15))
-	_part(_leg_l, Vector3(0, -0.66, 0.03), Vector3(0.22, 0.18, 0.28), shoe_col)
-
-	_leg_r = Node3D.new()
-	_leg_r.position = Vector3(0.15, 0.76, 0)
-	_root.add_child(_leg_r)
-	_part(_leg_r, Vector3(0, -0.30, 0), Vector3(0.20, 0.60, 0.22), suit_col.darkened(0.15))
-	_part(_leg_r, Vector3(0, -0.66, 0.03), Vector3(0.22, 0.18, 0.28), shoe_col)
-
-	# Fall-Guys / Roblox Chibi Hoodie Torso + Racing Number Stripe
-	_part(_root, Vector3(0, 1.08, 0), Vector3(0.50, 0.62, 0.32), suit_col, 0.25)
-	_part(_root, Vector3(0, 1.08, 0.01), Vector3(0.36, 0.24, 0.34), trim_col, 0.2)
-
-	_arm_l = Node3D.new()
-	_arm_l.position = Vector3(-0.32, 1.28, 0)
-	_root.add_child(_arm_l)
-	_part(_arm_l, Vector3(0, -0.20, 0), Vector3(0.15, 0.44, 0.18), suit_col)
-
-	_arm_r = Node3D.new()
-	_arm_r.position = Vector3(0.32, 1.28, 0)
-	_root.add_child(_arm_r)
-	_part(_arm_r, Vector3(0, -0.20, 0), Vector3(0.15, 0.44, 0.18), suit_col)
-
-	_head_node = Node3D.new()
-	_head_node.position = Vector3(0, 1.40, 0)
-	_root.add_child(_head_node)
-	_part(_head_node, Vector3(0, 0.19, 0), Vector3(0.38, 0.38, 0.36), suit_col, 0.25)
-	_part(_head_node, Vector3(0, 0.20, -0.15), Vector3(0.28, 0.16, 0.08), visor_col)
-	_part(_head_node, Vector3(0, 0.40, 0), Vector3(0.18, 0.10, 0.18), Color("ffd166"), 0.8, true)
-
-
-func _build_operator() -> void:
-	var jacket := Color("c92a42") if kind == 0 else (Color("2b5842") if kind == 1 else Color("344e7a"))
-	var vest := Color("1f222b")
-	var pants := Color("282d38")
-	var boots := Color("16181e")
-	var skin := Color("dca884")
-	var balaclava := Color("1c1e26")
-	var goggles := Color("ffbe0b") if kind == 0 else (Color("00f5d4") if kind == 1 else Color("ff2a85"))
-
-	_leg_l = Node3D.new()
-	_leg_l.position = Vector3(-0.15, 0.78, 0)
-	_root.add_child(_leg_l)
-	_part(_leg_l, Vector3(0, -0.32, 0), Vector3(0.20, 0.64, 0.22), pants)
-	_part(_leg_l, Vector3(0, -0.68, 0.03), Vector3(0.21, 0.18, 0.26), boots)
-
-	_leg_r = Node3D.new()
-	_leg_r.position = Vector3(0.15, 0.78, 0)
-	_root.add_child(_leg_r)
-	_part(_leg_r, Vector3(0, -0.32, 0), Vector3(0.20, 0.64, 0.22), pants)
-	_part(_leg_r, Vector3(0, -0.68, 0.03), Vector3(0.21, 0.18, 0.26), boots)
-
-	_part(_root, Vector3(0, 1.08, 0), Vector3(0.48, 0.60, 0.28), jacket)
-	_part(_root, Vector3(0, 1.09, 0.01), Vector3(0.44, 0.44, 0.32), vest)
-	for mx in [-0.12, 0.0, 0.12]:
-		_part(_root, Vector3(mx, 0.98, 0.18), Vector3(0.08, 0.14, 0.05), Color("363a45"))
-
-	_arm_l = Node3D.new()
-	_arm_l.position = Vector3(-0.31, 1.28, 0)
-	_root.add_child(_arm_l)
-	_part(_arm_l, Vector3(0, -0.18, 0.16), Vector3(0.15, 0.42, 0.20), jacket)
-	_arm_l.rotation.x = -0.55
-
-	_arm_r = Node3D.new()
-	_arm_r.position = Vector3(0.31, 1.28, 0)
-	_root.add_child(_arm_r)
-	_part(_arm_r, Vector3(0, -0.18, 0.16), Vector3(0.15, 0.42, 0.20), jacket)
-	_arm_r.rotation.x = -0.62
-
-	var gun_col := Color("1a1c22")
-	_part(_arm_r, Vector3(-0.12, -0.22, 0.42), Vector3(0.08, 0.12, 0.62), gun_col)
-	if kind == 0:
-		_part(_arm_r, Vector3(-0.12, -0.20, 0.56), Vector3(0.085, 0.08, 0.22), Color("8c4a27"))
-		_part(_arm_r, Vector3(-0.12, -0.34, 0.44), Vector3(0.06, 0.18, 0.08), Color("c85a28"))
-	elif kind == 1:
-		_part(_arm_r, Vector3(-0.12, -0.12, 0.40), Vector3(0.07, 0.07, 0.30), Color("3b5238"))
-
-	_head_node = Node3D.new()
-	_head_node.position = Vector3(0, 1.40, 0)
-	_root.add_child(_head_node)
-	_part(_head_node, Vector3(0, 0.18, 0), Vector3(0.36, 0.36, 0.36), balaclava)
-	_part(_head_node, Vector3(0, 0.20, 0.16), Vector3(0.26, 0.10, 0.04), skin)
-	_part(_head_node, Vector3(0, 0.31, -0.01), Vector3(0.40, 0.16, 0.40), vest)
-	_part(_head_node, Vector3(0, 0.23, 0.18), Vector3(0.32, 0.095, 0.04), goggles, 2.0, true)
-
-
 func _physics_process(delta: float) -> void:
 	if _dead or world == null or not is_instance_valid(world):
 		return
@@ -282,6 +209,9 @@ func _physics_process(delta: float) -> void:
 		_process_parkour_runner(delta)
 		return
 
+	if _spawn_check_pending:
+		_ensure_clear_spawn()
+		_spawn_check_pending = false
 	if _flash_timer > 0.0:
 		_flash_timer -= delta
 		if _flash_timer <= 0.0:
@@ -289,7 +219,14 @@ func _physics_process(delta: float) -> void:
 				if is_instance_valid(_meshes[i]):
 					_meshes[i].material_override = _orig_mats[i]
 
-	var ppos: Vector3 = world.player_pos
+	_sense_cd -= delta
+	_patrol_cd -= delta
+	if _sense_cd <= 0:
+		_sense_cd = float(skill.think)
+		_choose_target()
+	var ppos: Vector3 = world.player_pos if _target_player else (_target_bot.global_position if is_instance_valid(_target_bot) and not _target_bot._dead else _target_memory)
+	if not _has_target:
+		ppos = _target_memory
 	var to_p := ppos - global_position
 	var flat_to := Vector3(to_p.x, 0.0, to_p.z)
 	var dist := flat_to.length()
@@ -301,7 +238,16 @@ func _physics_process(delta: float) -> void:
 	var eye_from := global_position + Vector3(0, 1.45, 0)
 	var eye_to := ppos + Vector3(0, 1.35, 0)
 	var los_q := PhysicsRayQueryParameters3D.create(eye_from, eye_to, 1)
-	var has_los := space.intersect_ray(los_q).is_empty()
+	var has_los := _has_target and space.intersect_ray(los_q).is_empty()
+	if has_los:
+		_target_memory = ppos
+		_memory_until = _t + float(skill.memory)
+	else:
+		ppos = _target_memory
+		flat_to = (ppos - global_position) * Vector3(1, 0, 1)
+		dist = flat_to.length()
+	_tactical_cd = maxf(0, _tactical_cd - delta)
+	var movement_goal: Variant = _tactical_destination(has_los, ppos)
 
 	if dist > 0.25:
 		var target_yaw := atan2(flat_to.x, flat_to.z)
@@ -322,23 +268,63 @@ func _physics_process(delta: float) -> void:
 	var fwd := flat_to.normalized() if dist > 0.1 else Vector3.FORWARD
 	var right := Vector3(-fwd.z, 0.0, fwd.x)
 
-	if not has_los:
-		var push := (fwd * 0.88 + right * _strafe_dir * 0.52).normalized()
-		if is_on_wall():
+	if not has_los or movement_goal != null or absf(ppos.y - global_position.y) > 1.5:
+		if movement_goal != null:
+			var displacement: Vector3 = movement_goal - global_position
+			fwd = Vector3(displacement.x, 0, displacement.z).normalized() if displacement.length() > 0.7 else Vector3.ZERO
+		var push := fwd if movement_goal != null else (fwd * 0.88 + right * _strafe_dir * 0.52).normalized()
+		if world.arena_navigation != null:
+			_route_cd -= delta
+			if _route_cd <= 0 or _route.is_empty():
+				_route = world.arena_navigation.path(global_position, movement_goal if movement_goal != null else ppos)
+				_route_cursor = 0
+				_route_cd = 0.7 + runner_idx * 0.04
+			var tolerance := 0.24 if world.arena_navigation is SurfaceNavigation else 0.55
+			while _route_cursor < _route.size() and Vector2(global_position.x, global_position.z).distance_to(Vector2(_route[_route_cursor].x, _route[_route_cursor].z)) < tolerance and absf(global_position.y - _route[_route_cursor].y) < 0.5:
+				_route_cursor += 1
+			if _route_cursor < _route.size():
+				var next := _route[_route_cursor] - global_position
+				push = Vector3(next.x, 0, next.z).normalized()
+			elif world.arena_navigation is SurfaceNavigation:
+				push = Vector3.ZERO
+		elif is_on_wall():
 			_strafe_dir = -_strafe_dir
 			push = (right * _strafe_dir + fwd * 0.35).normalized()
 			if is_on_floor():
 				velocity.y = 6.2
-		velocity.x = lerpf(velocity.x, push.x * move_speed, delta * 7.0)
-		velocity.z = lerpf(velocity.z, push.z * move_speed, delta * 7.0)
+		if world.arena_navigation is SurfaceNavigation:
+			# Dense stair waypoints need immediate steering; cached/inertial steering
+			# can overshoot a tread before its next decision.
+			velocity.x = push.x * move_speed
+			velocity.z = push.z * move_speed
+		else:
+			velocity.x = lerpf(velocity.x, push.x * move_speed, delta * 7.0)
+			velocity.z = lerpf(velocity.z, push.z * move_speed, delta * 7.0)
 	else:
-		var adv := 0.55 if dist > 20.0 else (-0.42 if dist < 6.0 else 0.0)
-		var spd := move_speed * (0.40 if _is_crouching else 0.82)
+		var adv := 0.65 if dist > 18.0 else (-0.6 if dist < 6.0 or (hp < 35 and world.bot_difficulty == 2) else 0.0)
+		var spd := move_speed * (0.40 if _is_crouching else float(skill.strafe))
 		var wish := (fwd * adv + right * _strafe_dir).normalized()
 		velocity.x = lerpf(velocity.x, wish.x * spd, delta * 8.0)
 		velocity.z = lerpf(velocity.z, wish.z * spd, delta * 8.0)
 
+	_steer_cd -= delta
+	var desired := Vector3(velocity.x, 0, velocity.z)
+	if _steer_cd <= 0 or world.arena_navigation is SurfaceNavigation:
+		_steer_cd = 0.12
+		_steered_dir = desired.normalized() if world.arena_navigation is SurfaceNavigation and _route_cursor < _route.size() and (not has_los or movement_goal != null or absf(ppos.y - global_position.y) > 1.5) else _steer_direction(desired.normalized())
+	velocity.x = _steered_dir.x * desired.length()
+	velocity.z = _steered_dir.z * desired.length()
+	if global_position.y < -3.0:
+		global_position = world.tr_spawns[runner_idx % world.tr_spawns.size()]
+		_ensure_clear_spawn()
+		velocity = Vector3.ZERO
+	if world.arena_navigation is SurfaceNavigation:
+		_try_combat_step(delta)
 	move_and_slide()
+	_foot_distance += Vector2(velocity.x, velocity.z).length() * delta if is_on_floor() else 0.0
+	if _foot_distance > 2.0 and world.combat_audio != null:
+		_foot_distance = 0
+		world.combat_audio.footstep(global_position)
 
 	var spd_ratio := clampf(Vector2(velocity.x, velocity.z).length() / move_speed, 0.0, 1.0)
 	var sw := sin(_t * 10.5) * 0.58 * spd_ratio
@@ -350,7 +336,7 @@ func _physics_process(delta: float) -> void:
 	if has_los and dist < 52.0:
 		_fire_cd -= delta
 		if _fire_cd <= 0.0:
-			_fire_cd = _rng.randf_range(1.15, 1.95) if kind != 1 else _rng.randf_range(1.85, 2.75)
+			_fire_cd = float(skill.interval) * _rng.randf_range(0.9, 1.1)
 			_fire_at_player(eye_to, dist)
 
 
@@ -363,7 +349,7 @@ func _process_parkour_runner(delta: float) -> void:
 	if cd > 0.0:
 		var hop := absf(sin(_t * 6.5 + float(runner_idx) * 1.1)) * 0.32
 		_root.position.y = hop
-		_root.rotation.y = PI
+		_root.rotation.y = 0.0
 		if is_instance_valid(_leg_l):
 			var sw0 := sin(_t * 12.0 + float(runner_idx)) * 0.45
 			_leg_l.rotation.x = sw0
@@ -386,7 +372,7 @@ func _process_parkour_runner(delta: float) -> void:
 			_knock_vel = Vector3.ZERO
 		return
 
-	var wps: Array = world.get("race_waypoints")
+	var wps: Array = world.race_fast_waypoints if world.bot_difficulty >= 1 and runner_idx < world.bot_difficulty * 2 else world.race_waypoints
 	if wps == null or wps.is_empty():
 		return
 
@@ -396,7 +382,7 @@ func _process_parkour_runner(delta: float) -> void:
 	var to_t := aim_pt - global_position
 	var flat := Vector3(to_t.x, 0.0, to_t.z)
 
-	if flat.length() < 2.35 and wp_idx < wps.size() - 1:
+	if flat.length() < 0.95 and is_on_floor() and wp_idx < wps.size() - 1:
 		checkpoint_pos = wps[wp_idx]
 		wp_idx += 1
 		target = wps[wp_idx]
@@ -405,15 +391,11 @@ func _process_parkour_runner(delta: float) -> void:
 		flat = Vector3(to_t.x, 0.0, to_t.z)
 
 	var dir := flat.normalized() if flat.length() > 0.05 else Vector3(0, 0, -1)
-	var yaw := atan2(-dir.x, -dir.z)
+	var yaw := atan2(dir.x, dir.z)
 	_root.rotation.y = lerp_angle(_root.rotation.y, yaw, minf(1.0, delta * 10.0))
 
-	# Subtle competitive rubber-banding so the race stays intense all 350+ meters!
-	var p_prog: float = maxf(0.0, float(world.kz_start_pad.z) - float(world.player_pos.z))
 	race_progress_m = maxf(0.0, float(world.kz_start_pad.z) - global_position.z)
-	var diff := p_prog - race_progress_m
-	var rubber := clampf(1.0 + diff * 0.0045, 0.86, 1.24)
-	var cur_spd := move_speed * rubber
+	var cur_spd := move_speed if is_on_floor() else minf(move_speed, flat.length() * 4.0)
 
 	# Apply conveyor & hazard impulses from the world!
 	var conv: Vector3 = world.call("get_conveyor_velocity", global_position)
@@ -432,9 +414,9 @@ func _process_parkour_runner(delta: float) -> void:
 		# Jump when target waypoint is higher, or approaching a gap/bar, or on a bouncy drum
 		if world.call("check_bouncy_awning", global_position):
 			velocity.y = 14.5
-		elif _jump_cd <= 0.0 and (to_t.y > 0.45 or flat.length() > 4.2 or _rng.randf() < 0.04):
+		elif _jump_cd <= 0.0 and (to_t.y > 0.45 or _runner_needs_jump(dir)):
 			velocity.y = 9.2 + clampf(to_t.y * 1.4, 0.0, 4.5)
-			_jump_cd = _rng.randf_range(0.55, 1.05)
+			_jump_cd = 0.25
 
 	move_and_slide()
 
@@ -462,19 +444,21 @@ func _process_parkour_runner(delta: float) -> void:
 
 
 func _fire_at_player(target_pos: Vector3, dist: float) -> void:
-	var muzzle := global_position + Vector3(0, 1.15 if _is_crouching else 1.42, 0) + (_root.global_transform.basis.z * 0.55)
-	var spread := 0.55 + clampf(dist * 0.012, 0.0, 0.45)
-	var aim_error := Vector3(_rng.randf_range(-spread, spread), _rng.randf_range(-0.36, 0.36), _rng.randf_range(-spread, spread))
-	var dir := ((target_pos + aim_error) - muzzle).normalized()
-	var dmg := 13.0 if kind == 1 else 7.5
-	var spd := 32.0 if kind == 1 else 24.0
-	world.spawn_enemy_orb(muzzle, dir, spd, dmg, Color("ffd166"))
+	var muzzle := global_position + Vector3(0, 1.35, 0)
+	var spread := float(skill.spread) * (0.7 + dist * 0.018)
+	var aim_error := Vector3(_rng.randf_range(-spread, spread), _rng.randf_range(-spread * 0.45, spread * 0.45), _rng.randf_range(-spread, spread))
+	var dir := (target_pos + aim_error - muzzle).normalized()
+	world.spawn_enemy_orb(muzzle + dir * 0.55, dir, 48.0, 18.0, Color("f1c782"), self)
+	if world.combat_audio != null:
+		world.combat_audio.play_at(["smg_shoot", "shotgun_shoot", "rail_shoot"][kind], muzzle, -13)
+		world.combat_audio.noise(muzzle, self)
 
 
-func apply_hit(dmg: float, hit_pos: Vector3, knockback: Vector3, head_mult: float = 3.2) -> Dictionary:
+func apply_hit(dmg: float, hit_pos: Vector3, knockback: Vector3, head_mult: float = 3.2, attacker: String = "PLAYER") -> Dictionary:
 	if _dead or is_runner:
 		return {"killed": false, "headshot": false, "dmg": 0.0}
 
+	last_damage_by = attacker
 	var local_y := hit_pos.y - global_position.y
 	var is_head := local_y >= head_y_min
 	var final_dmg := roundf(dmg * (head_mult if is_head else 1.0))
@@ -507,7 +491,7 @@ func _spawn_ragdoll_launch(knockback: Vector3, is_head: bool) -> void:
 	# Detach visual operator root into world.vfx_items for a super-satisfying Phantom Forces ragdoll launch!
 	var rag := _root
 	remove_child(rag)
-	world.add_child(rag)
+	world._stage_root.add_child(rag)
 	rag.global_position = global_position
 	var launch_vel := knockback.normalized() * (9.5 if is_head else 6.8) + Vector3(0.0, 5.8 if is_head else 4.2, 0.0)
 	world.vfx_items.append({
@@ -518,3 +502,175 @@ func _spawn_ragdoll_launch(knockback: Vector3, is_head: bool) -> void:
 		"max_life": 0.68,
 		"spin": true
 	})
+
+
+func _choose_target() -> void:
+	var previous: EnemyBot = _target_bot
+	var was_player := _target_player
+	_target_bot = null
+	_target_player = false
+	_has_target = false
+	var best := 48.0
+	var origin := global_position + Vector3.UP * 1.4
+	var space := world.get_world_3d().direct_space_state
+	var player_dist := global_position.distance_to(world.player_pos)
+	if world.player_spawn_guard <= 0 and player_dist < best and _in_view(world.player_pos):
+		var query := PhysicsRayQueryParameters3D.create(origin, world.player_pos + Vector3.UP * 1.35, 1)
+		if space.intersect_ray(query).is_empty():
+			_target_player = true
+			_has_target = true
+			best = player_dist
+			_target_memory = world.player_pos
+	for opponent in world.enemies:
+		if not is_instance_valid(opponent) or opponent == self or opponent._dead:
+			continue
+		var distance := global_position.distance_to(opponent.global_position)
+		if distance >= best or not _in_view(opponent.global_position):
+			continue
+		var query := PhysicsRayQueryParameters3D.create(origin, opponent.global_position + Vector3.UP * 1.35, 1)
+		if not space.intersect_ray(query).is_empty():
+			continue
+		best = distance
+		_target_bot = opponent
+		_target_player = false
+		_has_target = true
+		_target_memory = opponent.global_position
+	if was_player != _target_player or previous != _target_bot:
+		_fire_cd = maxf(_fire_cd, float(skill.reaction))
+	if _has_target:
+		_memory_until = _t + float(skill.memory)
+	if not _has_target and _patrol_cd <= 0 and _memory_until <= _t:
+		_patrol_cd = 3.0
+		var destinations: Array = world.tr_spawns.filter(func(p): return global_position.distance_to(p) > 8.0)
+		if not destinations.is_empty():
+			_target_memory = destinations[_rng.randi() % destinations.size()]
+
+
+func _in_view(at: Vector3) -> bool:
+	var direction := (at - global_position) * Vector3(1, 0, 1)
+	return direction.length() < 2 or _root.global_basis.z.normalized().dot(direction.normalized()) > cos(deg_to_rad(float(skill.fov) * 0.5))
+
+func hear_noise(at: Vector3, loudness: float) -> void:
+	if is_runner or _dead or _has_target:
+		return
+	var range_limit := float(skill.hearing) * loudness
+	var ray := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 1.4, at + Vector3.UP * 0.8, 1)
+	if not world.get_world_3d().direct_space_state.intersect_ray(ray).is_empty():
+		range_limit *= 0.5
+	if global_position.distance_to(at) > range_limit:
+		return
+	_target_memory = at
+	_memory_until = _t + float(skill.memory)
+	_patrol_cd = float(skill.memory)
+	_route_cd = 0
+	tactical_state = "investigate"
+
+func _tactical_destination(visible: bool, threat: Vector3) -> Variant:
+	if _t < _tactical_until:
+		return _tactical_goal
+	tactical_state = "engage" if visible else ("investigate" if _memory_until > _t else "patrol")
+	if _tactical_cd > 0 or world.bot_difficulty == 0 or _memory_until <= _t:
+		return null
+	_tactical_cd = 3.0 + runner_idx * 0.07
+	var destination: Variant = null
+	if hp < 45:
+		destination = CombatTactics.cover(world, global_position, threat)
+		if destination != null:
+			tactical_state = "cover"
+	elif not visible and world.bot_difficulty == 2:
+		destination = CombatTactics.flank(world, global_position, threat, _strafe_dir)
+		if destination != null:
+			tactical_state = "flank"
+	if destination != null:
+		_tactical_goal = destination
+		_tactical_until = _t + 2.8
+		_route_cd = 0
+	return destination
+
+func _steer_direction(desired: Vector3) -> Vector3:
+	var space := world.get_world_3d().direct_space_state
+	var eye := global_position + Vector3.UP * 0.8
+	var best := Vector3.ZERO
+	var score := -100.0
+	for angle in [0.0, 0.65, -0.65, 1.3, -1.3, 2.3, -2.3]:
+		var direction := desired.rotated(Vector3.UP, angle)
+		var front := eye + direction * 1.5
+		if not space.intersect_ray(PhysicsRayQueryParameters3D.create(eye, front, 1)).is_empty():
+			var high_ray := PhysicsRayQueryParameters3D.create(eye + Vector3.UP * 1.0, front + Vector3.UP * 1.0, 1)
+			if angle == 0.0 and is_on_floor() and space.intersect_ray(high_ray).is_empty():
+				velocity.y = 6.2
+				return desired
+			continue
+		var floor_query := PhysicsRayQueryParameters3D.create(front, front - Vector3.UP * 2.3, 1)
+		if space.intersect_ray(floor_query).is_empty():
+			continue
+		var current_score := direction.dot(desired) + direction.dot(_steered_dir) * 0.2
+		if current_score > score:
+			score = current_score
+			best = direction
+	return best
+
+
+func _try_combat_step(delta: float) -> void:
+	if not is_on_floor() or velocity.y > 0.1:
+		return
+	var motion := Vector3(velocity.x, 0, velocity.z) * delta
+	var contact := KinematicCollision3D.new()
+	if motion.length_squared() < 0.00001 or not test_move(global_transform, motion, contact):
+		return
+	# Read the actual contacted riser, including a rounded capsule touching its
+	# corner. A ray through the capsule center can miss that corner entirely.
+	var collider := contact.get_collider()
+	if not collider is StaticBody3D or collider.get_child_count() != 1:
+		return
+	var shape_node := collider.get_child(0) as CollisionShape3D
+	if shape_node == null or not shape_node.shape is BoxShape3D:
+		return
+	var size: Vector3 = shape_node.shape.size
+	var box: AABB = shape_node.global_transform * AABB(-size * 0.5, size)
+	var rise := box.end.y + 0.012 - global_position.y
+	if rise < 0.02 or rise > SurfaceNavigation.MAX_STEP + 0.01:
+		return
+	var lift := Vector3.UP * rise
+	if test_move(global_transform, lift):
+		return
+	var raised := global_transform
+	raised.origin += lift
+	if test_move(raised, motion):
+		return
+	global_position.y = raised.origin.y
+	# A tiny upward component prevents floor snap from undoing the lift before
+	# the capsule center passes the edge; normal gravity resumes next frame.
+	velocity.y = 0.05
+	navigation_steps += 1
+
+
+func _runner_needs_jump(direction: Vector3) -> bool:
+	var space := world.get_world_3d().direct_space_state
+	var ahead := global_position + direction * 1.25
+	var floor_query := PhysicsRayQueryParameters3D.create(ahead + Vector3.UP * 0.6, ahead - Vector3.UP * 1.2, 1)
+	if space.intersect_ray(floor_query).is_empty():
+		return true
+	var obstacle := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 0.35, ahead + Vector3.UP * 0.35, 1)
+	return not space.intersect_ray(obstacle).is_empty()
+
+
+func _ensure_clear_spawn() -> void:
+	var space := world.get_world_3d().direct_space_state
+	var shape_query := PhysicsShapeQueryParameters3D.new()
+	shape_query.shape = (get_child(0) as CollisionShape3D).shape
+	shape_query.collision_mask = 1
+	var original := global_position
+	for attempt in 25:
+		var offset := Vector3.ZERO if attempt == 0 else Vector3(cos(attempt * 2.4), 0, sin(attempt * 2.4)) * (1.2 + attempt * 0.3)
+		var candidate := original + offset
+		var floor_query := PhysicsRayQueryParameters3D.create(candidate + Vector3.UP * 1.0, candidate - Vector3.UP * 4.0, 1)
+		var floor_hit := space.intersect_ray(floor_query)
+		if floor_hit.is_empty() or (floor_hit.normal as Vector3).y < 0.7:
+			continue
+		candidate.y = floor_hit.position.y + 0.05
+		shape_query.transform = Transform3D(Basis.IDENTITY, candidate + Vector3.UP * 0.91)
+		if space.intersect_shape(shape_query, 1).is_empty():
+			global_position = candidate
+			_target_memory = candidate
+			return

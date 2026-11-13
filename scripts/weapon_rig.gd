@@ -20,11 +20,11 @@ signal hit_registered(result: Dictionary, weapon_idx: int)
 
 const WEAPON_SKINS := [
 	{
-		"name": "Tática Black Ops",
+		"name": "Sakura • Edição Atelier",
 		"cost": 0,
-		"primary": Color("262a34"),
-		"secondary": Color("8f4926"),
-		"accent": Color("d4652f"),
+		"primary": Color("477b79"),
+		"secondary": Color("ba9469"),
+		"accent": Color("d8b678"),
 		"tracer": Color("ffd166"),
 		"emit": 0.0,
 		"metal": 0.72,
@@ -33,7 +33,7 @@ const WEAPON_SKINS := [
 		"dmg_mult": 1.0
 	},
 	{
-		"name": "Ouro Imperial (BO2 Gold)",
+		"name": "Ouro Imperial",
 		"cost": 250,
 		"primary": Color("ffbe0b"),
 		"secondary": Color("181b22"),
@@ -42,24 +42,24 @@ const WEAPON_SKINS := [
 		"emit": 0.24,
 		"metal": 0.92,
 		"rough": 0.16,
-		"rate_mult": 0.94,
-		"dmg_mult": 1.04
+		"rate_mult": 1.0,
+		"dmg_mult": 1.0
 	},
 	{
-		"name": "Neon Cyber Roblox",
+		"name": "Sakura • Laca Imperial",
 		"cost": 450,
-		"primary": Color("00f5d4"),
-		"secondary": Color("ff2a85"),
-		"accent": Color("7209b7"),
+		"primary": Color("a14d63"),
+		"secondary": Color("f3ddba"),
+		"accent": Color("d8b678"),
 		"tracer": Color("00f5d4"),
 		"emit": 0.45,
 		"metal": 0.65,
 		"rough": 0.20,
-		"rate_mult": 0.92,
-		"dmg_mult": 1.06
+		"rate_mult": 1.0,
+		"dmg_mult": 1.0
 	},
 	{
-		"name": "Dragon Lore / Lava",
+		"name": "Brasa do Outono",
 		"cost": 700,
 		"primary": Color("ff4d29"),
 		"secondary": Color("241519"),
@@ -68,149 +68,64 @@ const WEAPON_SKINS := [
 		"emit": 0.38,
 		"metal": 0.78,
 		"rough": 0.22,
-		"rate_mult": 0.92,
-		"dmg_mult": 1.10
+		"rate_mult": 1.0,
+		"dmg_mult": 1.0
 	},
 	{
-		"name": "Diamante BO2 (VIP)",
+		"name": "Porcelana da Aurora",
 		"cost": 1200,
 		"primary": Color("e0fbfc"),
-		"secondary": Color("00bbf9"),
-		"accent": Color("fee440"),
+		"secondary": Color("234664"),
+		"accent": Color("d9b36f"),
 		"tracer": Color("00f5d4"),
 		"emit": 0.52,
 		"metal": 0.95,
 		"rough": 0.12,
-		"rate_mult": 0.88,
-		"dmg_mult": 1.12
+		"rate_mult": 1.0,
+		"dmg_mult": 1.0
 	}
 ]
 
 const CHAR_SKINS := [
 	{
-		"name": "Operador Ghost BO2",
+		"name": "Explorador Sakura",
 		"cost": 0,
-		"sleeve": Color("232730"),
-		"glove": Color("16181f"),
+		"sleeve": Color("93465b"),
+		"glove": Color("735242"),
 		"speed_bonus": 0.0
 	},
 	{
-		"name": "Cyber Ninja Neon",
+		"name": "Guardião do Jardim",
 		"cost": 300,
-		"sleeve": Color("5a189a"),
-		"glove": Color("00f5d4"),
-		"speed_bonus": 0.04
+		"sleeve": Color("738366"),
+		"glove": Color("a8515a"),
+		"speed_bonus": 0.0
 	},
 	{
-		"name": "Rei El Panadero",
+		"name": "Correio das Nuvens",
 		"cost": 500,
-		"sleeve": Color("d96b16"),
-		"glove": Color("f5b841"),
-		"speed_bonus": 0.07
+		"sleeve": Color("3e747a"),
+		"glove": Color("d9ac62"),
+		"speed_bonus": 0.0
 	},
 	{
-		"name": "Roblox VIP Dourado",
+		"name": "Explorador Imperial",
 		"cost": 950,
 		"sleeve": Color("ffbe0b"),
 		"glove": Color("c92a42"),
-		"speed_bonus": 0.10
+		"speed_bonus": 0.0
 	}
 ]
 
-const WEAPONS := [
-	{
-		"name": "AK-47 COMMANDO",
-		"sub": "Fuzil de Assalto • 3 Tiros Corpo / 1-Tap Headshot (RMB)",
-		"dmg": 42.0,
-		"head_mult": 3.2, # 134 dmg -> Instant 1-tap headshot!
-		"rate": 0.092,
-		"mag": 32,
-		"reserve": 160,
-		"spread_hip": 0.016,
-		"spread_ads": 0.0008,
-		"recoil_kick": 0.048,
-		"recoil_up": 0.018,
-		"ads_pos": Vector3(0.0, -0.132, -0.30),
-		"ads_fov": 54.0,
-		"speed_mult": 0.97,
-		"color": Color("ffd166"),
-		"sfx": "smg_shoot",
-		"auto": true,
-		"scoped": false,
-		"melee": false
-	},
-	{
-		"name": "AWP / L96A1 ARCTIC",
-		"sub": "Sniper Bolt-Action • 1 Tiro Fatal Quickscope (RMB)",
-		"dmg": 140.0,
-		"head_mult": 2.5, # 350 dmg -> Instant kill
-		"rate": 0.80,
-		"mag": 10,
-		"reserve": 50,
-		"spread_hip": 0.042,
-		"spread_ads": 0.0001,
-		"recoil_kick": 0.12,
-		"recoil_up": 0.058,
-		"ads_pos": Vector3(0.0, -0.11, -0.22),
-		"ads_fov": 26.0,
-		"speed_mult": 0.90,
-		"color": Color("fff3b0"),
-		"sfx": "shotgun_shoot",
-		"auto": false,
-		"scoped": true,
-		"melee": false
-	},
-	{
-		"name": "DESERT EAGLE .50",
-		"sub": "Pistola Pesada • 2 Tiros Corpo / 1-Tap Headshot (RMB)",
-		"dmg": 58.0,
-		"head_mult": 3.0, # 174 dmg -> 1-tap headshot!
-		"rate": 0.21,
-		"mag": 8,
-		"reserve": 56,
-		"spread_hip": 0.014,
-		"spread_ads": 0.0008,
-		"recoil_kick": 0.088,
-		"recoil_up": 0.045,
-		"ads_pos": Vector3(0.0, -0.112, -0.32),
-		"ads_fov": 60.0,
-		"speed_mult": 1.00,
-		"color": Color("ffd166"),
-		"sfx": "rail_shoot",
-		"auto": false,
-		"scoped": false,
-		"melee": false
-	},
-	{
-		"name": "KARAMBIT TÁTICA",
-		"sub": "Garra Curva CS:GO (+18% Velocidade Parkour + Hit Kill)",
-		"dmg": 110.0,
-		"head_mult": 2.0,
-		"rate": 0.30,
-		"mag": 1,
-		"reserve": 1,
-		"spread_hip": 0.0,
-		"spread_ads": 0.0,
-		"recoil_kick": -0.14,
-		"recoil_up": -0.12,
-		"ads_pos": Vector3(0.18, -0.18, -0.36),
-		"ads_fov": 78.0,
-		"speed_mult": 1.18,
-		"color": Color("00f5d4"),
-		"sfx": "double_jump",
-		"auto": false,
-		"scoped": false,
-		"melee": true
-	}
-]
+const WEAPONS := WeaponCatalog.DEFINITIONS
 
 var world: SakuraWorld
 var cam: Camera3D
 var current_idx := 0
 var prev_idx := 0
-var ammo := [30, 10, 7, 1]
-var reserve := [120, 40, 42, 1]
-var weapon_levels := [1, 1, 1, 1]
+var ammo: Array = []
+var reserve: Array = []
+var weapon_levels: Array = []
 var active_skin_idx := 0
 var active_char_skin_idx := 0
 
@@ -236,22 +151,28 @@ var _charm_vel := 0.0
 
 var _pivot: Node3D
 var _gun_models: Array[Node3D] = []
-var _mag_nodes: Array[Node3D] = [null, null, null, null]
-var _mag_rest_pos: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO, Vector3.ZERO, Vector3.ZERO]
-var _bolt_nodes: Array[Node3D] = [null, null, null, null]
-var _bolt_rest_pos: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO, Vector3.ZERO, Vector3.ZERO]
-var _left_hands: Array[Node3D] = [null, null, null, null]
-var _left_hand_rest: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO, Vector3.ZERO, Vector3.ZERO]
-var _charm_nodes: Array[Node3D] = [null, null, null, null]
+var _mag_nodes: Array[Node3D] = []
+var _mag_rest_pos: Array[Vector3] = []
+var _bolt_nodes: Array[Node3D] = []
+var _bolt_rest_pos: Array[Vector3] = []
+var _left_hands: Array[Node3D] = []
+var _left_hand_rest: Array[Vector3] = []
+var _charm_nodes: Array[Node3D] = []
 var _karambit_ring_pivot: Node3D
 var _slash_fx_root: Node3D
 var _slash_fx_timer := 0.0
+
+var _finish_material_cache := {}
+var _outfit_material_cache := {}
 
 var _skin_parts_primary: Array[MeshInstance3D] = []
 var _skin_parts_secondary: Array[MeshInstance3D] = []
 var _skin_parts_accent: Array[MeshInstance3D] = []
 var _sleeve_parts: Array[MeshInstance3D] = []
 var _glove_parts: Array[MeshInstance3D] = []
+
+var suppressor_enabled: Array = []
+var _suppressor_meshes: Array[Node3D] = []
 
 var _muzzle_flash: Node3D
 var _muzzle_light: OmniLight3D
@@ -264,6 +185,19 @@ var _bob_t := 0.0
 var _rng := RandomNumberGenerator.new()
 
 
+func _init() -> void:
+	for w in WEAPONS:
+		ammo.append(int(w.mag))
+		reserve.append(int(w.reserve))
+		weapon_levels.append(1)
+		suppressor_enabled.append(false)
+	for parts in [_mag_nodes, _bolt_nodes, _left_hands, _charm_nodes, _suppressor_meshes]:
+		parts.resize(WEAPONS.size())
+	for rests in [_mag_rest_pos, _bolt_rest_pos, _left_hand_rest]:
+		rests.resize(WEAPONS.size())
+		rests.fill(Vector3.ZERO)
+
+
 func setup(w: SakuraWorld, camera: Camera3D) -> void:
 	world = w
 	cam = camera
@@ -273,13 +207,16 @@ func setup(w: SakuraWorld, camera: Camera3D) -> void:
 	_pivot.position = Vector3(0.22, -0.20, -0.42)
 	add_child(_pivot)
 
-	_gun_models.append(_build_ak47())
-	_gun_models.append(_build_awp())
-	_gun_models.append(_build_deagle())
-	_gun_models.append(_build_karambit())
+	for i in WEAPONS.size():
+		_gun_models.append(_build_karambit() if bool(WEAPONS[i].melee) else ImportedWeapon.build(self, i))
 	for m in _gun_models:
 		_pivot.add_child(m)
 
+	for i in WeaponCatalog.FIREARMS:
+		var tip := ImportedWeapon.tip_for(i)
+		var suppressor := ImportedWeapon.attachment(_gun_models[i], "Suppressor_West", tip)
+		suppressor.visible = false
+		_suppressor_meshes[i] = suppressor
 	# 3D Starburst Muzzle Flash
 	_muzzle_flash = Node3D.new()
 	_muzzle_flash.position = Vector3(0, 0.04, -0.62)
@@ -312,8 +249,8 @@ func setup(w: SakuraWorld, camera: Camera3D) -> void:
 func _vm_mat(col: Color, emit: float = 0.0, unshaded: bool = false, metal: float = 0.68, rough: float = 0.26) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = col
-	m.metallic = metal
-	m.roughness = rough
+	m.metallic = metal * 0.65
+	m.roughness = maxf(rough, 0.32)
 	m.specular_mode = BaseMaterial3D.SPECULAR_SCHLICK_GGX
 	if col.a < 0.99:
 		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -473,199 +410,6 @@ func _build_weapon_charm(parent: Node3D, attach_pos: Vector3) -> Node3D:
 	return charm_pivot
 
 
-# ---------------------------------------------------------------- [1] AK-47 COMMANDO (Sculpted 3D Rifle + Moving Mag & Bolt)
-
-func _build_ak47() -> Node3D:
-	var g := Node3D.new()
-	var steel := Color("262a34")
-	var dark_metal := Color("16181f")
-	var chrome := Color("b8c4d4")
-	var wood := Color("8f4926")
-	var bakelite := Color("d4652f")
-
-	# Right Trigger Hand + Left Handguard Support Hand
-	_build_articulated_hand(g, Vector3(0.0, -0.075, 0.04), Vector3(0.18, 0.0, 0.0), false)
-	var lh := _build_articulated_hand(g, Vector3(-0.028, -0.032, -0.22), Vector3(0.25, 0.38, -0.45), true)
-	_left_hands[0] = lh
-	_left_hand_rest[0] = lh.position
-
-	# Sculpted Wooden Buttstock + Cheek Rest + Rubber Buttpad + Pistol Grip
-	_box(g, Vector3(0, -0.018, 0.185), Vector3(0.044, 0.078, 0.21), wood, 0.0, false, "secondary", Vector3(-0.08, 0, 0), 0.25, 0.48)
-	_box(g, Vector3(0, 0.015, 0.165), Vector3(0.046, 0.026, 0.17), wood.lightened(0.08), 0.0, false, "secondary", Vector3.ZERO, 0.25, 0.45)
-	_box(g, Vector3(0, -0.022, 0.292), Vector3(0.048, 0.088, 0.018), dark_metal, 0.0, false, "", Vector3.ZERO, 0.2, 0.8)
-	_box(g, Vector3(0, -0.068, 0.032), Vector3(0.038, 0.105, 0.048), wood, 0.0, false, "secondary", Vector3(-0.28, 0, 0), 0.3, 0.45)
-
-	# Trigger Guard + Curved Trigger
-	_box(g, Vector3(0, -0.032, -0.012), Vector3(0.016, 0.028, 0.048), dark_metal)
-	_box(g, Vector3(0, -0.026, -0.008), Vector3(0.008, 0.022, 0.010), Color("ffd166"), 0.2, false, "accent", Vector3(0.35, 0, 0))
-
-	# Stamped Steel Receiver + Ribbed Dust Cover + Selector Lever
-	_box(g, Vector3(0, 0.016, -0.04), Vector3(0.054, 0.066, 0.25), steel, 0.0, false, "primary", Vector3.ZERO, 0.78, 0.25)
-	_cyl(g, Vector3(0, 0.048, -0.04), 0.026, 0.027, 0.245, dark_metal, 12, 0.0, false, Vector3(PI * 0.5, 0, 0), "primary", 0.82, 0.22)
-	_box(g, Vector3(0.029, 0.018, -0.02), Vector3(0.006, 0.016, 0.095), dark_metal, 0.0, false, "accent", Vector3(0.08, 0, 0))
-
-	# Animated Reciprocating Bolt Carrier & Charging Handle (_bolt_nodes[0])
-	var bolt := Node3D.new()
-	bolt.position = Vector3(0.028, 0.038, -0.085)
-	g.add_child(bolt)
-	_box(bolt, Vector3(-0.006, 0.0, 0.0), Vector3(0.018, 0.020, 0.085), chrome, 0.0, false, "", Vector3.ZERO, 0.92, 0.15)
-	_cyl(bolt, Vector3(0.014, 0.0, -0.025), 0.007, 0.009, 0.028, dark_metal, 10, 0.0, false, Vector3(0, 0, PI * 0.5))
-	_bolt_nodes[0] = bolt
-	_bolt_rest_pos[0] = bolt.position
-
-	# Ventilated Wooden/Tactical Handguard + Cooling Slots + Gas Tube
-	_box(g, Vector3(0, 0.010, -0.248), Vector3(0.050, 0.048, 0.185), wood, 0.0, false, "secondary", Vector3.ZERO, 0.35, 0.42)
-	_cyl(g, Vector3(0, 0.048, -0.242), 0.016, 0.016, 0.17, steel, 12, 0.0, false, Vector3(PI * 0.5, 0, 0), "primary")
-	for v_i in 3:
-		_box(g, Vector3(0, 0.032, -0.19 - v_i * 0.042), Vector3(0.054, 0.010, 0.022), dark_metal)
-
-	# Cylindrical Rifled Barrel + 45° Gas Block + Front Sight Hood + Slanted Compensator
-	_cyl(g, Vector3(0, 0.022, -0.435), 0.011, 0.012, 0.26, dark_metal, 16, 0.0, false, Vector3(PI * 0.5, 0, 0), "", 0.88, 0.18)
-	_cyl(g, Vector3(0, 0.010, -0.415), 0.005, 0.005, 0.21, steel, 10, 0.0, false, Vector3(PI * 0.5, 0, 0)) # Cleaning rod!
-	_box(g, Vector3(0, 0.036, -0.355), Vector3(0.022, 0.032, 0.028), dark_metal, 0.0, false, "", Vector3(0.45, 0, 0))
-	_box(g, Vector3(0, 0.052, -0.515), Vector3(0.016, 0.048, 0.024), dark_metal)
-	_torus(g, Vector3(0, 0.068, -0.515), 0.009, 0.013, dark_metal)
-	_cyl(g, Vector3(0, 0.022, -0.568), 0.013, 0.014, 0.045, chrome, 14, 0.0, false, Vector3(PI * 0.5, 0, 0), "accent", 0.9, 0.16)
-
-	# 3-Segment Sculpted Curved Banana Magazine (_mag_nodes[0]) — Animated during Reload!
-	var mag := Node3D.new()
-	mag.position = Vector3(0, -0.042, -0.115)
-	g.add_child(mag)
-	_box(mag, Vector3(0, -0.035, 0.0), Vector3(0.038, 0.075, 0.058), bakelite, 0.0, false, "accent", Vector3(0.16, 0, 0), 0.45, 0.32)
-	_box(mag, Vector3(0, -0.095, -0.016), Vector3(0.037, 0.072, 0.056), bakelite, 0.0, false, "accent", Vector3(0.34, 0, 0), 0.45, 0.32)
-	_box(mag, Vector3(0, -0.148, -0.045), Vector3(0.039, 0.052, 0.058), bakelite.darkened(0.12), 0.0, false, "accent", Vector3(0.52, 0, 0), 0.5, 0.30)
-	_mag_nodes[0] = mag
-	_mag_rest_pos[0] = mag.position
-
-	# Picatinny Top Rail + Tactical Reflex Sight (Aligned with ADS camera at y = +0.132!)
-	_box(g, Vector3(0, 0.072, -0.04), Vector3(0.036, 0.012, 0.12), dark_metal)
-	for r_i in 6:
-		_box(g, Vector3(0, 0.080, -0.09 + r_i * 0.02), Vector3(0.038, 0.006, 0.009), steel)
-	_box(g, Vector3(0, 0.090, -0.04), Vector3(0.046, 0.016, 0.078), dark_metal)
-	_box(g, Vector3(-0.022, 0.126, -0.04), Vector3(0.007, 0.062, 0.056), dark_metal, 0.0, false, "primary")
-	_box(g, Vector3(0.022, 0.126, -0.04), Vector3(0.007, 0.062, 0.056), dark_metal, 0.0, false, "primary")
-	_box(g, Vector3(0, 0.156, -0.04), Vector3(0.050, 0.008, 0.058), dark_metal, 0.0, false, "accent")
-	_box(g, Vector3(0, 0.126, -0.042), Vector3(0.038, 0.050, 0.003), Color(0.1, 0.85, 0.95, 0.22), 0.5, true)
-	_box(g, Vector3(0, 0.132, -0.04), Vector3(0.006, 0.006, 0.005), Color("ff2a4b"), 4.2, true)
-
-	_charm_nodes[0] = _build_weapon_charm(g, Vector3(-0.032, 0.032, -0.01))
-	return g
-
-
-# ---------------------------------------------------------------- [2] AWP / L96A1 DRAGON SNIPER (Fluted Barrel + Bolt Action)
-
-func _build_awp() -> Node3D:
-	var g := Node3D.new()
-	var olive := Color("3b543a")
-	var dark := Color("161920")
-	var steel := Color("2e3442")
-	var gold := Color("ffd166")
-
-	_build_articulated_hand(g, Vector3(0.0, -0.072, 0.05), Vector3(0.15, 0.0, 0.0), false)
-	var lh := _build_articulated_hand(g, Vector3(-0.026, -0.028, -0.25), Vector3(0.22, 0.35, -0.42), true)
-	_left_hands[1] = lh
-	_left_hand_rest[1] = lh.position
-
-	# Thumbhole Polymer Chassis + Adjustable Cheek Pad + Bipod
-	_box(g, Vector3(0, -0.015, 0.15), Vector3(0.052, 0.088, 0.25), olive, 0.0, false, "primary", Vector3.ZERO, 0.35, 0.42)
-	_box(g, Vector3(0, 0.042, 0.16), Vector3(0.046, 0.028, 0.14), dark, 0.0, false, "secondary")
-	_box(g, Vector3(0, 0.012, -0.13), Vector3(0.056, 0.068, 0.36), olive, 0.0, false, "primary", Vector3.ZERO, 0.45, 0.36)
-	_box(g, Vector3(0, -0.062, 0.03), Vector3(0.040, 0.095, 0.046), dark, 0.0, false, "secondary", Vector3(-0.22, 0, 0))
-
-	# Heavy Free-Floating Cylindrical Barrel + 3-Chamber Tank Muzzle Brake + Folded Bipod
-	_cyl(g, Vector3(0, 0.032, -0.45), 0.014, 0.017, 0.44, steel, 16, 0.0, false, Vector3(PI * 0.5, 0, 0), "accent", 0.88, 0.18)
-	_box(g, Vector3(0, 0.032, -0.68), Vector3(0.044, 0.036, 0.078), dark, 0.0, false, "secondary", Vector3.ZERO, 0.85, 0.22)
-	for s_side in [-1.0, 1.0]:
-		_cyl(g, Vector3(s_side * 0.028, -0.018, -0.36), 0.006, 0.006, 0.18, dark, 10, 0.0, false, Vector3(PI * 0.5, 0, 0))
-
-	# Animated Bolt-Action Handle & Spherical Knob (_bolt_nodes[1])
-	var bolt := Node3D.new()
-	bolt.position = Vector3(0.028, 0.034, -0.02)
-	g.add_child(bolt)
-	_cyl(bolt, Vector3(-0.015, 0, 0), 0.010, 0.010, 0.11, gold, 12, 0.2, false, Vector3(PI * 0.5, 0, 0), "accent")
-	_cyl(bolt, Vector3(0.018, 0, 0.02), 0.005, 0.005, 0.038, dark, 10, 0.0, false, Vector3(0, 0, PI * 0.5))
-	_torus(bolt, Vector3(0.036, 0, 0.02), 0.004, 0.011, dark)
-	_bolt_nodes[1] = bolt
-	_bolt_rest_pos[1] = bolt.position
-
-	# Detachable Steel Sniper Magazine (_mag_nodes[1])
-	var mag := Node3D.new()
-	mag.position = Vector3(0, -0.045, -0.09)
-	g.add_child(mag)
-	_box(mag, Vector3(0, -0.032, 0), Vector3(0.038, 0.082, 0.092), dark, 0.0, false, "accent", Vector3(0.06, 0, 0), 0.82, 0.24)
-	_mag_nodes[1] = mag
-	_mag_rest_pos[1] = mag.position
-
-	# Dual-Ring High-Magnification Sniper Scope + Objective Bell + Turrets + Optical Lens
-	_box(g, Vector3(0, 0.066, -0.03), Vector3(0.032, 0.038, 0.028), dark)
-	_box(g, Vector3(0, 0.066, -0.17), Vector3(0.032, 0.038, 0.028), dark)
-	_cyl(g, Vector3(0, 0.105, -0.10), 0.024, 0.024, 0.26, dark, 18, 0.0, false, Vector3(PI * 0.5, 0, 0), "secondary", 0.82, 0.20)
-	_cyl(g, Vector3(0, 0.105, -0.25), 0.034, 0.026, 0.075, dark, 18, 0.0, false, Vector3(PI * 0.5, 0, 0), "accent", 0.85, 0.18)
-	_cyl(g, Vector3(0, 0.105, 0.04), 0.027, 0.024, 0.045, dark, 18, 0.0, false, Vector3(PI * 0.5, 0, 0), "secondary")
-	_cyl(g, Vector3(0, 0.136, -0.10), 0.011, 0.011, 0.022, gold, 12, 0.2, false, Vector3.ZERO, "accent")
-	_cyl(g, Vector3(0.031, 0.105, -0.10), 0.011, 0.011, 0.022, gold, 12, 0.2, false, Vector3(0, 0, PI * 0.5), "accent")
-	_cyl(g, Vector3(0, 0.105, 0.062), 0.023, 0.023, 0.004, Color(0.15, 0.85, 1.0, 0.45), 16, 1.4, true, Vector3(PI * 0.5, 0, 0))
-
-	_charm_nodes[1] = _build_weapon_charm(g, Vector3(-0.032, 0.028, -0.02))
-	return g
-
-
-# ---------------------------------------------------------------- [3] DESERT EAGLE .50 (Sculpted Chrome Hand-Cannon + Blowback Slide)
-
-func _build_deagle() -> Node3D:
-	var g := Node3D.new()
-	var chrome := Color("dce2ec")
-	var grip := Color("1a1d24")
-	var gold := Color("ffd166")
-	var tritium := Color("00f5d4")
-
-	# Two-Handed Tactical Pistol Grip (Right Hand + Supporting Left Hand)
-	_build_articulated_hand(g, Vector3(0.0, -0.068, 0.045), Vector3(0.12, 0.0, 0.0), false)
-	var lh := _build_articulated_hand(g, Vector3(-0.022, -0.062, 0.015), Vector3(0.16, 0.42, -0.28), true)
-	_left_hands[2] = lh
-	_left_hand_rest[2] = lh.position
-
-	# Ergonomic Wrap-Around Grip + Gold Medallion + Trigger Guard + Beavertail Frame
-	_box(g, Vector3(0, -0.038, 0.028), Vector3(0.044, 0.118, 0.062), grip, 0.0, false, "secondary", Vector3(-0.22, 0, 0), 0.25, 0.55)
-	_cyl(g, Vector3(0.023, -0.035, 0.028), 0.009, 0.009, 0.004, gold, 12, 0.4, false, Vector3(0, 0, PI * 0.5), "accent")
-	_box(g, Vector3(0, 0.018, -0.055), Vector3(0.044, 0.024, 0.18), chrome, 0.0, false, "primary", Vector3.ZERO, 0.92, 0.14)
-	_box(g, Vector3(0, -0.008, -0.025), Vector3(0.016, 0.028, 0.052), chrome, 0.0, false, "primary")
-	_box(g, Vector3(0, -0.002, -0.018), Vector3(0.008, 0.022, 0.010), gold, 0.3, false, "accent", Vector3(0.32, 0, 0))
-
-	# Fixed Triangular Top Barrel Assembly + Exposed Chrome Chamber + Muzzle Bore
-	_box(g, Vector3(0, 0.058, -0.125), Vector3(0.042, 0.042, 0.16), chrome, 0.0, false, "primary", Vector3.ZERO, 0.94, 0.12)
-	_cyl(g, Vector3(0, 0.056, -0.208), 0.009, 0.010, 0.012, Color("08090c"), 14, 0.0, true, Vector3(PI * 0.5, 0, 0))
-	for r_i in 5:
-		_box(g, Vector3(0, 0.081, -0.08 - r_i * 0.022), Vector3(0.036, 0.006, 0.010), grip)
-
-	# Animated Reciprocating Blowback Slide (_bolt_nodes[2]) + Serrations + Tritium Night Sights
-	var slide := Node3D.new()
-	slide.position = Vector3.ZERO
-	g.add_child(slide)
-	_box(slide, Vector3(0, 0.052, -0.055), Vector3(0.050, 0.048, 0.24), chrome, 0.0, false, "primary", Vector3.ZERO, 0.92, 0.15)
-	_box(slide, Vector3(0, 0.072, -0.055), Vector3(0.044, 0.016, 0.235), gold, 0.2, false, "accent", Vector3.ZERO, 0.90, 0.16)
-	for ser in 5:
-		_box(slide, Vector3(0, 0.050, 0.01 + ser * 0.011), Vector3(0.053, 0.032, 0.005), grip)
-	# Glowing 3-Dot Tritium Sights (Aligned with ADS camera at y = +0.112!)
-	_box(slide, Vector3(-0.014, 0.092, 0.042), Vector3(0.009, 0.020, 0.014), grip)
-	_box(slide, Vector3(0.014, 0.092, 0.042), Vector3(0.009, 0.020, 0.014), grip)
-	_box(slide, Vector3(0, 0.094, -0.168), Vector3(0.008, 0.024, 0.014), tritium, 3.6, true)
-	_bolt_nodes[2] = slide
-	_bolt_rest_pos[2] = slide.position
-
-	# Detachable .50 AE Magazine (_mag_nodes[2])
-	var mag := Node3D.new()
-	mag.position = Vector3(0, -0.042, 0.030)
-	g.add_child(mag)
-	_box(mag, Vector3(0, -0.015, 0), Vector3(0.034, 0.11, 0.048), grip, 0.0, false, "accent", Vector3(-0.22, 0, 0))
-	_box(mag, Vector3(0, -0.068, 0.012), Vector3(0.042, 0.014, 0.058), gold, 0.2, false, "accent", Vector3(-0.22, 0, 0))
-	_mag_nodes[2] = mag
-	_mag_rest_pos[2] = mag.position
-
-	_charm_nodes[2] = _build_weapon_charm(g, Vector3(-0.028, 0.015, 0.045))
-	return g
-
-
 # ---------------------------------------------------------------- [4] KARAMBIT TIGER-CLAW (Smooth SurfaceTool Curved Claw + Finger-Ring Pivot)
 
 func _add_quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3) -> void:
@@ -816,42 +560,52 @@ func _build_karambit() -> Node3D:
 
 # ---------------------------------------------------------------- Skins, Upgrades & Selection
 
-func apply_weapon_skin(skin_idx: int) -> void:
+func apply_weapon_skin(skin_idx: int, animate: bool = true) -> void:
 	active_skin_idx = clampi(skin_idx, 0, WEAPON_SKINS.size() - 1)
 	var sk: Dictionary = WEAPON_SKINS[active_skin_idx]
 	var em := float(sk.emit)
 	var met := float(sk.get("metal", 0.75))
 	var rgh := float(sk.get("rough", 0.22))
+	if not _finish_material_cache.has(active_skin_idx):
+		var primary: Material = _vm_mat(sk.primary, em, false, met, rgh)
+		if active_skin_idx > 0:
+			var finish := ShaderMaterial.new()
+			finish.shader = preload("res://assets/shaders/weapon_finish.gdshader")
+			finish.set_shader_parameter("primary_color", sk.primary)
+			finish.set_shader_parameter("accent_color", sk.accent)
+			finish.set_shader_parameter("finish", active_skin_idx)
+			finish.set_shader_parameter("lacquer", load("res://assets/textures/cozy/aurora_porcelain.png") if active_skin_idx == 4 else preload("res://assets/textures/cozy/sakura_lacquer.png"))
+			primary = finish
+		_finish_material_cache[active_skin_idx] = [primary, _vm_mat(sk.secondary, em * 0.25, false, met * 0.7, rgh + 0.1), _vm_mat(sk.accent, em * 0.3 + 0.12, false, 0.5, 0.35)]
+	var materials: Array = _finish_material_cache[active_skin_idx]
 	for mi in _skin_parts_primary:
-		mi.material_override = _vm_mat(sk.primary, em, false, met, rgh)
+		mi.material_override = materials[0]
 	for mi in _skin_parts_secondary:
-		mi.material_override = _vm_mat(sk.secondary, em * 0.5, false, met * 0.7, rgh + 0.1)
+		mi.material_override = materials[1]
 	for mi in _skin_parts_accent:
-		mi.material_override = _vm_mat(sk.accent, em + 0.30, false, 0.92, 0.14)
-	trigger_inspect()
+		mi.material_override = materials[2]
+	if animate:
+		trigger_inspect()
 
 
 func apply_char_skin(c_idx: int) -> void:
 	active_char_skin_idx = clampi(c_idx, 0, CHAR_SKINS.size() - 1)
 	var cs: Dictionary = CHAR_SKINS[active_char_skin_idx]
+	if not _outfit_material_cache.has(active_char_skin_idx):
+		_outfit_material_cache[active_char_skin_idx] = [_vm_mat(cs.sleeve, 0.06, false, 0.2, 0.65), _vm_mat(cs.glove, 0.08, false, 0.25, 0.48)]
 	for mi in _sleeve_parts:
-		mi.material_override = _vm_mat(cs.sleeve, 0.12, false, 0.25, 0.65)
+		mi.material_override = _outfit_material_cache[active_char_skin_idx][0]
 	for mi in _glove_parts:
-		mi.material_override = _vm_mat(cs.glove, 0.18, false, 0.35, 0.48)
+		mi.material_override = _outfit_material_cache[active_char_skin_idx][1]
 	trigger_inspect()
 
 
 func max_mag_for(idx: int) -> int:
-	var w: Dictionary = WEAPONS[idx]
-	if bool(w.melee):
-		return 1
-	var lvl := int(weapon_levels[idx]) - 1
-	var bonus_per_lvl := 3 if idx == 0 else (1 if idx == 1 else 2)
-	return int(w.mag) + lvl * bonus_per_lvl
+	return int(WEAPONS[idx].mag)
 
 
 func upgrade_current_weapon() -> int:
-	weapon_levels[current_idx] = mini(5, int(weapon_levels[current_idx]) + 1)
+	weapon_levels[current_idx] = mini(4, int(weapon_levels[current_idx]) + 1)
 	refill_all_ammo()
 	trigger_inspect()
 	return int(weapon_levels[current_idx])
@@ -885,7 +639,7 @@ func select_weapon(idx: int, instant: bool = false) -> void:
 
 
 func _reset_subparts() -> void:
-	for i in 4:
+	for i in WEAPONS.size():
 		if is_instance_valid(_mag_nodes[i]):
 			_mag_nodes[i].position = _mag_rest_pos[i]
 			_mag_nodes[i].rotation = Vector3.ZERO
@@ -937,8 +691,8 @@ func start_reload() -> void:
 		return
 	is_reloading = true
 	want_ads = false
-	var lvl_boost := 1.0 - (int(weapon_levels[current_idx]) - 1) * 0.06
-	reload_duration = 1.20 * lvl_boost
+	var lvl_boost := 1.0
+	reload_duration = float(w.get("reload", 1.20)) * lvl_boost
 	reload_timer = reload_duration
 	Sfx.play("reload")
 	ammo_updated.emit(int(ammo[current_idx]), int(reserve[current_idx]), true)
@@ -948,6 +702,7 @@ func grant_kill_ammo_siphon(bonus: int = 8) -> void:
 	var w: Dictionary = WEAPONS[current_idx]
 	if bool(w.melee):
 		return
+	bonus = mini(bonus, int(w.get("siphon", bonus)))
 	var max_m := max_mag_for(current_idx)
 	ammo[current_idx] = mini(max_m, int(ammo[current_idx]) + bonus)
 	reserve[current_idx] = int(reserve[current_idx]) + bonus
@@ -987,12 +742,12 @@ func _trigger_slash_ribbon(combo_step: int, is_heavy: bool) -> void:
 
 
 func try_fire(moving_speed: float, heavy_melee: bool = false) -> bool:
-	if is_reloading or fire_cd > 0.0:
+	if world.game_mode != SakuraWorld.MODE_COMBAT or is_reloading or fire_cd > 0.0:
 		return false
 	var w: Dictionary = WEAPONS[current_idx]
 	var sk: Dictionary = WEAPON_SKINS[active_skin_idx]
-	var lvl := int(weapon_levels[current_idx])
-	var lvl_dmg_mult := 1.0 + (lvl - 1) * 0.04
+	var lvl := clampi(int(weapon_levels[current_idx]), 1, 4)
+	var lvl_dmg_mult := 1.0 + (lvl - 1) * 0.01
 
 	# KARAMBIT 3-HIT SLASH COMBO (LMB) & TWO-HANDED HEAVY LUNGE STAB (RMB)
 	if bool(w.melee):
@@ -1035,7 +790,7 @@ func try_fire(moving_speed: float, heavy_melee: bool = false) -> bool:
 		return false
 
 	ammo[current_idx] = int(ammo[current_idx]) - 1
-	fire_cd = float(w.rate) * float(sk.rate_mult) * (1.0 - (lvl - 1) * 0.025)
+	fire_cd = float(w.rate)
 	inspect_timer = 0.0
 	_draw_timer = 0.0
 	ammo_updated.emit(int(ammo[current_idx]), int(reserve[current_idx]), false)
@@ -1043,8 +798,14 @@ func try_fire(moving_speed: float, heavy_melee: bool = false) -> bool:
 	var tracer_col: Color = sk.tracer if active_skin_idx > 0 else (w.color as Color)
 
 	# Audio, Starburst Muzzle Flash, Reciprocating Bolt/Slide Kick & Brass Ejection
-	Sfx.play(str(w.sfx), _rng.randf_range(0.97, 1.04))
+	Sfx.play(str(w.sfx), _rng.randf_range(0.97, 1.04), -9.0 if suppressor_enabled[current_idx] else -4.0)
+	if world.combat_audio != null:
+		world.combat_audio.noise(cam.global_position - Vector3.UP, null, 0.35 if suppressor_enabled[current_idx] else 1.0)
 	_flash_timer = 0.048
+	_muzzle_flash.position = ImportedWeapon.tip_for(current_idx)
+	if suppressor_enabled[current_idx]:
+		_muzzle_flash.position.z -= 0.14
+	_muzzle_light.position = _muzzle_flash.position
 	_muzzle_flash.visible = not is_scoped_in()
 	_muzzle_flash.rotation.z = _rng.randf() * TAU
 	_muzzle_light.light_color = tracer_col
@@ -1055,7 +816,7 @@ func try_fire(moving_speed: float, heavy_melee: bool = false) -> bool:
 
 	# Viewmodel & Camera Recoil Spring
 	var ads_damp := 0.50 if ads_alpha > 0.5 else 1.0
-	var stab_mult := 1.0 - (lvl - 1) * 0.05
+	var stab_mult := 1.0
 	_recoil_z = float(w.recoil_kick) * ads_damp * stab_mult
 	_recoil_pitch = float(w.recoil_up) * ads_damp * stab_mult
 	_recoil_roll = _rng.randf_range(-0.045, 0.045) * ads_damp
@@ -1075,38 +836,61 @@ func try_fire(moving_speed: float, heavy_melee: bool = false) -> bool:
 	var move_penalty := clampf((moving_speed - 1.5) / 6.0, 0.0, 1.0) * (0.030 if current_idx == 1 else 0.016) * (1.0 - ads_alpha * 0.68)
 	var spread := base_spread + move_penalty
 
-	var dir := fwd
-	if spread > 0.0001:
-		dir = (fwd + right * _rng.randf_range(-spread, spread) + up * _rng.randf_range(-spread, spread)).normalized()
-
-	var end_pt := origin + dir * 115.0
-	var query := PhysicsRayQueryParameters3D.create(origin, end_pt, 1 | 4 | 8)
-	var hit := space.intersect_ray(query)
-	var tracer_end := end_pt
-
-	if not hit.is_empty():
-		tracer_end = hit.position
-		var collider: Object = hit.collider
-		if collider is EnemyBot:
-			var bot := collider as EnemyBot
-			var kb := dir * (8.5 if current_idx == 1 else 3.5) + Vector3(0, 1.5, 0)
-			var final_dmg := float(w.dmg) * float(sk.dmg_mult) * lvl_dmg_mult
-			var res := bot.apply_hit(final_dmg, hit.position, kb, float(w.head_mult))
-			world.spawn_voxel_burst(hit.position, Color("e63956") if bool(res.headshot) else tracer_col, 10 if bool(res.headshot) else 5)
-			world.spawn_damage_number(hit.position, int(res.dmg), bool(res.headshot))
-			Sfx.play("headshot" if bool(res.headshot) else "hitmarker")
-			res["pos"] = hit.position
-			res["weapon_name"] = str(w.name)
-			res["bot_name"] = bot.bot_name
-			hit_registered.emit(res, current_idx)
-		elif collider is Node3D and (collider as Node3D).has_meta("is_target"):
-			world.hit_target_body(collider as Node3D)
-			Sfx.play("headshot")
-			hit_registered.emit({"killed": true, "headshot": true, "dmg": 150.0, "pos": hit.position, "target": true}, current_idx)
-		else:
-			world.spawn_voxel_burst(hit.position, Color("d8e2eb"), 3)
-
-	world.spawn_tracer(muzzle_world if not is_scoped_in() else (origin + Vector3(0, -0.1, 0)), tracer_end, tracer_col, 0.045 if current_idx == 1 else 0.024)
+	# Resolve every pellet before applying damage: one victim produces one damage/kill event.
+	var pellets := int(w.get("pellets", 1))
+	var phase := _rng.randf() * TAU
+	var victims: Dictionary = {}
+	var targets: Dictionary = {}
+	for pellet in pellets:
+		var scatter := Vector2(_rng.randf_range(-spread, spread), _rng.randf_range(-spread, spread))
+		if pellets > 1:
+			var radius := sqrt(float(pellet) / float(pellets - 1)) * spread
+			scatter = Vector2.from_angle(phase + pellet * 2.399963) * radius
+		var dir := (fwd + right * scatter.x + up * scatter.y).normalized()
+		var end_pt := origin + dir * float(w.get("range", 115.0))
+		var query := PhysicsRayQueryParameters3D.create(origin, end_pt, 1 | 4 | 8)
+		var hit := space.intersect_ray(query)
+		var tracer_end := end_pt
+		if not hit.is_empty():
+			tracer_end = hit.position
+			var collider: Object = hit.collider
+			if collider is EnemyBot:
+				var bot := collider as EnemyBot
+				var head: bool = hit.position.y - bot.global_position.y >= bot.head_y_min
+				var damage := WeaponCatalog.damage_at_distance(current_idx, origin.distance_to(hit.position)) * float(sk.dmg_mult) * lvl_dmg_mult
+				if head:
+					damage *= float(w.head_mult)
+				if not victims.has(bot):
+					victims[bot] = {"damage": 0.0, "heads": 0, "count": 0, "head_pos": hit.position, "body_pos": hit.position}
+				var entry: Dictionary = victims[bot]
+				entry.damage += damage
+				entry.count += 1
+				entry.heads += int(head)
+				entry["head_pos" if head else "body_pos"] = hit.position
+			elif collider is Node3D and (collider as Node3D).has_meta("is_target"):
+				targets[collider] = hit.position
+			elif pellet < 3:
+				world.spawn_voxel_burst(hit.position, Color("d8e2eb"), 3)
+		if pellet < 3:
+			world.spawn_tracer(muzzle_world if not is_scoped_in() else (origin + Vector3(0, -0.1, 0)), tracer_end, tracer_col, 0.045 if current_idx == 1 else 0.024)
+	for victim in victims:
+		var bot := victim as EnemyBot
+		var entry: Dictionary = victims[victim]
+		var hit_pos: Vector3 = entry.head_pos if entry.heads * 2 >= entry.count else entry.body_pos
+		var kb := fwd * (8.5 if current_idx == 1 else 3.5) + Vector3(0, 1.5, 0)
+		# Head multipliers are already included per pellet; never multiply the aggregate again.
+		var res := bot.apply_hit(float(entry.damage), hit_pos, kb, 1.0)
+		world.spawn_voxel_burst(hit_pos, Color("e63956") if bool(res.headshot) else tracer_col, 10 if bool(res.headshot) else 5)
+		world.spawn_damage_number(hit_pos, int(res.dmg), bool(res.headshot))
+		Sfx.play("headshot" if bool(res.headshot) else "hitmarker")
+		res["pos"] = hit_pos
+		res["weapon_name"] = str(w.name)
+		res["bot_name"] = bot.bot_name
+		hit_registered.emit(res, current_idx)
+	for target in targets:
+		world.hit_target_body(target as Node3D)
+		Sfx.play("headshot")
+		hit_registered.emit({"killed": true, "headshot": true, "dmg": 150.0, "pos": targets[target], "target": true}, current_idx)
 
 	if int(ammo[current_idx]) <= 0:
 		start_reload()
@@ -1347,3 +1131,10 @@ func tick_viewmodel(delta: float, h_speed: float, on_floor: bool, sprinting: boo
 	var rot_speed := 28.0 if _melee_anim_t > 0.0 else 18.0
 	_pivot.position = _pivot.position.lerp(target_pos, minf(1.0, delta * pos_speed))
 	_pivot.rotation = _pivot.rotation.lerp(target_rot, minf(1.0, delta * rot_speed))
+
+
+func set_suppressor(idx: int, enabled: bool) -> void:
+	if idx not in WeaponCatalog.FIREARMS or not is_instance_valid(_suppressor_meshes[idx]):
+		return
+	suppressor_enabled[idx] = enabled
+	_suppressor_meshes[idx].visible = enabled

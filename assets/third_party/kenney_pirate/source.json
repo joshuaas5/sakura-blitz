@@ -1,0 +1,26 @@
+{
+  "source": "https://opengameart.org/content/pirate-kit",
+  "license": "CC0-1.0",
+  "files_sha256": {
+    "License.txt": "5e99246a5a65fa3420a1a1c7a8616f096202c78866f73d7aacfe73c0aab0ca36",
+    "barrel.glb": "7616dedf7c1023afa6ecd3c52a4609460aae0e582dee14e60ec5e47c1174793b",
+    "boat-row-large.glb": "b496c0d5f9053ebc7e9b9a39a4770d5ccaff5510c51b7c72c1b8391442e61d0f",
+    "cannon-mobile.glb": "0e8ae9889b35bb43c0da779a7eed3c2a7a204b80350516f7c4ad523a550d8867",
+    "chest.glb": "26d26c4c032a12320fe05b5005a72eba96db7167db0d35873639a4b7dcc06bcb",
+    "crate-bottles.glb": "8412a3d3dc00a81ac61f0975682ef9f08288bee5c5eb783b09dbc1144e655302",
+    "crate.glb": "b525674e07c8b83667512a8dd93be0d7684358347d0e64d2bb16b156ac382ed1",
+    "flag-high-pennant.glb": "e322c06023b5cbc6a187cef12c296ae1c65ea3582c5b101b83756213d8a700e1",
+    "mast-ropes.glb": "ad2bd14acacd3f4901177d8b13bcc6158f558e8c1959b6e19576e17ea8b10570",
+    "palm-detailed-bend.glb": "9bc339e2942d6fba9007caa9fa4301a6a08f4b134511bea65ce236ba2910e7f8",
+    "palm-detailed-straight.glb": "cdc42b4bd02d01a5e15a5d69f1db83e1c77ca7d0a97ad2d9ae8f6a409fed8a36",
+    "rocks-a.glb": "df8f27bd88a9b624337b08adde53c73dd25ddabd52dbee1de9da412d68bb4f08",
+    "rocks-b.glb": "218cf9bfbe51228c78c9fa48a8543bef1037a695024f8fd5f3c47eec4c3a26d4",
+    "ship-large.glb": "270fff44a9c97f0f5038b0776f9a9b661961ff2098109a9ce614b645cc5e0d20",
+    "ship-medium.glb": "279ea019268f855240c3cebf7616644c8141c20bee617da72eae4733b8e310af",
+    "ship-small.glb": "6fdabdfd358f345ad3dd0510af4165843ab3fffe46357395c94ca00db4f317b3",
+    "structure-fence.glb": "d4b9eca0f219efc7ec37d45170c5888a4ba6e0e8f39905f9d92d491ae5de7281",
+    "structure-platform-dock.glb": "bf64343d37b5570cb78cf0918e3eeb98f96f9b2c69b3f16d103c61ebc8f063f7",
+    "tower-complete-large.glb": "3e65bcb990840a59c0b7c0c1237ba41da5a2b5434cab65d6f904a732d4899eb0",
+    "Textures/colormap.png": "451e1d7a53b8e76f4b2ee58742e241509fee5f82cf2cee6e3f7aca86ba718abe"
+  }
+}

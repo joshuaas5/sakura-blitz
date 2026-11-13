@@ -113,7 +113,7 @@ var headshots := 0
 var streak := 0
 var coins := 650
 var gems := 75
-var rp := 180
+var rp := 0
 var rank_idx := 0
 
 var unlocked_weapon_skins := [true, false, false, false, false]
@@ -126,6 +126,7 @@ var active_icon_idx := 0
 var killfeed: Array[Dictionary] = []
 
 # HUD elements
+var _atelier: AtelierHud
 var _hud: Control
 var _hud_font: Font
 var _banner_label: Label
@@ -158,6 +159,19 @@ var _joy_knob := Vector2(155.0, 540.0)
 var _joy_radius := 76.0
 var _look_touch_idx := -1
 var _startup_grace := 0.25
+var profile := PlayerProfile.new()
+var _hub: SakuraHub
+var _hub_open := false
+var _result_panel: PanelContainer
+var _touch_actions: Dictionary = {}
+var _save_delay := -1.0
+var _automation := false
+var _mantle_cooldown := 0.0
+var _session_started := false
+var _hud_editor: HudEditor
+var _diagnostics: FrameDiagnostics
+var _training: TrainingGuide
+var _safe_area_override := Rect2()
 
 # Call of Duty: Black Ops 2 KillCam System
 var _killcam: Camera3D
@@ -180,12 +194,17 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 
+	_automation = OS.get_cmdline_user_args().has("--test") or OS.get_cmdline_user_args().has("--shot") or OS.get_cmdline_user_args().has("--qa")
+	if not _automation:
+		profile.read_save()
+		_restore_profile()
 	# Auto-detect Mobile / Touchscreen (iOS, Android, Mobile Web Browser)
 	if OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios") or DisplayServer.is_touchscreen_available():
 		_mobile_hud_enabled = true
 
 	_vp = SubViewport.new()
 	_vp.own_world_3d = true
+	_vp.audio_listener_enable_3d = true
 	_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	add_child(_vp)
 
@@ -201,6 +220,7 @@ func _ready() -> void:
 	world = SakuraWorld.new()
 	_vp.add_child(world)
 	world.build()
+	world.combat_finished.connect(_on_combat_finished)
 	world.enemy_killed.connect(_on_enemy_killed)
 	world.round_won.connect(_on_round_won)
 	world.kz_stage_reached.connect(_on_kz_stage_reached)
@@ -214,7 +234,31 @@ func _ready() -> void:
 	_build_player()
 	_build_hud()
 	_build_shop_modal()
-	get_viewport().size_changed.connect(func(): _vp.size = _calc_vp_size())
+	_hub = SakuraHub.new()
+	add_child(_hub)
+	_hub.setup(profile)
+	_hub.play_requested.connect(_start_from_hub)
+	_hub.resume_requested.connect(_resume_from_hub)
+	_hub.profile_changed.connect(_profile_menu_changed)
+	_diagnostics = FrameDiagnostics.new()
+	add_child(_diagnostics)
+	_diagnostics.setup(self)
+	_hub.diagnostics_requested.connect(func():
+		var report := _diagnostics.report()
+		DisplayServer.clipboard_set(report)
+		if not _automation:
+			var file := FileAccess.open("user://diagnostico_sakura.txt", FileAccess.WRITE)
+			if file != null:
+				file.store_string(report)
+		_show_banner("Diagnóstico copiado. Cole aqui para avaliarmos o desempenho.", 4)
+	)
+	_hub.hud_editor_requested.connect(_open_hud_editor)
+	_hub.training_requested.connect(_start_training)
+	_hub.shop_requested.connect(func(): _toggle_shop(1))
+	_hub.hide()
+	_apply_profile_settings()
+	get_viewport().size_changed.connect(_resize_layout)
+	_resize_layout.call_deferred()
 
 	var args := OS.get_cmdline_user_args()
 	if args.has("--test"):
@@ -224,15 +268,18 @@ func _ready() -> void:
 		_run_screenshot_suite.call_deferred()
 		return
 
-	_select_mode_and_stage(SakuraWorld.MODE_COMBAT, 0)
-	if not DisplayServer.get_name().contains("headless"):
-		_capture_mouse.call_deferred()
+	if args.has("--qa"):
+		_run_foundation_qa.call_deferred()
+		return
+	_select_mode_and_stage(SakuraWorld.MODE_PARKOUR, 0)
+	_session_started = false
+	_open_hub()
 
 
 func _capture_mouse() -> void:
 	if DisplayServer.get_name().contains("headless"):
 		return
-	if _shop_open or _mobile_hud_enabled:
+	if _shop_open or _hub_open or _paused or _mobile_hud_enabled:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		_mouse_captured = false
 		return
@@ -243,9 +290,28 @@ func _capture_mouse() -> void:
 
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_APPLICATION_FOCUS_IN and not _paused and not _shop_open and not _mobile_hud_enabled and not DisplayServer.get_name().contains("headless"):
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		_save_profile()
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		if is_instance_valid(_hud_editor):
+			_hud_editor.finished.emit(false)
+		elif _shop_open:
+			_toggle_shop(0)
+		elif is_instance_valid(_hub):
+			_open_hub()
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_APPLICATION_PAUSED:
+		_clear_touch_state()
+		if is_instance_valid(_hub) and not _automation:
+			_pause_for_interruption()
+	if what == NOTIFICATION_APPLICATION_FOCUS_IN and not _paused and not _hub_open and not _shop_open and not _mobile_hud_enabled and not DisplayServer.get_name().contains("headless"):
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 		_mouse_captured = true
+
+func _pause_for_interruption() -> void:
+	_clear_touch_state()
+	if is_instance_valid(_hud_editor):
+		_hud_editor.dragging = -2
+	_open_hub()
 
 
 func _calc_vp_size() -> Vector2i:
@@ -264,6 +330,8 @@ func _apply_graphics_preset() -> void:
 	_vp.size = _calc_vp_size()
 	_vp.msaa_3d = p.msaa
 	_vp_tex.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR if bool(p.linear) else CanvasItem.TEXTURE_FILTER_NEAREST
+	if is_instance_valid(world) and is_instance_valid(world.sun):
+		world.sun.shadow_enabled = current_mode == 0 and current_stage >= 5 and _res_idx > 0
 
 
 func _build_player() -> void:
@@ -312,11 +380,7 @@ func _build_player() -> void:
 # ---------------------------------------------------------------- Handcrafted Tactile HUD + Mobile Touch Overlay
 
 func _build_hud() -> void:
-	var font_abs := ProjectSettings.globalize_path("res://assets/ui/hud_font.ttf")
-	if FileAccess.file_exists(font_abs):
-		var ff := FontFile.new()
-		if ff.load_dynamic_font(font_abs) == OK:
-			_hud_font = ff
+	_hud_font = ThemeDB.fallback_font
 
 	_damage_flash = ColorRect.new()
 	_damage_flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -329,11 +393,14 @@ func _build_hud() -> void:
 	_hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hud.draw.connect(_draw_hud_canvas)
 	add_child(_hud)
+	_atelier = AtelierHud.new()
+	_hud.add_child(_atelier)
+	_atelier.setup(self)
 
 	_banner_label = _make_label("", 15, Color("f5e6c8"))
 	_banner_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_banner_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_banner_label.position = Vector2(-340, 114)
+	_banner_label.position = Vector2(-340, 130)
 	_banner_label.custom_minimum_size = Vector2(680, 36)
 	_hud.add_child(_banner_label)
 
@@ -391,69 +458,58 @@ func _load_ui_tex(res_path: String) -> Texture2D:
 
 func _build_shop_modal() -> void:
 	_shop_panel = PanelContainer.new()
-	_shop_panel.visible = false
-	_shop_panel.set_anchors_preset(Control.PRESET_CENTER)
-	_shop_panel.custom_minimum_size = Vector2(960, 560)
-	_shop_panel.position = Vector2(-480, -280)
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.16, 0.11, 0.08, 0.98)
-	sb.border_color = Color("daa854")
-	sb.set_border_width_all(4)
-	sb.set_corner_radius_all(10)
-	sb.content_margin_left = 20
-	sb.content_margin_right = 20
-	sb.content_margin_top = 14
-	sb.content_margin_bottom = 14
-	_shop_panel.add_theme_stylebox_override("panel", sb)
+	_shop_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_shop_panel.offset_left = 24
+	_shop_panel.offset_right = -24
+	_shop_panel.offset_top = 16
+	_shop_panel.offset_bottom = -16
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("101c29")
+	style.set_corner_radius_all(16)
+	style.content_margin_left = 20
+	style.content_margin_right = 20
+	style.content_margin_top = 16
+	style.content_margin_bottom = 16
+	_shop_panel.add_theme_stylebox_override("panel", style)
 	add_child(_shop_panel)
-
-	var root_vb := VBoxContainer.new()
-	root_vb.add_theme_constant_override("separation", 10)
-	_shop_panel.add_child(root_vb)
-
-	var header := _make_label("ARSENAL & MERCADO SAKURA VIP  //  SKINS 3D, UPGRADES, OPERADORES & DOGTAGS", 18, Color("f5c242"))
-	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	root_vb.add_child(header)
-
-	_shop_status_lbl = _make_label("SALDO: 650 MOEDAS   |   75 DIAMANTES   |   Toque em um card ilustrado para Comprar ou Equipar", 13, Color("f2e6cf"))
-	_shop_status_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	root_vb.add_child(_shop_status_lbl)
-
-	var tab_hb := HBoxContainer.new()
-	tab_hb.alignment = BoxContainer.ALIGNMENT_CENTER
-	tab_hb.add_theme_constant_override("separation", 10)
-	root_vb.add_child(tab_hb)
-
-	var tab_defs := [
-		{"title": "SKINS DE ARMA & UPGRADE", "col": Color("daa854")},
-		{"title": "OPERADORES & DOGTAGS VIP", "col": Color("52b788")}
-	]
-	for ti in tab_defs.size():
-		var td: Dictionary = tab_defs[ti]
-		var tb := _make_styled_btn(str(td.title), Vector2(260, 34), td.col, func():
-			_shop_tab_idx = ti
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 12)
+	_shop_panel.add_child(content)
+	var header := HBoxContainer.new()
+	content.add_child(header)
+	var title := _make_label("ARSENAL / SEU ESTILO", 24, Color("f0a5b7"))
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(title)
+	header.add_child(_make_styled_btn("VOLTAR", Vector2(120, 48), Color("416772"), func(): _toggle_shop(0)))
+	_shop_status_lbl = _make_label("", 16, Color("aec7cb"))
+	_shop_status_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	content.add_child(_shop_status_lbl)
+	var tabs := HFlowContainer.new()
+	tabs.add_theme_constant_override("h_separation", 8)
+	content.add_child(tabs)
+	for i in 2:
+		tabs.add_child(_make_styled_btn(["SKINS E UPGRADE", "OPERADORES E TAGS"][i], Vector2(210, 48), Color("416772"), func():
+			_shop_tab_idx = i
 			_populate_shop_cards()
-		)
-		tab_hb.add_child(tb)
-
-	var bonus_btn := _make_styled_btn("BONUS DIARIO (+500 MOEDAS)", Vector2(215, 34), Color("c92a35"), func():
-		coins += 500
-		gems += 25
-		Sfx.play("cash_buy", 1.15)
-		_refresh_shop_ui("+500 MOEDAS & +25 DIAMANTES RESGATADOS!")
-		_populate_shop_cards()
-	)
-	tab_hb.add_child(bonus_btn)
-
-	var close_btn := _make_styled_btn("FECHAR LOJA [L]", Vector2(165, 34), Color("a67332"), func(): _toggle_shop(0))
-	tab_hb.add_child(close_btn)
-
+		))
+	for i in WeaponRig.WEAPONS.size():
+		tabs.add_child(_make_styled_btn(WeaponCatalog.label_for(i), Vector2(90, 48), Color("416772"), func():
+			weapons.select_weapon(i)
+			_populate_shop_cards()
+		))
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	content.add_child(scroll)
 	_shop_grid = GridContainer.new()
-	_shop_grid.columns = 3
+	_shop_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_shop_grid.add_theme_constant_override("h_separation", 14)
-	_shop_grid.add_theme_constant_override("v_separation", 12)
-	root_vb.add_child(_shop_grid)
-
+	_shop_grid.add_theme_constant_override("v_separation", 14)
+	scroll.add_child(_shop_grid)
+	var layout := func(): _shop_grid.columns = 3 if size.x >= 1000 else (2 if size.x >= 680 else 1)
+	resized.connect(layout)
+	layout.call()
+	_shop_panel.hide()
 	_populate_shop_cards()
 
 
@@ -461,24 +517,24 @@ func _populate_shop_cards() -> void:
 	if not is_instance_valid(_shop_grid):
 		return
 	for ch in _shop_grid.get_children():
+		_shop_grid.remove_child(ch)
 		ch.queue_free()
 
 	if _shop_tab_idx == 0:
 		for i in WeaponRig.WEAPON_SKINS.size():
 			var sk: Dictionary = WeaponRig.WEAPON_SKINS[i]
-			var owned: bool = bool(unlocked_weapon_skins[i])
+			var owned: bool = profile.data.weapon_kills[weapons.current_idx] >= 50 if i == 1 else bool(unlocked_weapon_skins[i])
 			var equipped: bool = (weapons.active_skin_idx == i) if is_instance_valid(weapons) else (i == 0)
-			var sub := "+%d%% Dano  |  +%d%% Cadencia" % [
-				int(round((float(sk.dmg_mult) - 1.0) * 100.0)),
-				int(round((1.0 - float(sk.rate_mult)) * 100.0))
-			]
-			var act_txt := "EQUIPADA" if equipped else ("EQUIPAR" if owned else ("COMPRAR (%d MOEDAS)" % int(sk.cost)))
+			var sub := "Visual cosmético • sem bônus de atributos"
+			if i == 1:
+				sub = "Maestria desta arma: %d/50 abates" % profile.data.weapon_kills[weapons.current_idx]
+			var act_txt := "EQUIPADA" if equipped else ("EQUIPAR" if owned else ("50 ABATES NESTA ARMA" if i == 1 else "COMPRAR (%d MOEDAS)" % int(sk.cost)))
 			_shop_grid.add_child(_make_product_card(
-				"res://assets/ui/skin_weapon_%d.png" % i,
+				"res://assets/ui/skin_%d.png" % i,
 				str(sk.name).to_upper(),
 				sub,
 				act_txt,
-				Color("52b788") if equipped else (Color("daa854") if owned else Color("c92a35")),
+				Color("52b788") if equipped else (Color("daa854") if owned else Color("697c68")),
 				func():
 					_buy_or_equip_weapon_skin(i)
 					_populate_shop_cards()
@@ -488,10 +544,10 @@ func _populate_shop_cards() -> void:
 		var cur_lvl := int(weapons.weapon_levels[cur_w]) if is_instance_valid(weapons) else 1
 		var wname := str(WeaponRig.WEAPONS[cur_w].name).split(" ")[0]
 		_shop_grid.add_child(_make_product_card(
-			"res://assets/ui/upgrade_weapon.png",
-			"UPGRADE %s [NV.%d/5]" % [wname, cur_lvl],
-			"+Pente, +Dano, -Recuo e Recarga Turbo",
-			"NIVEL MAXIMO" if cur_lvl >= 5 else "EVOLUIR (180 MOEDAS)",
+			"res://assets/ui/upgrade_gun.png",
+			"UPGRADE %s [NV.%d/4]" % [wname, cur_lvl],
+			"+1% dano por nível • limite total +3%",
+			"NIVEL MAXIMO" if cur_lvl >= 4 else "EVOLUIR (180 MOEDAS)",
 			Color("daa854"),
 			func():
 				_buy_weapon_upgrade()
@@ -502,10 +558,10 @@ func _populate_shop_cards() -> void:
 			var cs: Dictionary = WeaponRig.CHAR_SKINS[i]
 			var owned: bool = bool(unlocked_char_skins[i])
 			var equipped: bool = (weapons.active_char_skin_idx == i) if is_instance_valid(weapons) else (i == 0)
-			var sub := "Velocidade Parkour +%d%%" % int(round(float(cs.speed_bonus) * 100.0))
+			var sub := "Visual cosmético • mesma velocidade para todos"
 			var act_txt := "EQUIPADO" if equipped else ("EQUIPAR" if owned else ("COMPRAR (%d MOEDAS)" % int(cs.cost)))
 			_shop_grid.add_child(_make_product_card(
-				"res://assets/ui/skin_char_%d.png" % i,
+				"res://assets/ui/char_%d.png" % i,
 				str(cs.name).to_upper(),
 				sub,
 				act_txt,
@@ -522,9 +578,9 @@ func _populate_shop_cards() -> void:
 			_shop_grid.add_child(_make_product_card(
 				str(dt.icon_path),
 				"DOGTAG: %s" % str(dt.name),
-				"Exibida no seu Card e no Killfeed",
+				"Identidade cosmética do perfil",
 				act_txt,
-				Color("52b788") if equipped else Color("c92a35"),
+				Color("52b788") if equipped else Color("697c68"),
 				func():
 					_buy_or_equip_dogtag(d_i)
 					_populate_shop_cards()
@@ -533,9 +589,11 @@ func _populate_shop_cards() -> void:
 
 func _make_product_card(img_path: String, title: String, sub: String, btn_txt: String, accent: Color, on_click: Callable) -> PanelContainer:
 	var pc := PanelContainer.new()
-	pc.custom_minimum_size = Vector2(292, 198)
+	pc.mouse_filter = Control.MOUSE_FILTER_PASS
+	pc.custom_minimum_size = Vector2(240, 250)
+	pc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.21, 0.15, 0.11, 0.98)
+	sb.bg_color = Color("203b38")
 	sb.border_color = accent
 	sb.set_border_width_all(2)
 	sb.set_corner_radius_all(8)
@@ -549,33 +607,47 @@ func _make_product_card(img_path: String, title: String, sub: String, btn_txt: S
 	vb.add_theme_constant_override("separation", 5)
 	pc.add_child(vb)
 
-	var tr := TextureRect.new()
-	tr.custom_minimum_size = Vector2(268, 98)
-	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	tr.texture = _load_ui_tex(img_path)
-	vb.add_child(tr)
+	if img_path.begins_with("res://assets/ui/char_"):
+		var portrait := CozyPortrait.new()
+		portrait.outfit = int(img_path.get_file().trim_prefix("char_").get_basename())
+		vb.add_child(portrait)
+	elif img_path.begins_with("res://assets/ui/skin_") or img_path.ends_with("upgrade_gun.png"):
+		var portrait := WeaponPortrait.new()
+		portrait.weapon_index = weapons.current_idx
+		portrait.skin_index = int(img_path.get_file().trim_prefix("skin_").get_basename()) if "skin_" in img_path else weapons.active_skin_idx
+		vb.add_child(portrait)
+	else:
+		var tr := TextureRect.new()
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tr.custom_minimum_size = Vector2(180, 110)
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.texture = _load_ui_tex(img_path)
+		vb.add_child(tr)
 
-	var tl := _make_label(title, 13, Color("fff4d2"))
+	var tl := _make_label(title, 17, Color("fff4d2"))
+	tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(tl)
 
-	var sl := _make_label(sub, 11, Color("d8c7ae"))
+	var sl := _make_label(sub, 15, Color("d8c7ae"))
+	sl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	sl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(sl)
 
-	var btn := _make_styled_btn(btn_txt, Vector2(268, 30), accent, on_click)
+	var btn := _make_styled_btn(btn_txt, Vector2(180, 48), accent, on_click)
 	vb.add_child(btn)
 	return pc
 
 
 func _make_styled_btn(txt: String, min_sz: Vector2, accent: Color, on_click: Callable) -> Button:
 	var b := Button.new()
+	b.mouse_filter = Control.MOUSE_FILTER_PASS
 	b.text = txt
 	b.custom_minimum_size = min_sz
 	if _hud_font != null:
 		b.add_theme_font_override("font", _hud_font)
-	b.add_theme_font_size_override("font_size", 12)
+	b.add_theme_font_size_override("font_size", 14)
 	b.add_theme_color_override("font_color", Color("fff8ea"))
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = accent.darkened(0.35)
@@ -592,20 +664,26 @@ func _make_styled_btn(txt: String, min_sz: Vector2, accent: Color, on_click: Cal
 
 
 func _toggle_shop(force_state: int = -1) -> void:
-	if force_state == 0:
-		_shop_open = false
-	elif force_state == 1:
-		_shop_open = true
-	else:
-		_shop_open = not _shop_open
+	_shop_open = not _shop_open if force_state == -1 else force_state == 1
 	_shop_panel.visible = _shop_open
+	Sfx.set_music_context("lobby" if _shop_open or _hub_open else ("race" if current_mode == 1 else "combat"))
+	_clear_touch_state()
 	if _shop_open:
+		_paused = true
+		world.process_mode = Node.PROCESS_MODE_DISABLED
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		_mouse_captured = false
+		move_child(_shop_panel, get_child_count() - 1)
 		_populate_shop_cards()
-		_refresh_shop_ui("Toque nas figuras para comprar ou equipar Skins 3D, Upgrades, Operadores e Dogtags")
+		_refresh_shop_ui("Skins cosméticas. Upgrades com moedas de jogo: até +3% dano.")
 	else:
-		_capture_mouse()
+		_save_profile()
+		if _hub_open:
+			_hub.refresh()
+		else:
+			_paused = false
+			world.process_mode = Node.PROCESS_MODE_INHERIT
+			_capture_mouse()
 
 
 func _refresh_shop_ui(msg: String = "") -> void:
@@ -614,12 +692,17 @@ func _refresh_shop_ui(msg: String = "") -> void:
 
 
 func _buy_or_equip_weapon_skin(idx: int) -> void:
+	if idx == 1:
+		if profile.data.weapon_kills[weapons.current_idx] < 50:
+			_refresh_shop_ui("Ouro: alcance 50 abates com esta arma.")
+			return
+		unlocked_weapon_skins[1] = true
 	var sk: Dictionary = WeaponRig.WEAPON_SKINS[idx]
 	var cost := int(sk.cost)
 	if not bool(unlocked_weapon_skins[idx]):
 		if coins < cost:
 			Sfx.play("hurt")
-			_refresh_shop_ui("Moedas insuficientes! Faca Kills, Parkour ou toque em Bonus Diario!")
+			_refresh_shop_ui("Moedas insuficientes! Jogue partidas e resgate o desafio no hub.")
 			return
 		coins -= cost
 		unlocked_weapon_skins[idx] = true
@@ -627,14 +710,16 @@ func _buy_or_equip_weapon_skin(idx: int) -> void:
 	else:
 		Sfx.play("pickup")
 	weapons.apply_weapon_skin(idx)
+	profile.data.weapon_skins[weapons.current_idx] = idx
+	_queue_save()
 	_refresh_shop_ui("Skin de Arma [%s] EQUIPADA!" % str(sk.name))
 	_show_banner("SKIN 3D EQUIPADA: %s!" % str(sk.name).to_upper(), 2.4)
 
 
 func _buy_weapon_upgrade() -> void:
 	var cur_lvl := int(weapons.weapon_levels[weapons.current_idx])
-	if cur_lvl >= 5:
-		_refresh_shop_ui("Esta arma ja esta no NIVEL MAXIMO (Nv.5)!")
+	if cur_lvl >= 4:
+		_refresh_shop_ui("Esta arma ja esta no NIVEL MAXIMO (+3% dano)!")
 		return
 	var cost := 180
 	if coins < cost:
@@ -643,10 +728,11 @@ func _buy_weapon_upgrade() -> void:
 		return
 	coins -= cost
 	var new_lvl := weapons.upgrade_current_weapon()
+	_queue_save()
 	Sfx.play("rank_up", 1.1)
 	var wname := str(WeaponRig.WEAPONS[weapons.current_idx].name)
 	_refresh_shop_ui("%s evoluida para NIVEL %d!" % [wname, new_lvl])
-	_show_banner("UPGRADE COMPLETO: %s NIVEL %d (+Pente, +Dano, -Recuo)!" % [wname, new_lvl], 2.5)
+	_show_banner("UPGRADE COMPLETO: %s NIVEL %d (+1%% dano; limite +3%%)!" % [wname, new_lvl], 2.5)
 
 
 func _buy_or_equip_char_skin(idx: int) -> void:
@@ -663,6 +749,7 @@ func _buy_or_equip_char_skin(idx: int) -> void:
 	else:
 		Sfx.play("pickup")
 	weapons.apply_char_skin(idx)
+	_queue_save()
 	_refresh_shop_ui("Operador [%s] EQUIPADO!" % str(cs.name))
 	_show_banner("SKIN DE PERSONAGEM: %s!" % str(cs.name).to_upper(), 2.2)
 
@@ -679,6 +766,7 @@ func _buy_or_equip_dogtag(idx: int) -> void:
 		unlocked_dogtags[idx] = true
 		Sfx.play("cash_buy")
 	active_dogtag_idx = idx
+	_queue_save()
 	_refresh_shop_ui("Dogtag [%s] EQUIPADA no seu perfil e Killfeed!" % str(dt.name))
 
 
@@ -706,467 +794,85 @@ func _draw_hud_text(pos: Vector2, txt: String, fsize: int, col: Color, align: Ho
 
 
 func _draw_hud_canvas() -> void:
-	var center := size * 0.5
-	var W := size.x
-	var H := size.y
+	if is_instance_valid(_atelier):
+		_atelier.sync()
 
-	# 0. Call of Duty: Black Ops 2 KillCam Letterbox + Telemetry Frame
-	if _killcam_active:
-		var bar_h := 54.0
-		var bar_col := Color(0.05, 0.04, 0.04, 0.90)
-		_hud.draw_rect(Rect2(0, 0, W, bar_h), bar_col)
-		_hud.draw_rect(Rect2(0, H - bar_h, W, bar_h), bar_col)
-		var accent := Color("daa854") if _killcam_mode == "FINAL" else Color("c42a30")
-		_hud.draw_line(Vector2(0, bar_h), Vector2(W, bar_h), accent, 2.5)
-		_hud.draw_line(Vector2(0, H - bar_h), Vector2(W, H - bar_h), accent, 2.5)
+
+func _safe_ui_rect() -> Rect2:
+	return _safe_area_override if _safe_area_override.has_area() else MobileLayout.safe_rect(size)
+
+func _action_rects() -> Dictionary:
+	var rectangles := MobileLayout.rects(_safe_ui_rect(), profile.data, current_mode == 1)
+	# Invalid layouts from a different screen aspect fall back as a whole.
+	if not MobileLayout.valid(rectangles, _safe_ui_rect()):
+		rectangles = MobileLayout.rects(_safe_ui_rect(), {"hud_left_handed": profile.data.hud_left_handed}, current_mode == 1)
+	for key in ["joystick", "pause", "checkpoint"]:
+		rectangles.erase(key)
+	return rectangles
+
+func _mobile_rect(action: String) -> Rect2:
+	var rectangles := MobileLayout.rects(_safe_ui_rect(), profile.data, current_mode == 1)
+	if not MobileLayout.valid(rectangles, _safe_ui_rect()):
+		rectangles = MobileLayout.rects(_safe_ui_rect(), {"hud_left_handed": profile.data.hud_left_handed}, current_mode == 1)
+	return rectangles.get(action, MobileLayout.defaults(_safe_ui_rect(), profile.data.hud_left_handed)[action])
+
+func _open_hud_editor() -> void:
+	if is_instance_valid(_hud_editor):
 		return
-
-	# 1. Crosshair / AWP Sniper Scope + Phantom Forces Double Hitmarker
-	if is_instance_valid(weapons) and weapons.is_scoped_in():
-		var rad := minf(W, H) * 0.43
-		var dark := Color(0.02, 0.03, 0.05, 0.94)
-		_hud.draw_rect(Rect2(0, 0, center.x - rad, H), dark)
-		_hud.draw_rect(Rect2(center.x + rad, 0, W - (center.x + rad), H), dark)
-		_hud.draw_rect(Rect2(center.x - rad, 0, rad * 2.0, center.y - rad), dark)
-		_hud.draw_rect(Rect2(center.x - rad, center.y + rad, rad * 2.0, H - (center.y + rad)), dark)
-		_hud.draw_arc(center, rad, 0.0, TAU, 64, Color(0.08, 0.06, 0.05), 28.0)
-		_hud.draw_arc(center, rad - 12.0, 0.0, TAU, 64, Color("daa854"), 2.0)
-		_hud.draw_line(Vector2(center.x - rad, center.y), Vector2(center.x + rad, center.y), Color(0, 0, 0, 0.9), 1.6)
-		_hud.draw_line(Vector2(center.x, center.y - rad), Vector2(center.x, center.y + rad), Color(0, 0, 0, 0.9), 1.6)
-		_hud.draw_circle(center, 2.5, Color("e63946"))
-	else:
-		var ads_fade := 1.0 - (weapons.ads_alpha if is_instance_valid(weapons) else 0.0)
-		if ads_fade > 0.05:
-			var gap := 4.5 + _crosshair_spread * 16.0
-			var len_px := 7.5
-			var ch_col := Color(0.98, 0.92, 0.72, ads_fade * 0.95)
-			for d in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]:
-				_hud.draw_line(center + d * gap, center + d * (gap + len_px), Color(0, 0, 0, ads_fade * 0.75), 4.0)
-				_hud.draw_line(center + d * gap, center + d * (gap + len_px), ch_col, 2.0)
-			_hud.draw_circle(center, 1.8, Color(0.92, 0.25, 0.28, ads_fade))
-		else:
-			_hud.draw_circle(center, 2.2, Color("e63946"))
-
-	if _hitmarker_timer > 0.0:
-		var hm_col := Color("ff2a55") if _hitmarker_crit else Color("fff5dc")
-		for dir in [Vector2(1, 1), Vector2(-1, 1), Vector2(1, -1), Vector2(-1, -1)]:
-			_hud.draw_line(center + dir * 5.0, center + dir * 15.0, hm_col, 2.8)
-			if _hitmarker_crit:
-				_hud.draw_line(center + dir * 9.0, center + dir * 20.0, Color("ffd166"), 1.8)
-
-	# =========================================================================
-	# 2. TOP-CENTER TORII-ARCH SCOREBOARD + 2-MODE SWITCHER ([M]) + 4 STAGE TABS
-	# =========================================================================
-	var cx := center.x
-	var tc_pos := Vector2(cx - 240.0, 4.0)
-	var tc_tex := _load_ui_tex("res://assets/ui/hud_top_scoreboard.png")
-	if tc_tex != null:
-		_hud.draw_texture_rect(tc_tex, Rect2(tc_pos, Vector2(480, 82)), false)
-
-	var stage_defs := world.get_stage_defs_for_mode()
-	var cur_def: Dictionary = world.get_active_stage_def()
-
-	if current_mode == SakuraWorld.MODE_COMBAT:
-		var standings := world.get_combat_standings(kills, deaths)
-		var my_rank := 1
-		for r_item in standings:
-			if bool(r_item.is_player):
-				my_rank = int(r_item.rank)
-				break
-		_draw_hud_text(tc_pos + Vector2(48, 37), "KILLS", 11, Color("a8e0f0"), HORIZONTAL_ALIGNMENT_CENTER, 42)
-		_draw_hud_text(tc_pos + Vector2(92, 41), "%d" % kills, 24, Color("fff8ea"), HORIZONTAL_ALIGNMENT_CENTER, 56)
-		_draw_hud_text(tc_pos + Vector2(332, 41), "#%d" % my_rank, 22, Color("ffd166"), HORIZONTAL_ALIGNMENT_CENTER, 56)
-		_draw_hud_text(tc_pos + Vector2(394, 37), "RANK", 11, Color("ffadb0"), HORIZONTAL_ALIGNMENT_CENTER, 42)
-
-		_draw_hud_text(tc_pos + Vector2(168, 29), "MODO TIRO // %s" % str(cur_def.short), 11, Color("f5c862"), HORIZONTAL_ALIGNMENT_CENTER, 144)
-		_draw_hud_text(tc_pos + Vector2(168, 43), "STREAK x%d  |  %d ALVOS" % [streak, world.enemies.size()], 12, Color("fff6e5"), HORIZONTAL_ALIGNMENT_CENTER, 144)
-	else:
-		var r_standings := world.get_race_standings()
-		var my_pos := 1
-		var my_pct := 0
-		for r_item in r_standings:
-			if bool(r_item.is_player):
-				my_pos = int(r_item.rank)
-				my_pct = int(round(float(r_item.pct)))
-				break
-		_draw_hud_text(tc_pos + Vector2(46, 37), "POS", 12, Color("a8e0f0"), HORIZONTAL_ALIGNMENT_CENTER, 40)
-		_draw_hud_text(tc_pos + Vector2(92, 41), "%d/8" % my_pos, 22, Color("ffd166"), HORIZONTAL_ALIGNMENT_CENTER, 56)
-		_draw_hud_text(tc_pos + Vector2(332, 41), "%d%%" % my_pct, 20, Color("8ce8d8"), HORIZONTAL_ALIGNMENT_CENTER, 56)
-		_draw_hud_text(tc_pos + Vector2(394, 37), "SET %d/8" % world.kz_active_stage, 10, Color("ffadb0"), HORIZONTAL_ALIGNMENT_CENTER, 44)
-
-		_draw_hud_text(tc_pos + Vector2(168, 29), "CORRIDA // %s" % str(cur_def.short), 11, Color("00f5d4"), HORIZONTAL_ALIGNMENT_CENTER, 144)
-		_draw_hud_text(tc_pos + Vector2(168, 43), "TEMPO %.1fs  |  SEM PVP" % world.kz_time, 12, Color("fff6e5"), HORIZONTAL_ALIGNMENT_CENTER, 144)
-
-	# 4 Hanging Wooden Stage Tabs ([F1] [F2] [F3] [F4])
-	for i in 4:
-		var tx := tc_pos.x + 70.0 + i * 86.0
-		var ty := tc_pos.y + 54.5
-		var is_act := (i == current_stage)
-		if is_act:
-			_hud.draw_rect(Rect2(tx + 2, ty + 2, 77, 18), Color(0.76, 0.20, 0.24, 0.88))
-		var tab_lbl := str(stage_defs[i].short)
-		_draw_hud_text(Vector2(tx + 2, ty + 15), tab_lbl, 10, Color("fff2c2") if is_act else Color("c4b49a"), HORIZONTAL_ALIGNMENT_CENTER, 77)
-
-	# Prominent Top Controls: 2-Mode Switcher, Touch HUD, Graphics Presets [O], and Weather [U]
-	var m0_rect := Rect2(cx - 325.0, 86.0, 118.0, 24.0)
-	var m1_rect := Rect2(cx - 201.0, 86.0, 138.0, 24.0)
-	var mob_rect := Rect2(cx - 57.0, 86.0, 96.0, 24.0)
-	var gfx_rect := Rect2(cx + 45.0, 86.0, 168.0, 24.0)
-	var atmo_rect := Rect2(cx + 219.0, 86.0, 106.0, 24.0)
-
-	_hud.draw_rect(m0_rect, Color("c92a42") if current_mode == 0 else Color(0.14, 0.11, 0.09, 0.88))
-	_hud.draw_rect(m0_rect, Color("ffd166") if current_mode == 0 else Color("6e5a44"), false, 1.8)
-	_draw_hud_text(m0_rect.position + Vector2(0, 16), "[M] 1: TIRO", 10, Color("fff8ea"), HORIZONTAL_ALIGNMENT_CENTER, m0_rect.size.x)
-
-	_hud.draw_rect(m1_rect, Color("0096c7") if current_mode == 1 else Color(0.14, 0.11, 0.09, 0.88))
-	_hud.draw_rect(m1_rect, Color("00f5d4") if current_mode == 1 else Color("6e5a44"), false, 1.8)
-	_draw_hud_text(m1_rect.position + Vector2(0, 16), "[M] 2: PARKOUR", 10, Color("fff8ea"), HORIZONTAL_ALIGNMENT_CENTER, m1_rect.size.x)
-
-	_hud.draw_rect(mob_rect, Color("2a9d8f") if _mobile_hud_enabled else Color(0.14, 0.11, 0.09, 0.88))
-	_hud.draw_rect(mob_rect, Color("ffd166"), false, 1.5)
-	_draw_hud_text(mob_rect.position + Vector2(0, 16), "[V] TOUCH: %s" % ("ON" if _mobile_hud_enabled else "OFF"), 10, Color("fff8ea"), HORIZONTAL_ALIGNMENT_CENTER, mob_rect.size.x)
-
-	var cur_gfx: Dictionary = RES_PRESETS[_res_idx]
-	_hud.draw_rect(gfx_rect, Color(0.28, 0.16, 0.42, 0.92))
-	_hud.draw_rect(gfx_rect, Color("c77dff"), false, 1.6)
-	_draw_hud_text(gfx_rect.position + Vector2(0, 16), "[O] GFX: %s" % str(cur_gfx.get("short", cur_gfx.label)), 10, Color("fff8ea"), HORIZONTAL_ALIGNMENT_CENTER, gfx_rect.size.x)
-
-	_hud.draw_rect(atmo_rect, Color(0.38, 0.25, 0.10, 0.92))
-	_hud.draw_rect(atmo_rect, Color("ffd166"), false, 1.5)
-	_draw_hud_text(atmo_rect.position + Vector2(0, 16), "[U] CLIMA", 10, Color("fff8ea"), HORIZONTAL_ALIGNMENT_CENTER, atmo_rect.size.x)
-
-	# =========================================================================
-	# 2B. GIANT FALL GUYS 5-4-3-2-1 VAI! STARTING GATE COUNTDOWN OVERLAY
-	# =========================================================================
-	if current_mode == SakuraWorld.MODE_PARKOUR and world.race_countdown > 0.0:
-		var cd_num := int(ceil(world.race_countdown))
-		var pulse := 1.0 + sin(_hud_anim_t * 14.0) * 0.08
-		var box_w := 440.0 * pulse
-		var box_h := 118.0
-		var c_rect := Rect2(cx - box_w * 0.5, center.y - 125.0, box_w, box_h)
-		_hud.draw_rect(c_rect, Color(0.10, 0.07, 0.16, 0.92))
-		_hud.draw_rect(c_rect, Color("ff2a85"), false, 4.0)
-		_draw_hud_text(Vector2(cx - 210.0, center.y - 92.0), "CORRIDA FALL GUYS // QUEM CHEGA PRIMEIRO!", 14, Color("00f5d4"), HORIZONTAL_ALIGNMENT_CENTER, 420.0)
-		_draw_hud_text(Vector2(cx - 210.0, center.y - 34.0), "LARGADA EM %d..." % cd_num, 42, Color("ffd166"), HORIZONTAL_ALIGNMENT_CENTER, 420.0)
-		_draw_hud_text(Vector2(cx - 210.0, center.y - 12.0), "7 BOTS NA LINHA DE LARGADA — SEM DANO DE TIRO PVP!", 11, Color("fff8ea"), HORIZONTAL_ALIGNMENT_CENTER, 420.0)
-
-	# =========================================================================
-	# 3. TOP-LEFT TACTICAL WALLET & RANK SHIELD STRIP (Tap to open VIP Shop!)
-	# =========================================================================
-	var tl_pos := Vector2(12.0, 8.0)
-	var tl_tex := _load_ui_tex("res://assets/ui/hud_wallet_badge.png")
-	if tl_tex != null:
-		_hud.draw_texture_rect(tl_tex, Rect2(tl_pos, Vector2(290, 54)), false)
-	var r_name := str(RANK_TIERS[rank_idx].name)
-	var my_tag := str(DOGTAGS[active_dogtag_idx].name)
-	_draw_hud_text(tl_pos + Vector2(44, 24), r_name, 12, Color("f5c862"))
-	_draw_hud_text(tl_pos + Vector2(44, 39), "TAG: %s [LOJA]" % my_tag, 10, Color("d8cab4"))
-	_draw_hud_text(tl_pos + Vector2(170, 32), "%d" % coins, 14, Color("ffe082"))
-	_draw_hud_text(tl_pos + Vector2(235, 32), "%d" % gems, 14, Color("90e8f8"))
-
-	# =========================================================================
-	# 4. TOP-RIGHT KILLFEED + LIVE COMPETITIVE LEADERBOARD (Matadores / Corredores)
-	# =========================================================================
-	var tape_tex := _load_ui_tex("res://assets/ui/hud_kill_tape.png")
-	var kf_y := 8.0
-	var max_kf := mini(2, killfeed.size())
-	for k_i in max_kf:
-		var kf := killfeed[k_i]
-		var kpos := Vector2(W - 318.0, kf_y)
-		if tape_tex != null:
-			_hud.draw_texture_rect(tape_tex, Rect2(kpos, Vector2(306, 26)), false)
-		_draw_hud_text(kpos + Vector2(38, 18), str(kf.text), 10, Color("2b1e16"), HORIZONTAL_ALIGNMENT_LEFT, 256.0, 0)
-		kf_y += 28.0
-
-	# Live Competitive Leaderboard Panel (Top 5 Players/Bots in Real Time!)
-	var lb_pos := Vector2(W - 252.0, maxf(68.0, kf_y + 4.0))
-	var lb_rect := Rect2(lb_pos, Vector2(240.0, 128.0))
-	_hud.draw_rect(lb_rect, Color(0.11, 0.08, 0.07, 0.88))
-	_hud.draw_rect(lb_rect, Color("daa854") if current_mode == 0 else Color("00f5d4"), false, 2.0)
-
-	if current_mode == SakuraWorld.MODE_COMBAT:
-		_draw_hud_text(lb_pos + Vector2(8, 17), "PLACAR DE MATADORES (TOP 5)", 11, Color("ffd166"))
-		var c_rows := world.get_combat_standings(kills, deaths)
-		for r_i in mini(5, c_rows.size()):
-			var row: Dictionary = c_rows[r_i]
-			var ry := lb_pos.y + 35.0 + r_i * 19.0
-			var is_me := bool(row.is_player)
-			if is_me:
-				_hud.draw_rect(Rect2(lb_pos.x + 3, ry - 12, 234, 17), Color(0.85, 0.22, 0.28, 0.55))
-			var col_r := Color("ffd166") if r_i == 0 else (Color("00f5d4") if is_me else Color("f2e6cf"))
-			_draw_hud_text(Vector2(lb_pos.x + 8, ry), "#%d %s" % [int(row.rank), str(row.name)], 11, col_r)
-			_draw_hud_text(Vector2(lb_pos.x + 150, ry), "%d K  (%d PTS)" % [int(row.kills), int(row.pts)], 10, col_r, HORIZONTAL_ALIGNMENT_RIGHT, 82.0)
-	else:
-		_draw_hud_text(lb_pos + Vector2(8, 17), "CORRIDA FALL GUYS (TOP 5)", 11, Color("00f5d4"))
-		var p_rows := world.get_race_standings()
-		for r_i in mini(5, p_rows.size()):
-			var row: Dictionary = p_rows[r_i]
-			var ry := lb_pos.y + 35.0 + r_i * 19.0
-			var is_me := bool(row.is_player)
-			if is_me:
-				_hud.draw_rect(Rect2(lb_pos.x + 3, ry - 12, 234, 17), Color(0.0, 0.65, 0.85, 0.50))
-			var col_r := Color("ffd166") if r_i == 0 else (Color("00f5d4") if is_me else Color("f2e6cf"))
-			_draw_hud_text(Vector2(lb_pos.x + 8, ry), "%dº %s" % [int(row.rank), str(row.name)], 11, col_r)
-			var st_s := "CHEGOU!" if bool(row.finished) else ("%dm (%d%%)" % [int(round(float(row.dist))), int(round(float(row.pct)))])
-			_draw_hud_text(Vector2(lb_pos.x + 140, ry), st_s, 10, col_r, HORIZONTAL_ALIGNMENT_RIGHT, 92.0)
-
-	# =========================================================================
-	# 4B. PHANTOM FORCES CENTER-SCREEN DOPAMINE SCORE FEED STACK!
-	# =========================================================================
-	if not _pf_score_stack.is_empty():
-		var pf_y := center.y + 52.0
-		for pf_item in _pf_score_stack:
-			var alpha := clampf(float(pf_item.life) / 1.2, 0.0, 1.0)
-			var c: Color = pf_item.col
-			c.a = alpha
-			_draw_hud_text(Vector2(cx - 190.0, pf_y), str(pf_item.text), int(pf_item.size), c, HORIZONTAL_ALIGNMENT_CENTER, 380.0, 4, Color(0, 0, 0, alpha * 0.9))
-			pf_y += 20.0
-
-	# =========================================================================
-	# 5. BOTTOM-LEFT TACTICAL VITALITY & MECHANICAL TACHOMETER (hud_vitality_frame.png)
-	# =========================================================================
-	var bl_pos := Vector2(10.0, H - 140.0)
-	var vit_tex := _load_ui_tex("res://assets/ui/hud_vitality_frame.png")
-	if vit_tex != null:
-		_hud.draw_texture_rect(vit_tex, Rect2(bl_pos, Vector2(380, 132)), false)
-
-	var hp_ratio := clampf(hp / max_hp, 0.0, 1.0)
-	var lag_ratio := clampf(_hp_lag / max_hp, 0.0, 1.0)
-	var ar_ratio := clampf(armor / 100.0, 0.0, 1.0)
-
-	_draw_hud_text(bl_pos + Vector2(68, 49), "HP %d" % int(ceil(hp)), 16, Color("fff4dc"))
-	_draw_hud_text(bl_pos + Vector2(158, 49), "COLETE %d%%" % int(ceil(armor)), 12, Color("82c8f8"))
-
-	if ar_ratio > 0.005:
-		var ar_w := 176.0 * ar_ratio
-		_hud.draw_rect(Rect2(bl_pos.x + 69.0, bl_pos.y + 58.0, ar_w, 7.0), Color("3a86ff"))
-		_hud.draw_rect(Rect2(bl_pos.x + 69.0, bl_pos.y + 58.0, ar_w, 2.0), Color("90caf9"))
-
-	if lag_ratio > hp_ratio:
-		_hud.draw_rect(Rect2(bl_pos.x + 69.0, bl_pos.y + 73.5, 176.0 * lag_ratio, 16.5), Color("f4a261"))
-	if hp_ratio > 0.005:
-		var hp_w := 176.0 * hp_ratio
-		var bar_c := Color("2ec4b6") if hp_ratio > 0.5 else (Color("f4a261") if hp_ratio > 0.25 else Color("e63946"))
-		_hud.draw_rect(Rect2(bl_pos.x + 69.0, bl_pos.y + 73.5, hp_w, 16.5), bar_c)
-		_hud.draw_rect(Rect2(bl_pos.x + 69.0, bl_pos.y + 73.5, hp_w, 4.0), bar_c.lightened(0.32))
-		for seg in range(1, 10):
-			var sx := bl_pos.x + 69.0 + seg * 17.6
-			if sx < bl_pos.x + 69.0 + hp_w:
-				_hud.draw_line(Vector2(sx, bl_pos.y + 73.5), Vector2(sx, bl_pos.y + 90.0), Color(0, 0, 0, 0.32), 1.2)
-
-	var st_txt := "EM PE // PRONTO"
-	if _adrenaline_t > 0.0:
-		st_txt = "ADRENALINA // +VEL & CURA"
-	elif _surfing:
-		st_txt = "SURF // DESFILADEIRO"
-	elif _on_ladder:
-		st_txt = "ESCADA // VERTICAL"
-	elif is_instance_valid(weapons) and weapons.ads_alpha > 0.5:
-		st_txt = "MIRA SIGHT // ATIVA"
-	elif _crouching:
-		st_txt = "AGACHADO // SLIDE"
-	elif _sprinting:
-		st_txt = "SPRINT TATICO BO2"
-	_draw_hud_text(bl_pos + Vector2(74, 109), st_txt, 11, Color("2e1f14"), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 0)
-
-	var dial_c := bl_pos + Vector2(309.0, 69.0)
-	var cs_units := int(round(_h_speed_cached * 48.0))
-	var spd_ratio := clampf(float(cs_units) / 400.0, 0.0, 1.0)
-	var needle_ang := deg_to_rad(135.0 + 270.0 * spd_ratio)
-	var needle_tip := dial_c + Vector2(cos(needle_ang), sin(needle_ang)) * 31.0
-	var needle_tail := dial_c - Vector2(cos(needle_ang), sin(needle_ang)) * 7.0
-	_hud.draw_line(needle_tail, needle_tip, Color("e63946"), 2.8)
-	_hud.draw_circle(dial_c, 4.5, Color("daa854"))
-	_hud.draw_circle(dial_c, 2.2, Color("22201d"))
-	_draw_hud_text(dial_c + Vector2(-32, 27), "%d u/s" % cs_units, 11, Color("f5c862") if _bhop_chain > 1 else Color("fff4dc"), HORIZONTAL_ALIGNMENT_CENTER, 64)
-
-	# =========================================================================
-	# 6. BOTTOM-RIGHT TACTILE ARSENAL CASE & ILLUSTRATED WEAPON BAY (hud_weapon_frame.png)
-	# =========================================================================
-	var br_pos := Vector2(W - 410.0, H - 140.0)
-	var wep_tex := _load_ui_tex("res://assets/ui/hud_weapon_frame.png")
-	if wep_tex != null:
-		_hud.draw_texture_rect(wep_tex, Rect2(br_pos, Vector2(400, 132)), false)
-
-	var w_idx := weapons.current_idx if is_instance_valid(weapons) else 0
-	var sk_dict: Dictionary = WeaponRig.WEAPON_SKINS[weapons.active_skin_idx] if is_instance_valid(weapons) else WeaponRig.WEAPON_SKINS[0]
-	var w_lvl := int(weapons.weapon_levels[w_idx]) if is_instance_valid(weapons) else 1
-
-	var gun_tex := _load_ui_tex("res://assets/ui/hud_gun_%d.png" % w_idx)
-	if gun_tex != null:
-		_hud.draw_texture_rect(gun_tex, Rect2(br_pos + Vector2(35, 33), Vector2(148, 54)), false)
-
-	var w_short := str(WeaponRig.WEAPONS[w_idx].name).split(" ")[0] if is_instance_valid(weapons) else "AK-47"
-	var sk_short := str(sk_dict.name).split(" (")[0].split(" /")[0].replace(" Cyber Roblox", " Cyber").to_upper()
-	_draw_hud_text(
-		br_pos + Vector2(198, 46),
-		"%s // %s [NV.%d]" % [w_short, sk_short, w_lvl],
-		10, Color("2b1e16"), HORIZONTAL_ALIGNMENT_LEFT, 168.0, 0
+	_open_hub()
+	_hub.hide()
+	_hud_editor = HudEditor.new()
+	add_child(_hud_editor)
+	_hud_editor.open(self)
+	_hud_editor.finished.connect(func(_saved):
+		_hud_editor.queue_free()
+		_hud_editor = null
+		_clear_touch_state()
+		_hub.show()
+		_hub.refresh()
 	)
 
-	if w_idx == 3:
-		_draw_hud_text(br_pos + Vector2(196, 81), "LAMINA TATICA (+18% VEL)", 16, Color("f5c862"))
-	elif _reloading_cached:
-		_draw_hud_text(br_pos + Vector2(196, 81), "RECARREGANDO PENTE...", 16, Color("f4a261"))
-	else:
-		_draw_hud_text(br_pos + Vector2(196, 84), "%02d" % _cur_ammo_cached, 28, Color("fff6e5"))
-		_draw_hud_text(br_pos + Vector2(236, 82), "/ %d" % _cur_res_cached, 14, Color("c4b49a"))
-		for p_i in 15:
-			var px := br_pos.x + 282.0 + p_i * 6.4
-			var py := br_pos.y + 64.0
-			var has_bullet := (p_i < _cur_ammo_cached)
-			if has_bullet:
-				_hud.draw_rect(Rect2(px + 0.8, py, 3.0, 5.0), Color("d97842"))
-				_hud.draw_rect(Rect2(px, py + 5.0, 4.6, 13.0), Color("e5b84b"))
-				_hud.draw_rect(Rect2(px - 0.3, py + 18.5, 5.2, 2.0), Color("b08428"))
-			else:
-				_hud.draw_rect(Rect2(px, py + 4.0, 4.4, 16.0), Color(0.14, 0.15, 0.19, 0.85))
-
-	var key_names := ["1 AK-47", "2 AWP", "3 DEAGLE", "4 FACAO"]
-	for s_i in 4:
-		var kx := br_pos.x + 30.0 + s_i * 88.0
-		var ky := br_pos.y + 94.0
-		var s_act := (s_i == w_idx)
-		if s_act:
-			_hud.draw_rect(Rect2(kx + 2, ky + 2, 79, 15), Color(0.76, 0.20, 0.24, 0.88))
-		_draw_hud_text(Vector2(kx + 2, ky + 14), key_names[s_i], 11, Color("fff2c2") if s_act else Color("b4a690"), HORIZONTAL_ALIGNMENT_CENTER, 79)
-
-	# =========================================================================
-	# 7. MOBILE-FIRST PRO MULTI-TOUCH HUD (iOS / Play Store / Web Touchscreen)
-	# =========================================================================
-	if _mobile_hud_enabled and not _shop_open:
-		_draw_mobile_touch_overlay(W, H)
-
-
-func _draw_mobile_touch_overlay(W: float, H: float) -> void:
-	# 1. Left Virtual 360° Thumbstick with Auto-Sprint Outer Ring!
-	var jc := Vector2(138.0, H - 255.0) if _joy_touch_idx < 0 else _joy_center
-	var jk := jc if _joy_touch_idx < 0 else _joy_knob
-	_hud.draw_circle(jc, _joy_radius, Color(0.08, 0.10, 0.14, 0.52))
-	_hud.draw_arc(jc, _joy_radius, 0.0, TAU, 40, Color(0.0, 0.96, 0.83, 0.78), 2.5)
-	_hud.draw_arc(jc, _joy_radius * 0.72, 0.0, TAU, 32, Color(1.0, 0.82, 0.4, 0.35), 1.5)
-	_hud.draw_circle(jk, 28.0, Color(1.0, 0.82, 0.40, 0.88))
-	_hud.draw_arc(jk, 28.0, 0.0, TAU, 24, Color("ffffff"), 2.0)
-	_draw_hud_text(jc + Vector2(-60, -_joy_radius - 10), "ANALOGICO + SPRINT", 10, Color("00f5d4"), HORIZONTAL_ALIGNMENT_CENTER, 120)
-
-	# 2. Top-Left Claw Fire Button (For 3-Finger / 4-Finger Mobile Pros)
-	var claw_r := Rect2(26.0, 82.0, 118.0, 56.0)
-	_draw_touch_button_rect(claw_r, "ATIRAR (CLAW)", Color("ff2a55"), _mobile_fire_held)
-
-	# 3. Right-Side Ergonomic Action Cluster (Fire, Jump, Slide/Crouch, ADS, Reload, Inspect, Auto-Fire)
-	var fire_r := Rect2(W - 168.0, H - 295.0, 142.0, 74.0)
-	var jump_r := Rect2(W - 152.0, H - 382.0, 126.0, 64.0)
-	var ads_r := Rect2(W - 302.0, H - 285.0, 120.0, 58.0)
-	var crouch_r := Rect2(W - 290.0, H - 365.0, 120.0, 56.0)
-	var reload_r := Rect2(W - 425.0, H - 210.0, 96.0, 46.0)
-	var insp_r := Rect2(W - 318.0, H - 210.0, 96.0, 46.0)
-	var auto_r := Rect2(W - 210.0, H - 210.0, 184.0, 46.0)
-
-	_draw_touch_button_rect(fire_r, "ATIRAR / GOLPE", Color("ff2a55"), _mobile_fire_held)
-	_draw_touch_button_rect(jump_r, "PULAR [SPACE]", Color("ffd166"), _mobile_jump_held)
-	_draw_touch_button_rect(ads_r, "MIRA (ADS)", Color("00f5d4"), is_instance_valid(weapons) and weapons.want_ads)
-	_draw_touch_button_rect(crouch_r, "SLIDE / AGACHAR", Color("3a86ff"), _crouching)
-	_draw_touch_button_rect(reload_r, "RECARGA [R]", Color("f4a261"), false)
-	_draw_touch_button_rect(insp_r, "GIRAR [F]", Color("9b5de5"), false)
-	_draw_touch_button_rect(auto_r, "AUTO-TIRO: %s" % ("ON" if _mobile_autofire else "OFF"), Color("2ec4b6") if _mobile_autofire else Color("6c757d"), _mobile_autofire)
-
-
-func _draw_touch_button_rect(r: Rect2, label: String, col: Color, active: bool) -> void:
-	var bg := col.darkened(0.15) if active else Color(0.09, 0.11, 0.16, 0.68)
-	bg.a = 0.86 if active else 0.68
-	_hud.draw_rect(r, bg)
-	_hud.draw_rect(r, col.lightened(0.25) if active else col, false, 2.4)
-	_draw_hud_text(r.position + Vector2(0, r.size.y * 0.5 + 5.0), label, 11, Color("fff8ea"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+func _start_training() -> void:
+	if size.y > size.x and not _automation:
+		return
+	_start_from_hub(0, 5)
+	if not is_instance_valid(_training):
+		_training = TrainingGuide.new()
+		add_child(_training)
+		_training.setup(self)
+		weapons.hit_registered.connect(_training.hit)
+	_training.start()
 
 
 # ---------------------------------------------------------------- Unified Input: Desktop + Multi-Touch Mobile-First Engine
 
 func _handle_hud_tap_or_click(pos: Vector2, pressed: bool) -> bool:
-	var W := size.x
-	var H := size.y
-	var cx := W * 0.5
-	var tc_pos := Vector2(cx - 240.0, 4.0)
-
-	if pressed:
-		# 1. Top-Left Wallet Card -> Opens VIP Shop!
-		if Rect2(12.0, 8.0, 290.0, 54.0).has_point(pos):
-			_toggle_shop()
-			return true
-		# 2. Top Mode Switcher Pills (MODO 1: TIRO | MODO 2: PARKOUR | TOUCH | GFX [O] | CLIMA [U])
-		if Rect2(cx - 325.0, 84.0, 118.0, 28.0).has_point(pos):
-			_select_mode_and_stage(SakuraWorld.MODE_COMBAT, 0)
-			return true
-		if Rect2(cx - 201.0, 84.0, 138.0, 28.0).has_point(pos):
-			_select_mode_and_stage(SakuraWorld.MODE_PARKOUR, 0)
-			return true
-		if Rect2(cx - 57.0, 84.0, 96.0, 28.0).has_point(pos):
-			_toggle_mobile_hud()
-			return true
-		if Rect2(cx + 45.0, 84.0, 168.0, 28.0).has_point(pos):
-			_cycle_graphics_preset()
-			return true
-		if Rect2(cx + 219.0, 84.0, 106.0, 28.0).has_point(pos):
-			_cycle_atmosphere_preset()
-			return true
-		# 3. 4 Stage Tabs (F1..F4)
-		for i in 4:
-			var tx := tc_pos.x + 70.0 + i * 86.0
-			var ty := tc_pos.y + 52.0
-			if Rect2(tx, ty, 82.0, 24.0).has_point(pos):
-				_select_mode_and_stage(current_mode, i)
-				return true
-		# 4. Bottom-Right 4 Weapon Slots (1 AK-47, 2 AWP, 3 DEAGLE, 4 KARAMBIT)
-		var br_pos := Vector2(W - 410.0, H - 140.0)
-		for s_i in 4:
-			var kx := br_pos.x + 28.0 + s_i * 88.0
-			var ky := br_pos.y + 90.0
-			if Rect2(kx, ky, 84.0, 26.0).has_point(pos):
-				weapons.select_weapon(s_i)
-				return true
-
-	if not _mobile_hud_enabled:
+	if not pressed:
 		return false
-
-	# Mobile Action Buttons
-	var claw_r := Rect2(26.0, 82.0, 118.0, 56.0)
-	var fire_r := Rect2(W - 168.0, H - 295.0, 142.0, 74.0)
-	var jump_r := Rect2(W - 152.0, H - 382.0, 126.0, 64.0)
-	var ads_r := Rect2(W - 302.0, H - 285.0, 120.0, 58.0)
-	var crouch_r := Rect2(W - 290.0, H - 365.0, 120.0, 56.0)
-	var reload_r := Rect2(W - 425.0, H - 210.0, 96.0, 46.0)
-	var insp_r := Rect2(W - 318.0, H - 210.0, 96.0, 46.0)
-	var auto_r := Rect2(W - 210.0, H - 210.0, 184.0, 46.0)
-
-	if claw_r.has_point(pos) or fire_r.has_point(pos):
-		_mobile_fire_held = pressed
+	if AtelierHud.pause_rect(self).has_point(pos):
+		_open_hub()
 		return true
-	if jump_r.has_point(pos):
-		_mobile_jump_held = pressed
+	if current_mode == 1 and AtelierHud.checkpoint_rect(self).has_point(pos):
+		_teleport_kz_checkpoint()
 		return true
-	if pressed and ads_r.has_point(pos):
-		if weapons.current_idx == 3:
-			weapons.try_fire(0.0, true)
-		else:
-			weapons.want_ads = not weapons.want_ads
-		return true
-	if pressed and crouch_r.has_point(pos):
-		_crouching = not _crouching
-		return true
-	if pressed and reload_r.has_point(pos):
-		weapons.start_reload()
-		return true
-	if pressed and insp_r.has_point(pos):
-		weapons.trigger_inspect()
-		return true
-	if pressed and auto_r.has_point(pos):
-		_mobile_autofire = not _mobile_autofire
-		_show_banner("AUTO-TIRO MOBILE: %s!" % ("LIGADO" if _mobile_autofire else "DESLIGADO"), 2.0)
-		return true
-
 	return false
 
 
 func _input(event: InputEvent) -> void:
+	# Native GUI controls consume the emulated pointer; gameplay uses each real finger.
+	# Ignoring this duplicate here prevents the same touch firing or moving twice.
+	if (event is InputEventMouseButton or event is InputEventMouseMotion) and event.device == InputEvent.DEVICE_ID_EMULATION:
+		return
+	if is_instance_valid(_hud_editor):
+		return
+	if is_instance_valid(_training) and _training.visible and (event is InputEventScreenTouch or event is InputEventScreenDrag or event is InputEventMouseButton) and _training.get_global_rect().has_point(event.position):
+		return
+	if _hub_open and not _shop_open:
+		if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE and _hub.can_resume:
+			_resume_from_hub()
+		return
+	if is_instance_valid(_result_panel) and _result_panel.visible:
+		return
 	if _shop_open:
 		if event is InputEventKey and event.pressed and not event.echo:
 			var k_s := (event as InputEventKey).keycode
@@ -1174,61 +880,19 @@ func _input(event: InputEvent) -> void:
 				_toggle_shop(0)
 		return
 
-	# Multi-Touch Screen Touch (Mobile iOS / Android / Web Touch)
 	if event is InputEventScreenTouch:
 		var st := event as InputEventScreenTouch
-		if _killcam_active and st.pressed:
-			_stop_killcam()
-			return
-		if _handle_hud_tap_or_click(st.position, st.pressed):
-			return
-		if st.pressed:
-			if st.position.x < size.x * 0.44 and _joy_touch_idx < 0:
-				_joy_touch_idx = st.index
-				_joy_center = st.position
-				_joy_knob = st.position
-				_mobile_move_vec = Vector2.ZERO
-			elif _look_touch_idx < 0:
-				_look_touch_idx = st.index
-		else:
-			if st.index == _joy_touch_idx:
-				_joy_touch_idx = -1
-				_mobile_move_vec = Vector2.ZERO
-			elif st.index == _look_touch_idx:
-				_look_touch_idx = -1
-			_mobile_fire_held = false
-			_mobile_jump_held = false
+		_handle_touch(st.index, st.position, st.pressed and not st.canceled)
 		return
-
 	if event is InputEventScreenDrag:
 		var sd := event as InputEventScreenDrag
-		if sd.index == _joy_touch_idx:
-			var delta_v := sd.position - _joy_center
-			if delta_v.length() > _joy_radius:
-				delta_v = delta_v.normalized() * _joy_radius
-			_joy_knob = _joy_center + delta_v
-			_mobile_move_vec = delta_v / _joy_radius
-		else:
-			var sens_m := 0.0022 if (is_instance_valid(weapons) and weapons.is_scoped_in()) else 0.0040
-			_yaw -= sd.relative.x * sens_m
-			_pitch = clampf(_pitch - sd.relative.y * sens_m * 0.88, -1.45, 1.45)
-			if is_instance_valid(weapons):
-				weapons.add_look_sway(sd.relative)
+		_handle_touch_drag(sd.index, sd.position, sd.relative)
 		return
 
 	if event is InputEventMouseMotion:
 		if not _paused:
 			if _mobile_hud_enabled and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
-				var mm_m := event as InputEventMouseMotion
-				if _joy_touch_idx == 99:
-					var dv := mm_m.position - _joy_center
-					if dv.length() > _joy_radius:
-						dv = dv.normalized() * _joy_radius
-					_joy_knob = _joy_center + dv
-					_mobile_move_vec = dv / _joy_radius
-				else:
-					_yaw -= mm_m.relative.x * 0.0035
-					_pitch = clampf(_pitch - mm_m.relative.y * 0.0032, -1.45, 1.45)
+				_handle_touch_drag(99, event.position, event.relative)
 				return
 			if not _mobile_hud_enabled and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED and not DisplayServer.get_name().contains("headless"):
 				Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
@@ -1244,22 +908,10 @@ func _input(event: InputEvent) -> void:
 
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
-		if mb.button_index == MOUSE_BUTTON_LEFT:
-			if not _mouse_captured or _mobile_hud_enabled:
-				if _handle_hud_tap_or_click(mb.position, mb.pressed):
-					return
-				if _mobile_hud_enabled:
-					if mb.pressed and mb.position.x < size.x * 0.42:
-						_joy_touch_idx = 99
-						_joy_center = mb.position
-						_joy_knob = mb.position
-					elif not mb.pressed:
-						_joy_touch_idx = -1
-						_mobile_move_vec = Vector2.ZERO
-						_mobile_fire_held = false
-						_mobile_jump_held = false
-					return
-		if mb.button_index == MOUSE_BUTTON_RIGHT and not _mobile_hud_enabled:
+		if mb.button_index == MOUSE_BUTTON_LEFT and _mobile_hud_enabled:
+			_handle_touch(99, mb.position, mb.pressed)
+			return
+		if mb.button_index == MOUSE_BUTTON_RIGHT and not _mobile_hud_enabled and current_mode == 0:
 			if mb.pressed:
 				if is_instance_valid(weapons) and weapons.current_idx == 3:
 					weapons.try_fire(0.0, true)
@@ -1287,14 +939,7 @@ func _input(event: InputEvent) -> void:
 			KEY_X:
 				_trigger_instant_killcam()
 			KEY_ESCAPE:
-				_paused = not _paused
-				if _paused:
-					Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-					_mouse_captured = false
-					_show_banner("MOUSE LIBERADO — Clique nas abas ou aperte ESC para voltar!", 4.0)
-				else:
-					_capture_mouse()
-					_show_banner("", 0.0)
+				_open_hub()
 			KEY_L:
 				_toggle_shop()
 			KEY_1:
@@ -1306,19 +951,22 @@ func _input(event: InputEvent) -> void:
 			KEY_4:
 				weapons.select_weapon(3)
 			KEY_5:
-				var next_sk := (weapons.active_skin_idx + 1) % WeaponRig.WEAPON_SKINS.size()
-				unlocked_weapon_skins[next_sk] = true
-				weapons.apply_weapon_skin(next_sk)
-				Sfx.play("cash_buy")
-				_show_banner("SKIN DE ARMA 3D: %s!" % str(WeaponRig.WEAPON_SKINS[next_sk].name).to_upper(), 2.2)
+				weapons.select_weapon(4)
 			KEY_6:
-				_buy_weapon_upgrade()
+				weapons.select_weapon(5)
+			KEY_H:
+				for step in range(1, WeaponRig.WEAPON_SKINS.size() + 1):
+					var next_sk := (weapons.active_skin_idx + step) % WeaponRig.WEAPON_SKINS.size()
+					var owned: bool = profile.data.weapon_kills[weapons.current_idx] >= 50 if next_sk == 1 else bool(unlocked_weapon_skins[next_sk])
+					if owned:
+						_buy_or_equip_weapon_skin(next_sk)
+						break
 			KEY_7:
-				var next_cs := (weapons.active_char_skin_idx + 1) % WeaponRig.CHAR_SKINS.size()
-				unlocked_char_skins[next_cs] = true
-				weapons.apply_char_skin(next_cs)
-				Sfx.play("cash_buy")
-				_show_banner("SKIN DE PERSONAGEM: %s!" % str(WeaponRig.CHAR_SKINS[next_cs].name).to_upper(), 2.2)
+				for step in range(1, WeaponRig.CHAR_SKINS.size() + 1):
+					var next_cs := (weapons.active_char_skin_idx + step) % WeaponRig.CHAR_SKINS.size()
+					if unlocked_char_skins[next_cs]:
+						_buy_or_equip_char_skin(next_cs)
+						break
 			KEY_Q:
 				weapons.quick_switch()
 			KEY_F:
@@ -1329,7 +977,7 @@ func _input(event: InputEvent) -> void:
 				var next_mode := SakuraWorld.MODE_PARKOUR if current_mode == SakuraWorld.MODE_COMBAT else SakuraWorld.MODE_COMBAT
 				_select_mode_and_stage(next_mode, 0)
 			KEY_TAB:
-				_select_mode_and_stage(current_mode, (current_stage + 1) % 4)
+				_select_mode_and_stage(current_mode, (current_stage + 1) % SakuraHub.MAPS[current_mode].size())
 			KEY_F1:
 				_select_mode_and_stage(current_mode, 0)
 			KEY_F2:
@@ -1343,8 +991,10 @@ func _input(event: InputEvent) -> void:
 			KEY_G:
 				_teleport_kz_checkpoint()
 			KEY_P:
-				Sfx.set_panadero_radio(not Sfx.panadero_mode)
-				_show_banner("RADIO EL PANADERO CON EL PAN: %s!" % ("LIGADA" if Sfx.panadero_mode else "DESLIGADA"), 2.5)
+				profile.data.music_enabled = not profile.data.music_enabled
+				Sfx.configure_music(profile.data.music_enabled, profile.data.music_volume)
+				_queue_save()
+				_show_banner("MÚSICA: %s" % ("LIGADA" if profile.data.music_enabled else "DESLIGADA"), 2.0)
 			KEY_B, KEY_K:
 				_reset_current_mode()
 			KEY_V, KEY_T:
@@ -1359,6 +1009,7 @@ func _cycle_graphics_preset() -> void:
 	_res_idx = (_res_idx + 1) % RES_PRESETS.size()
 	_apply_graphics_preset()
 	_show_banner("MODO GRAFICO [O / F5]: %s" % RES_PRESETS[_res_idx].label, 2.5)
+	_queue_save()
 
 
 func _cycle_atmosphere_preset() -> void:
@@ -1386,10 +1037,29 @@ func _select_stage(stage_idx: int) -> void:
 
 
 func _select_mode_and_stage(mode_idx: int, stage_idx: int) -> void:
+	_clear_touch_state()
+	_coyote_timer = 0
+	_jump_buffer = 0
+	_jump_grace = 0
+	_mantle_cooldown = 0
+	_cp_count = 0
+	_crouching = false
+	_killcam_active = false
+	_cleanup_killcam_actors()
+	_cam.current = true
+	_killcam_card.hide()
+	_session_started = true
+	world.enemies_paused = false
+	world.bot_difficulty = profile.data.bot_difficulty
+	kills = 0
+	deaths = 0
+	headshots = 0
+	streak = 0
+	_pf_score_stack.clear()
+	killfeed.clear()
 	current_mode = clampi(mode_idx, 0, 1)
-	current_stage = clampi(stage_idx, 0, 3)
+	current_stage = clampi(stage_idx, 0, SakuraHub.MAPS[current_mode].size() - 1)
 	var sp := world.load_mode_and_stage(current_mode, current_stage)
-	var st_def: Dictionary = world.get_active_stage_def()
 
 	_body.global_position = sp[0]
 	_body.velocity = Vector3.ZERO
@@ -1401,7 +1071,7 @@ func _select_mode_and_stage(mode_idx: int, stage_idx: int) -> void:
 		server_mode = ServerMode.FY_ICEWORLD_PVP
 		world.enemies_paused = false
 		Sfx.set_panadero_radio(false)
-		weapons.select_weapon(0)
+		weapons.select_weapon(profile.data.selected_weapon)
 		weapons.refill_all_ammo()
 		hp = max_hp
 		armor = 100.0
@@ -1413,10 +1083,15 @@ func _select_mode_and_stage(mode_idx: int, stage_idx: int) -> void:
 		hp = max_hp
 		armor = 100.0
 
-	_show_banner("%s  //  %s" % [str(st_def.title), str(st_def.subtitle)], 4.0)
+	weapons.visible = current_mode == 0
+	_apply_graphics_preset()
+	_show_banner("Rota verde: segura. Centro: atalho. Boa corrida!" if current_mode == 1 else "Treino com bots • abates rendem moedas e maestria", 4.0)
 
 
 func _save_kz_checkpoint() -> void:
+	if current_mode == 1:
+		_show_banner("Checkpoints automáticos nos portais de cada setor.", 2.0)
+		return
 	if not _body.is_on_floor():
 		_show_banner("Voce precisa estar no chao para salvar um Checkpoint!", 2.0)
 		return
@@ -1457,6 +1132,13 @@ func _reset_current_mode() -> void:
 # ---------------------------------------------------------------- Physics, ParkourCountdown Gate, & Mobile Aim-Assist
 
 func _physics_process(delta: float) -> void:
+	if _save_delay >= 0:
+		_save_delay -= delta
+		if _save_delay < 0:
+			_save_profile()
+	if _paused or _hub_open or _shop_open:
+		return
+	_mantle_cooldown = maxf(0, _mantle_cooldown - delta)
 	if not is_instance_valid(_body):
 		return
 
@@ -1512,10 +1194,10 @@ func _physics_process(delta: float) -> void:
 		_crouching = want_crouch
 
 	var joy_sprint := _mobile_move_vec.length() > 0.72 and _mobile_move_vec.y < -0.25
-	_sprinting = (Input.is_key_pressed(KEY_SHIFT) or joy_sprint or current_mode == SakuraWorld.MODE_PARKOUR) and in_z < -0.1 and not _crouching and weapons.ads_alpha < 0.1
+	_sprinting = (Input.is_key_pressed(KEY_SHIFT) or joy_sprint or current_mode == SakuraWorld.MODE_PARKOUR) and in_z < -0.1 and not _crouching and (current_mode == 1 or weapons.ads_alpha < 0.1)
 	var jump_held := Input.is_key_pressed(KEY_SPACE) or _mobile_jump_held
 	if jump_held:
-		_jump_buffer = 0.11
+		_jump_buffer = 0.15
 	elif _jump_buffer > 0.0:
 		_jump_buffer -= delta
 
@@ -1607,20 +1289,23 @@ func _physics_process(delta: float) -> void:
 	_cam_pivot.rotation = Vector3(_pitch, 0.0, _cam_roll)
 
 	var w_def: Dictionary = WeaponRig.WEAPONS[weapons.current_idx]
-	var target_fov := lerpf(76.0, float(w_def.ads_fov), weapons.ads_alpha)
+	var target_fov := 76.0 if current_mode == 1 else lerpf(76.0, float(w_def.ads_fov), weapons.ads_alpha)
 	if _sprinting and _body.is_on_floor():
 		target_fov = 82.0
 	_cam.fov = lerpf(_cam.fov, target_fov, minf(1.0, delta * 14.0))
 
 	var h_speed := Vector2(_body.velocity.x, _body.velocity.z).length()
 	world.player_pos = _body.global_position
+	world.player_grounded = _body.is_on_floor()
 	weapons.tick_viewmodel(delta, h_speed, _body.is_on_floor(), _sprinting, _crouching)
 
-	var want_fire := not _shop_open and not _paused and (
+	var want_fire := current_mode == 0 and not _shop_open and not _paused and (
 		(_mouse_captured and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT))
 		or _mobile_fire_held
 		or (_mobile_hud_enabled and _mobile_autofire and auto_trigger_target)
 	)
+	if _mobile_hud_enabled and current_mode == 0 and _cur_ammo_cached == 0 and not _reloading_cached:
+		weapons.start_reload()
 	if want_fire:
 		if bool(w_def.auto) or not bool(_body.get_meta("fire_was", false)) or (_mobile_hud_enabled and _mobile_autofire):
 			if weapons.try_fire(h_speed):
@@ -1671,11 +1356,11 @@ func _apply_mobile_aim_assist(delta: float) -> bool:
 func _process_crisp_ground_and_parkour(delta: float, wish_dir: Vector3, jump_held: bool) -> void:
 	var on_floor := _body.is_on_floor()
 	if on_floor:
-		_coyote_timer = 0.12
+		_coyote_timer = 0.15
 	elif _coyote_timer > 0.0:
 		_coyote_timer -= delta
 
-	var w_mult := weapons.speed_multiplier() + (0.12 if _adrenaline_t > 0.0 else 0.0)
+	var w_mult := 1.0 if current_mode == 1 else weapons.speed_multiplier() + (0.12 if _adrenaline_t > 0.0 else 0.0)
 	var max_ground_spd := (CROUCH_SPEED if _crouching else (SPRINT_SPEED if _sprinting else WALK_SPEED)) * w_mult
 
 	if (jump_held or _jump_buffer > 0.0) and _coyote_timer > 0.0 and _jump_grace <= 0.0:
@@ -1712,6 +1397,7 @@ func _process_crisp_ground_and_parkour(delta: float, wish_dir: Vector3, jump_hel
 			_body.velocity.z = move_toward(_body.velocity.z, 0.0, AIR_BRAKE * delta)
 
 	_body.move_and_slide()
+	_try_mantle(wish_dir)
 
 
 # ---------------------------------------------------------------- Phantom Forces Combat Dopamine, Progression & Callbacks
@@ -1723,6 +1409,7 @@ func _push_pf_score_popup(txt: String, col: Color = Color("ffd166"), fsize: int 
 
 
 func _award_progression(add_coins: int, add_rp: int, reason: String = "") -> void:
+	_queue_save()
 	coins += add_coins
 	rp += add_rp
 	var new_rank := 0
@@ -1740,6 +1427,12 @@ func _award_progression(add_coins: int, add_rp: int, reason: String = "") -> voi
 
 
 func _on_weapon_changed(_idx: int, _wname: String, cur_ammo: int, cur_res: int) -> void:
+	if is_instance_valid(weapons):
+		if current_mode == SakuraWorld.MODE_COMBAT:
+			profile.data.selected_weapon = _idx
+			_queue_save()
+		weapons.apply_weapon_skin(profile.data.weapon_skins[_idx])
+		weapons.inspect_timer = 0
 	_on_ammo_updated(cur_ammo, cur_res, false)
 
 
@@ -1752,6 +1445,9 @@ func _on_ammo_updated(cur_ammo: int, cur_res: int, reloading: bool) -> void:
 
 
 func _on_shot_fired(_weapon_idx: int, kick_pitch: float, kick_yaw: float) -> void:
+	world.player_spawn_guard = 0
+	if _weapon_idx == 3 and world.combat_audio != null:
+		world.combat_audio.noise(world.player_pos, null, 0.25)
 	_pitch = clampf(_pitch + kick_pitch, -1.45, 1.45)
 	_yaw += kick_yaw
 
@@ -1763,6 +1459,10 @@ func _on_hit_registered(result: Dictionary, _weapon_idx: int) -> void:
 
 func _on_enemy_killed(was_headshot: bool, bot_name: String, hit_pos: Vector3) -> void:
 	kills += 1
+	var mastery := profile.record_kill(weapons.current_idx)
+	if mastery == 50 or (mastery == 100 and weapons.current_idx in WeaponCatalog.FIREARMS):
+		_push_pf_score_popup("MAESTRIA: %s DESBLOQUEADO!" % ("OURO" if mastery == 50 else "SILENCIADOR"), Color("f4d593"), 18)
+	_haptic(25)
 	streak += 1
 	world.ct_score = kills
 	if was_headshot:
@@ -1827,7 +1527,7 @@ func _on_enemy_killed(was_headshot: bool, bot_name: String, hit_pos: Vector3) ->
 		_push_pf_score_popup("ASSUMIU O #1 LUGAR DO PLACAR!", Color("ffd166"), 18)
 	_was_leader = is_now_leader
 
-	var c_gain := (125 if was_headshot else 70) + streak * 18
+	var c_gain := (18 if was_headshot else 12) + mini(streak, 5) * 2
 	var rp_gain := (55 if was_headshot else 30) + streak * 6
 	_award_progression(c_gain, rp_gain, ("1-TAP HEADSHOT EM %s (STREAK x%d)" % [bot_name.to_upper(), streak]) if was_headshot else ("ELIMINOU %s (STREAK x%d)" % [bot_name.to_upper(), streak]))
 
@@ -1850,8 +1550,8 @@ func _on_round_won(round_num: int, ct_sc: int, tr_sc: int) -> void:
 
 
 func _on_kz_ring_collected(_ring_idx: int) -> void:
-	_push_pf_score_popup("+85 MOEDAS // ANEL TURBO PARKOUR!", Color("00f5d4"), 15)
-	_award_progression(85, 35, "ANEL DOURADO DE PARKOUR COLETADO")
+	_push_pf_score_popup("+10 MOEDAS / ANEL COLETADO", Color("00f5d4"), 15)
+	_award_progression(10, 10, "ANEL DOURADO DE PARKOUR COLETADO")
 
 
 func _on_kz_stage_reached(stage_idx: int, stage_name: String, ctime: float, cp_pos: Vector3) -> void:
@@ -1859,29 +1559,34 @@ func _on_kz_stage_reached(stage_idx: int, stage_name: String, ctime: float, cp_p
 	_saved_cp_yaw = 0.0
 	_has_saved_cp = true
 	_cp_count = stage_idx
-	_award_progression(180, 75, "CHECKPOINT SALVO: %s (%.1fs)" % [stage_name, ctime])
+	_award_progression(15, 15, "CHECKPOINT SALVO: %s (%.1fs)" % [stage_name, ctime])
 
 
 func _on_kz_course_finished(ctime: float, best_t: float, place: int) -> void:
-	var coin_reward := 2500 if place == 1 else (1400 if place == 2 else (900 if place == 3 else 500))
+	profile.record_finish(current_stage, ctime)
+	var coin_reward := 180 if place == 1 else (120 if place <= 3 else 80)
 	var gem_reward := 50 if place == 1 else (30 if place <= 3 else 15)
 	gems += gem_reward
 	var place_tag := "1º LUGAR CAMPEAO FALL GUYS!" if place == 1 else ("%dº LUGAR NA CORRIDA!" % place)
 	_push_pf_score_popup("%s (+%d MOEDAS / +%d DIAMANTES)" % [place_tag, coin_reward, gem_reward], Color("ffd166"), 18)
 	_award_progression(coin_reward, 350, "%s // TEMPO %.2fs (Recorde: %.2fs) // [K] Nova Corrida" % [place_tag, ctime, best_t])
+	_show_race_result.call_deferred(ctime, best_t, place, coin_reward)
 
 
 func _on_player_damaged(amount: float, _from_pos: Vector3, attacker_name: String) -> void:
-	if current_mode == SakuraWorld.MODE_PARKOUR:
+	if current_mode == SakuraWorld.MODE_PARKOUR or _paused or _hub_open or _shop_open or world.combat_is_finished:
 		return # Zero PvP shooting damage in Parkour Mode!
 	_out_of_combat_t = 0.0
 	var absorbed := minf(armor, amount * 0.55)
 	armor = maxf(0.0, armor - absorbed)
 	hp = maxf(0.0, hp - (amount - absorbed))
+	_haptic(18)
 	_damage_alpha = 0.36
 	Sfx.play("hurt")
 	if hp <= 0.0:
+		_clear_touch_state()
 		deaths += 1
+		world.player_spawn_guard = 1.5
 		streak = 0
 		world.tr_score += 1
 		if world.bot_scoreboard.has(attacker_name):
@@ -1892,9 +1597,12 @@ func _on_player_damaged(amount: float, _from_pos: Vector3, attacker_name: String
 		weapons.refill_all_ammo()
 		var sp := world.spawn_pvp_transform()
 		_body.global_position = sp[0]
+		world.player_pos = sp[0]
+		_yaw = sp[1]
+		_pitch = 0
 		_body.velocity = Vector3.ZERO
 		_push_killfeed("%s  //  AK-47  //  VOCE" % attacker_name)
-		_show_banner("ELIMINADO POR %s — RESPAWN IMEDIATO (VINGANCA ATIVA!)" % attacker_name, 2.4)
+		_show_banner("%s eliminou você • novo ponto de entrada" % attacker_name, 2.4)
 
 
 # ---------------------------------------------------------------- Call of Duty: Black Ops 2 KillCam Replay Engine
@@ -2100,6 +1808,34 @@ func _run_automated_test() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_startup_grace = 0.0
+	if OS.get_cmdline_user_args().has("--navigation"):
+		var navigation = load("res://tests/navigation_checks.gd").new()
+		get_tree().quit(0 if await navigation.run(self) else 1)
+		return
+	if OS.get_cmdline_user_args().has("--arsenal"):
+		var arsenal = load("res://tests/arsenal_checks.gd").new()
+		get_tree().quit(0 if await arsenal.run(self) else 1)
+		return
+	if OS.get_cmdline_user_args().has("--quality"):
+		var quality = load("res://tests/quality_checks.gd").new()
+		get_tree().quit(0 if await quality.run(self) else 1)
+		return
+	if OS.get_cmdline_user_args().has("--combat"):
+		var combat = load("res://tests/combat_checks.gd").new()
+		get_tree().quit(0 if await combat.run(self) else 1)
+		return
+	if OS.get_cmdline_user_args().has("--menus"):
+		var menus = load("res://tests/menu_checks.gd").new()
+		get_tree().quit(0 if await menus.run(self) else 1)
+		return
+	if OS.get_cmdline_user_args().has("--mobile"):
+		var mobile = load("res://tests/mobile_checks.gd").new()
+		get_tree().quit(0 if await mobile.run(self) else 1)
+		return
+	if OS.get_cmdline_user_args().has("--arenas"):
+		var focused_checks = load("res://tests/arena_checks.gd").new()
+		get_tree().quit(0 if await focused_checks.run(self) else 1)
+		return
 
 	# 1. Verify Combat Mode (4 Arenas) & Phantom Forces Kill Satisfaction
 	_select_mode_and_stage(SakuraWorld.MODE_COMBAT, 0)
@@ -2112,26 +1848,66 @@ func _run_automated_test() -> void:
 	assert(bool(res.headshot) and bool(res.killed), "AK-47 headshot must be an instant 1-tap fatal kill!")
 	assert(coins > coins0, "Killing an enemy must award coins and Phantom Forces score stack!")
 
-	for st_i in 4:
+	for st_i in SakuraWorld.COMBAT_STAGE_DEFS.size():
 		_select_mode_and_stage(SakuraWorld.MODE_COMBAT, st_i)
 		assert(current_mode == SakuraWorld.MODE_COMBAT and current_stage == st_i, "Must switch to Combat Arena %d" % st_i)
 
 	# 2. Verify Parkour Race Mode (4 Long 8-Sector Marathons + 7 Runner Bots + Zero PvP Damage!)
-	for pk_i in 4:
+	for pk_i in SakuraWorld.PARKOUR_STAGE_DEFS.size():
 		_select_mode_and_stage(SakuraWorld.MODE_PARKOUR, pk_i)
 		await get_tree().process_frame
 		assert(current_mode == SakuraWorld.MODE_PARKOUR and current_stage == pk_i, "Must switch to Parkour Marathon %d" % pk_i)
 		assert(world.parkour_runners.size() == 7, "Parkour Race must spawn 7 competing Runner Bots")
 		assert(world.kz_checkpoints.size() == 8, "Each Parkour Marathon must have 8 Sectors")
 		var total_len := world.kz_start_pad.z - world.kz_finish_pad.z
-		assert(total_len >= 310.0, "Parkour Marathon must be over 310m long (got %.1fm)" % total_len)
+		assert(total_len >= 200.0 and total_len <= 230.0, "Mobile course length must be 200–230m (got %.1fm)" % total_len)
 
 	# 3. Verify Mobile-First Touch HUD Toggle
 	_toggle_mobile_hud()
 	assert(_mobile_hud_enabled, "Mobile Touch HUD should toggle on")
 	_toggle_mobile_hud()
 
-	print("2 GAME MODES (4 COMBAT ARENAS + 4 350m PARKOUR MARATHONS) + 7 RUNNER BOTS + MOBILE-FIRST HUD automated test PASSED!")
+	var checks = load("res://tests/foundation_checks.gd").new()
+	if not await checks.run(self):
+		get_tree().quit(1)
+		return
+	var bot_checks = load("res://tests/bot_checks.gd").new()
+	if not await bot_checks.run(self):
+		get_tree().quit(1)
+		return
+	var arena_checks = load("res://tests/arena_checks.gd").new()
+	if not await arena_checks.run(self):
+		get_tree().quit(1)
+		return
+	var mobile_checks = load("res://tests/mobile_checks.gd").new()
+	if not await mobile_checks.run(self):
+		get_tree().quit(1)
+		return
+	var village_checks = load("res://tests/village_checks.gd").new()
+	if not await village_checks.run(self):
+		get_tree().quit(1)
+		return
+	var menu_checks = load("res://tests/menu_checks.gd").new()
+	if not await menu_checks.run(self):
+		get_tree().quit(1)
+		return
+	var combat_checks = load("res://tests/combat_checks.gd").new()
+	if not await combat_checks.run(self):
+		get_tree().quit(1)
+		return
+	var quality_checks = load("res://tests/quality_checks.gd").new()
+	if not await quality_checks.run(self):
+		get_tree().quit(1)
+		return
+	var arsenal_checks = load("res://tests/arsenal_checks.gd").new()
+	if not await arsenal_checks.run(self):
+		get_tree().quit(1)
+		return
+	var navigation_checks = load("res://tests/navigation_checks.gd").new()
+	if not await navigation_checks.run(self):
+		get_tree().quit(1)
+		return
+	print("2 GAME MODES (9 COMBAT ARENAS + 6 MOBILE PARKOUR COURSES) + 7 RUNNER BOTS + MOBILE-FIRST HUD automated test PASSED!")
 	get_tree().quit(0)
 
 
@@ -2197,3 +1973,766 @@ func _save_shot(fname: String) -> void:
 	await RenderingServer.frame_post_draw
 	var img := get_viewport().get_texture().get_image()
 	img.save_png(ProjectSettings.globalize_path("res://shots/" + fname))
+	print("RENDER ", fname, " draw_calls=", Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), " objects=", Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME), " memory_MiB=", snappedf(Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0, 0.1))
+
+
+func _handle_touch(index: int, pos: Vector2, pressed: bool) -> void:
+	# Release by finger identity before hit testing. A release can be anywhere.
+	if not pressed:
+		_touch_actions.erase(index)
+		if index == _joy_touch_idx:
+			_joy_touch_idx = -1
+			_mobile_move_vec = Vector2.ZERO
+		if index == _look_touch_idx:
+			_look_touch_idx = -1
+		_mobile_fire_held = _touch_actions.values().has("fire")
+		_mobile_jump_held = _touch_actions.values().has("jump")
+		return
+	if _killcam_active:
+		_stop_killcam()
+		return
+	if _handle_hud_tap_or_click(pos, true):
+		return
+	_mobile_hud_enabled = true
+	var rects := _action_rects()
+	for action in rects:
+		if not (rects[action] as Rect2).has_point(pos):
+			continue
+		_touch_actions[index] = action
+		match action:
+			"jump":
+				_mobile_jump_held = true
+				_jump_buffer = 0.15
+			"fire":
+				_mobile_fire_held = true
+			"ads":
+				weapons.want_ads = not weapons.want_ads
+			"reload":
+				weapons.start_reload()
+			"weapon":
+				weapons.select_weapon((weapons.current_idx + 1) % WeaponRig.WEAPONS.size())
+		# Looking while jumping/firing is essential for two-thumb play.
+		if action in ["jump", "fire"] and _look_touch_idx < 0:
+			_look_touch_idx = index
+		return
+	if _mobile_rect("joystick").grow(12).has_point(pos) and _joy_touch_idx < 0:
+		_joy_touch_idx = index
+		_joy_radius = _mobile_rect("joystick").size.x / 2
+		_joy_center = pos
+		_joy_knob = pos
+		_mobile_move_vec = Vector2.ZERO
+	elif _look_touch_idx < 0:
+		_look_touch_idx = index
+
+
+func _handle_touch_drag(index: int, pos: Vector2, relative: Vector2) -> void:
+	if index == _joy_touch_idx:
+		var motion := (pos - _joy_center).limit_length(_joy_radius)
+		_joy_knob = _joy_center + motion
+		_mobile_move_vec = motion / _joy_radius
+	elif index == _look_touch_idx:
+		var sensitivity := 0.0035 * float(profile.data.sensitivity)
+		if weapons.want_ads:
+			sensitivity *= float(profile.data.ads_sensitivity)
+		_yaw -= relative.x * sensitivity
+		_pitch = clampf(_pitch - relative.y * sensitivity, -1.45, 1.45)
+		weapons.add_look_sway(relative)
+
+
+func _clear_touch_state() -> void:
+	_touch_actions.clear()
+	_joy_touch_idx = -1
+	_look_touch_idx = -1
+	_mobile_move_vec = Vector2.ZERO
+	_mobile_fire_held = false
+	_mobile_jump_held = false
+	_jump_buffer = 0
+	_sprinting = false
+	if is_instance_valid(weapons):
+		weapons.want_ads = false
+	if is_instance_valid(_body):
+		_body.velocity.x = 0
+		_body.velocity.z = 0
+		_body.set_meta("fire_was", false)
+	_jump_buffer = 0
+	if is_instance_valid(weapons):
+		weapons.want_ads = false
+
+
+func _try_mantle(wish_dir: Vector3) -> bool:
+	if current_mode != 1 or _body.is_on_floor() or _mantle_cooldown > 0 or wish_dir.length() < 0.5 or _body.velocity.y > 2.0:
+		return false
+	var foot := _body.global_position
+	var space := world.get_world_3d().direct_space_state
+	var ahead := foot + wish_dir * 0.8
+	var wall := PhysicsRayQueryParameters3D.create(foot + Vector3.UP * 0.55, ahead + Vector3.UP * 0.55, 1)
+	if space.intersect_ray(wall).is_empty():
+		return false
+	var ray := PhysicsRayQueryParameters3D.create(ahead + Vector3.UP * 1.45, ahead + Vector3.UP * 0.2, 1)
+	var top := space.intersect_ray(ray)
+	if top.is_empty() or (top.normal as Vector3).y < 0.8:
+		return false
+	var rise := float(top.position.y) - foot.y + 0.04
+	if rise < 0.25 or rise > 1.25:
+		return false
+	# Sweep both segments of the lift; no teleport through ceilings or walls.
+	if _body.test_move(_body.global_transform, Vector3.UP * rise):
+		return false
+	var raised := _body.global_transform
+	raised.origin += Vector3.UP * rise
+	if _body.test_move(raised, wish_dir * 0.8):
+		return false
+	_body.global_position = raised.origin + wish_dir * 0.8
+	_body.velocity.y = 0
+	_mantle_cooldown = 0.4
+	_coyote_timer = 0
+	_haptic(12)
+	return true
+
+
+func _restore_profile() -> void:
+	coins = profile.data.coins
+	gems = profile.data.gems
+	rp = profile.data.rp
+	unlocked_weapon_skins = profile.data.owned_weapons.duplicate()
+	unlocked_char_skins = profile.data.owned_characters.duplicate()
+	unlocked_dogtags = profile.data.owned_tags.duplicate()
+	active_dogtag_idx = profile.data.tag
+	_res_idx = profile.data.quality
+	_mobile_autofire = profile.data.auto_fire
+	for i in RANK_TIERS.size():
+		if rp >= RANK_TIERS[i].min_rp:
+			rank_idx = i
+
+
+func _sync_profile() -> void:
+	profile.data.coins = coins
+	profile.data.gems = gems
+	profile.data.rp = rp
+	profile.data.owned_weapons = unlocked_weapon_skins.duplicate()
+	profile.data.owned_characters = unlocked_char_skins.duplicate()
+	profile.data.owned_tags = unlocked_dogtags.duplicate()
+	profile.data.tag = active_dogtag_idx
+	profile.data.quality = _res_idx
+	if is_instance_valid(weapons):
+		profile.data.weapon_levels = weapons.weapon_levels.duplicate()
+		profile.data.character = weapons.active_char_skin_idx
+
+
+func _apply_profile_settings() -> void:
+	Sfx.configure_music(profile.data.music_enabled, profile.data.music_volume)
+	Sfx.configure_effects(profile.data.effects_volume, profile.data.ambience_volume)
+	_mobile_autofire = profile.data.auto_fire
+	_res_idx = profile.data.quality
+	_apply_graphics_preset()
+	world.kz_best_times = profile.data.best_times.duplicate()
+	weapons.weapon_levels = profile.data.weapon_levels.duplicate()
+	weapons.select_weapon(profile.data.selected_weapon if current_mode == SakuraWorld.MODE_COMBAT else 3)
+	weapons.apply_char_skin(profile.data.character)
+	weapons.apply_weapon_skin(profile.data.weapon_skins[weapons.current_idx])
+	weapons.inspect_timer = 0
+	for i in WeaponCatalog.FIREARMS:
+		weapons.set_suppressor(i, profile.data.suppressors[i])
+
+
+func _profile_menu_changed() -> void:
+	coins = profile.data.coins
+	_apply_profile_settings()
+	_queue_save()
+
+
+func _queue_save() -> void:
+	_save_delay = 0.4
+
+
+func _save_profile() -> Error:
+	if _automation:
+		return OK
+	_sync_profile()
+	var err := profile.write_save()
+	if err != OK:
+		_show_banner("Não foi possível salvar o perfil neste dispositivo.", 4)
+		push_warning("Profile save failed: %s" % error_string(err))
+	_save_delay = -1
+	return err
+
+
+func _open_hub() -> void:
+	# A transition to the lobby owns the screen; never leave a shop modal above it.
+	_shop_open = false
+	if is_instance_valid(_shop_panel):
+		_shop_panel.hide()
+	Sfx.set_music_context("lobby")
+	if _killcam_active:
+		_stop_killcam()
+	_clear_touch_state()
+	_sync_profile()
+	_hub_open = true
+	_paused = true
+	_mouse_captured = false
+	world.process_mode = Node.PROCESS_MODE_DISABLED
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	_hud.hide()
+	_damage_flash.hide()
+	if is_instance_valid(_result_panel):
+		_result_panel.hide()
+	_hub.can_resume = _session_started and world.player_race_place == 0 and not world.combat_is_finished
+	_hub.show()
+	_hub.refresh()
+	_save_profile()
+
+
+func _resume_from_hub() -> void:
+	if size.y > size.x and not _automation:
+		return
+	Sfx.set_music_context("race" if current_mode == 1 else "combat")
+	_hub.hide()
+	_hub_open = false
+	_paused = false
+	_hud.show()
+	_damage_flash.show()
+	world.process_mode = Node.PROCESS_MODE_INHERIT
+	_clear_touch_state()
+	_capture_mouse()
+
+
+func _start_from_hub(mode: int, stage: int) -> void:
+	if is_instance_valid(_training) and _training.active:
+		_training.stop()
+	if size.y > size.x and not _automation:
+		return
+	if is_instance_valid(_result_panel):
+		_result_panel.hide()
+	_resume_from_hub()
+	_select_mode_and_stage(mode, stage)
+	_capture_mouse()
+
+
+func _result_contents() -> VBoxContainer:
+	_result_panel = PanelContainer.new()
+	_result_panel.add_theme_stylebox_override("panel", _hub._style(Color("203b38")))
+	add_child(_result_panel)
+	var safe := _safe_ui_rect().grow(-16)
+	_result_panel.size = safe.size.min(Vector2(560, 480))
+	_result_panel.position = safe.get_center() - _result_panel.size / 2
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_result_panel.add_child(scroll)
+	var content := VBoxContainer.new()
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.add_theme_constant_override("separation", 12)
+	scroll.add_child(content)
+	return content
+
+func _show_race_result(seconds: float, best: float, place: int, reward: int) -> void:
+	_save_profile()
+	_clear_touch_state()
+	_paused = true
+	world.process_mode = Node.PROCESS_MODE_DISABLED
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	_mouse_captured = false
+	if is_instance_valid(_result_panel):
+		_result_panel.queue_free()
+	var v := _result_contents()
+	v.add_child(_hub._label("CHEGOU! / %dº LUGAR" % place, 30, Color("93e7c3")))
+	v.add_child(_hub._label("%.2fs   •   Recorde %.2fs" % [seconds, best], 22))
+	v.add_child(_hub._label("+%d moedas • 8 setores concluídos" % reward, 17))
+	v.add_child(_hub._button("Jogar novamente", func(): _start_from_hub(1, current_stage), true))
+	v.add_child(_hub._button("Próxima pista", func(): _start_from_hub(1, (current_stage + 1) % SakuraHub.MAPS[current_mode].size())))
+	v.add_child(_hub._button("Voltar ao hub", _open_hub))
+
+
+func _haptic(duration: int) -> void:
+	if _mobile_hud_enabled and profile.data.haptics and not _automation:
+		Input.vibrate_handheld(duration)
+
+
+func _run_foundation_qa() -> void:
+	if OS.get_cmdline_user_args().has("--navigation"):
+		await _run_navigation_qa()
+		return
+	if OS.get_cmdline_user_args().has("--arsenal"):
+		await _run_arsenal_qa()
+		return
+	if OS.get_cmdline_user_args().has("--combat"):
+		await _run_combat_qa()
+		return
+	if OS.get_cmdline_user_args().has("--phase2"):
+		await _run_phase2_qa()
+		return
+	if OS.get_cmdline_user_args().has("--mobile"):
+		await _run_mobile_qa()
+		return
+	if OS.get_cmdline_user_args().has("--arena-lobby"):
+		DisplayServer.window_set_size(Vector2i(1280, 720))
+		_hub.mode = 0
+		_open_hub()
+		for frame in 15:
+			await get_tree().process_frame
+		await _save_shot("arenas_lobby.png")
+		get_tree().quit()
+		return
+	if OS.get_cmdline_user_args().has("--arenas"):
+		await _run_arena_qa()
+		return
+	if OS.get_cmdline_user_args().has("--art"):
+		await _run_art_qa()
+		return
+	_mobile_autofire = false
+	await get_tree().process_frame
+	_open_hub()
+	await _save_shot("foundation_hub.png")
+	for i in SakuraWorld.PARKOUR_STAGE_DEFS.size():
+		_start_from_hub(1, i)
+		_res_idx = 2
+		_apply_graphics_preset()
+		_mobile_hud_enabled = true
+		world.race_countdown = 0
+		world._start_gate_node.position.y = -14
+		_body.position = Vector3(0, 0.2, 17)
+		_pitch = -0.03
+		for frame in 12:
+			await get_tree().process_frame
+		await _save_shot("foundation_course_%d.png" % i)
+	for arena in [0, 4, 5]:
+		_start_from_hub(0, arena)
+		for frame in 12:
+			await get_tree().process_frame
+		await _save_shot("foundation_combat_%d.png" % arena)
+	world.enemies_paused = true
+	_mobile_autofire = false
+	weapons.apply_weapon_skin(1)
+	for frame in 12:
+		await get_tree().process_frame
+	await _save_shot("foundation_gold.png")
+	weapons.apply_weapon_skin(2)
+	for frame in 12:
+		await get_tree().process_frame
+	await _save_shot("foundation_neon.png")
+	_open_hub()
+	_hub.page = 1
+	_hub.refresh()
+	await _save_shot("foundation_mastery.png")
+	_toggle_shop(1)
+	await _save_shot("foundation_shop.png")
+	_shop_tab_idx = 1
+	_populate_shop_cards()
+	for frame in 10:
+		await get_tree().process_frame
+	await _save_shot("foundation_costume_shop.png")
+	_toggle_shop(0)
+	_hub.hide()
+	_hub_open = false
+	_show_race_result(87.45, 87.45, 2, 120)
+	await _save_shot("foundation_result.png")
+	_result_panel.hide()
+	_open_hub()
+	_hub.page = 0
+	_hub.refresh()
+	DisplayServer.window_set_size(Vector2i(540, 960))
+	for frame in 8:
+		await get_tree().process_frame
+	await _save_shot("foundation_portrait.png")
+	DisplayServer.window_set_size(Vector2i(844, 390))
+	for frame in 10:
+		await get_tree().process_frame
+	await _save_shot("foundation_phone_lobby.png")
+	_start_from_hub(1, 4)
+	for frame in 10:
+		await get_tree().process_frame
+	await _save_shot("foundation_phone_race.png")
+	_start_from_hub(0, 5)
+	_mobile_autofire = false
+	for frame in 10:
+		await get_tree().process_frame
+	await _save_shot("foundation_phone_combat.png")
+	DisplayServer.window_set_size(Vector2i(1280, 720))
+	_mobile_hud_enabled = false
+	for frame in 10:
+		await get_tree().process_frame
+	await _save_shot("foundation_pc_hud.png")
+	_start_from_hub(1, 4)
+	world.enemies_paused = true
+	world.race_countdown = 0
+	world._start_gate_node.position.y = -14
+	_body.position = Vector3(0, 0.2, 20)
+	_pitch = -0.08
+	for i in world.parkour_runners.size():
+		var runner = world.parkour_runners[i]
+		runner.position = Vector3((i - 1) * 1.3, 0.2, 16.5 if i < 3 else -30)
+		runner._root.rotation.y = 0
+	_banner_label.text = ""
+	for frame in 10:
+		await get_tree().process_frame
+	await _save_shot("foundation_avatar_lineup.png")
+	get_tree().quit()
+
+
+func _resize_layout() -> void:
+	var physical := get_window().size
+	var design := Vector2i(480, 854) if physical.y > physical.x else (Vector2i(854, 480) if physical.y < 600 else Vector2i(1280, 720))
+	if get_window().content_scale_size != design:
+		get_window().content_scale_size = design
+		if is_instance_valid(_hub):
+			_hub.refresh.call_deferred()
+	_vp.size = _calc_vp_size()
+	_clear_touch_state()
+	if physical.y > physical.x and _session_started and not _hub_open and not _automation:
+		_open_hub()
+
+
+func _on_combat_finished(standings: Array) -> void:
+	var place := 1
+	for row in standings:
+		if row.is_player:
+			place = row.rank
+	var reward := (150 if place == 1 else 60) if kills > 0 else 0
+	_award_progression(reward, 40 if kills > 0 else 0)
+	_save_profile()
+	_show_combat_result.call_deferred(standings, place, reward)
+
+
+func _show_combat_result(standings: Array, place: int, reward: int) -> void:
+	_clear_touch_state()
+	_paused = true
+	world.process_mode = Node.PROCESS_MODE_DISABLED
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	_mouse_captured = false
+	if is_instance_valid(_result_panel):
+		_result_panel.queue_free()
+	var v := _result_contents()
+	v.add_child(_hub._label("VITÓRIA!" if place == 1 else "PARTIDA CONCLUÍDA / %dº" % place, 28, Color("93e7c3")))
+	v.add_child(_hub._label("Bots %s • +%d moedas" % [BotDifficulty.get_preset(world.bot_difficulty).name, reward], 18))
+	for row in standings:
+		v.add_child(_hub._label("%d. %s    %d abates / %d mortes" % [row.rank, row.name, row.kills, row.deaths], 16, Color("93e7c3") if row.is_player else Color("c3d3da")))
+	v.add_child(_hub._button("Revanche", func(): _start_from_hub(0, current_stage), true))
+	v.add_child(_hub._button("Próxima arena", func(): _start_from_hub(0, (current_stage + 1) % SakuraWorld.COMBAT_STAGE_DEFS.size())))
+	v.add_child(_hub._button("Voltar ao lobby", _open_hub))
+
+
+func _run_combat_qa() -> void:
+	DisplayServer.window_set_size(Vector2i(844, 390))
+	_mobile_hud_enabled = true
+	_mobile_autofire = false
+	profile.data.bot_difficulty = 2
+	_res_idx = 2
+	_start_from_hub(0, 5)
+	_apply_graphics_preset()
+	_banner_timer = 0
+	_banner_label.text = ""
+	for frame in 8:
+		await get_tree().process_frame
+	await _save_shot("combat_spawn_protection.png")
+	_body.position = Vector3(-4, 0.1, 10)
+	_yaw = PI / 2
+	_pitch = 0
+	for frame in 600:
+		await get_tree().physics_frame
+	world.enemies_paused = true
+	var frags := 0
+	for stats in world.bot_scoreboard.values():
+		frags += int(stats.kills)
+	print("LIVE COMBAT QA: bot_frags=", frags, " player_deaths=", deaths, " active_bots=", world.enemies.size())
+	for frame in 8:
+		await get_tree().process_frame
+	await _save_shot("combat_live_mobile.png")
+	_open_hub()
+	_hub.page = 2
+	_hub.refresh()
+	for frame in 8:
+		await get_tree().process_frame
+	await _save_shot("combat_audio_settings.png")
+	get_tree().quit()
+
+func _run_phase2_qa() -> void:
+	var menu_checks = load("res://tests/menu_checks.gd").new()
+	if not await menu_checks.run(self):
+		get_tree().quit(1)
+		return
+	Input.set_emulate_touch_from_mouse(true)
+	_session_started = false
+	DisplayServer.window_set_size(Vector2i(844, 390))
+	_hub.mode = 0
+	_hub.page = 0
+	_hub._scroll.scroll_vertical = 0
+	_open_hub()
+	for frame in 12:
+		await get_tree().process_frame
+	await _save_shot("phase2_lobby_mobile.png")
+	var origin: Vector2 = _hub._grid.get_child(0).get_global_rect().position + Vector2(50, 25)
+	await menu_checks.swipe(self, origin)
+	await _save_shot("phase2_lobby_scrolled.png")
+	Input.set_emulate_touch_from_mouse(false)
+	_start_from_hub(0, 5)
+	_mobile_hud_enabled = true
+	_mobile_autofire = false
+	_res_idx = 2
+	_apply_graphics_preset()
+	world.enemies_paused = true
+	_banner_timer = 0
+	_banner_label.text = ""
+	_body.position = Vector3(-4, 0.2, 10)
+	_yaw = PI / 2
+	_pitch = 0
+	for frame in 16:
+		await get_tree().process_frame
+	await _save_shot("phase2_tea_house_mobile.png")
+	_body.position = Vector3(-8.2, 0.2, 9.3)
+	_yaw = PI / 2
+	_pitch = -0.08
+	for frame in 12:
+		await get_tree().process_frame
+	await _save_shot("phase2_tea_room_mobile.png")
+	DisplayServer.window_set_size(Vector2i(1280, 720))
+	_mobile_hud_enabled = false
+	_body.position = Vector3(-3, 3, 20)
+	_yaw = 0.35
+	_pitch = -0.1
+	for frame in 12:
+		await get_tree().process_frame
+	await _save_shot("phase2_village_pc.png")
+	get_tree().quit()
+
+func _run_mobile_qa() -> void:
+	DisplayServer.window_set_size(Vector2i(844, 390))
+	_mobile_hud_enabled = true
+	_mobile_autofire = false
+	_res_idx = 2
+	_start_from_hub(0, 6)
+	_apply_graphics_preset()
+	world.enemies_paused = true
+	_banner_timer = 0
+	for frame in 20:
+		await get_tree().process_frame
+	await _save_shot("mobile_controls_right.png")
+	profile.data.hud_left_handed = true
+	_safe_area_override = Rect2(Vector2(38, 12), size - Vector2(64, 24))
+	for frame in 12:
+		await get_tree().process_frame
+	await _save_shot("mobile_controls_left_safe.png")
+	_open_hud_editor()
+	for frame in 10:
+		await get_tree().process_frame
+	await _save_shot("mobile_hud_editor.png")
+	_hud_editor.finished.emit(false)
+	_safe_area_override = Rect2()
+	profile.data.hud_left_handed = false
+	_start_training()
+	_res_idx = 2
+	_apply_graphics_preset()
+	for frame in 12:
+		await get_tree().process_frame
+	await _save_shot("mobile_training.png")
+	_training.stop()
+	_hub.page = 2
+	_hub.refresh()
+	for frame in 10:
+		await get_tree().process_frame
+	await _save_shot("mobile_settings.png")
+	get_tree().quit()
+
+func _run_arena_qa() -> void:
+	_res_idx = 2
+	_mobile_autofire = false
+	for arena in [6, 7, 8]:
+		DisplayServer.window_set_size(Vector2i(1280, 720))
+		_start_from_hub(0, arena)
+		_apply_graphics_preset()
+		world.enemies_paused = true
+		_mobile_hud_enabled = false
+		_banner_timer = 0
+		_banner_label.text = ""
+		weapons.apply_weapon_skin(2)
+		weapons.inspect_timer = 0
+		for frame in 20:
+			await get_tree().process_frame
+		await _save_shot("arena_%d_pc.png" % arena)
+		DisplayServer.window_set_size(Vector2i(844, 390))
+		_mobile_hud_enabled = true
+		for frame in 12:
+			await get_tree().process_frame
+		await _save_shot("arena_%d_mobile.png" % arena)
+		DisplayServer.window_set_size(Vector2i(1280, 720))
+		_hud.hide()
+		weapons.hide()
+		set_physics_process(false)
+		_body.position = Vector3(-19, 20, 31)
+		_yaw = -0.45
+		_pitch = -0.52
+		_body.rotation.y = _yaw
+		_cam_pivot.rotation = Vector3(_pitch, 0, 0)
+		for frame in 16:
+			await get_tree().process_frame
+		await _save_shot("arena_%d_hero.png" % arena)
+		set_physics_process(true)
+		_hud.show()
+		weapons.show()
+	get_tree().quit()
+
+func _run_art_qa() -> void:
+	_start_from_hub(0, 5)
+	_res_idx = 2
+	_apply_graphics_preset()
+	world.enemies_paused = true
+	_mobile_autofire = false
+	_mobile_hud_enabled = false
+	DisplayServer.window_set_size(Vector2i(1280, 720))
+	_banner_timer = 0
+	_banner_label.text = ""
+	for idx in 3:
+		weapons.select_weapon(idx, true)
+		weapons.apply_weapon_skin(2)
+		weapons.inspect_timer = 0
+		for frame in 24:
+			await get_tree().process_frame
+		await _save_shot("atelier_weapon_%d.png" % idx)
+	weapons.select_weapon(0, true)
+	weapons.apply_weapon_skin(2)
+	weapons.inspect_timer = 0
+	for frame in 20:
+		await get_tree().process_frame
+	await _save_shot("atelier_pc.png")
+	weapons.trigger_inspect()
+	for frame in 16:
+		await get_tree().process_frame
+	await _save_shot("atelier_inspect.png")
+	weapons.apply_weapon_skin(4)
+	weapons.inspect_timer = 0
+	for frame in 18:
+		await get_tree().process_frame
+	await _save_shot("atelier_porcelain.png")
+	weapons.want_ads = true
+	for frame in 18:
+		await get_tree().process_frame
+	await _save_shot("atelier_ads.png")
+	weapons.want_ads = false
+	weapons.apply_weapon_skin(2)
+	weapons.inspect_timer = 0
+	DisplayServer.window_set_size(Vector2i(844, 390))
+	_mobile_hud_enabled = true
+	for frame in 20:
+		await get_tree().process_frame
+	await _save_shot("atelier_mobile.png")
+	DisplayServer.window_set_size(Vector2i(1280, 720))
+	_toggle_shop(1)
+	_shop_tab_idx = 0
+	_populate_shop_cards()
+	for frame in 12:
+		await get_tree().process_frame
+	await _save_shot("atelier_shop.png")
+	_toggle_shop(0)
+	_hud.hide()
+	weapons.hide()
+	_body.position = Vector3(-5, 4, 21)
+	_yaw = -0.18
+	_pitch = -0.1
+	for frame in 10:
+		await get_tree().process_frame
+	await _save_shot("atelier_village.png")
+	get_tree().quit()
+
+func _run_arsenal_qa() -> void:
+	var arsenal = load("res://tests/arsenal_checks.gd").new()
+	if not await arsenal.run(self):
+		get_tree().quit(1)
+		return
+	DisplayServer.window_set_size(Vector2i(1280, 720))
+	_hub.page = 3
+	_hub._scroll.scroll_vertical = 0
+	_open_hub()
+	for frame in 20:
+		await get_tree().process_frame
+	await _save_shot("arsenal_lobby_pc.png")
+	DisplayServer.window_set_size(Vector2i(844, 390))
+	for frame in 20:
+		await get_tree().process_frame
+	_hub._scroll.ensure_control_visible(_hub._grid.get_child(4))
+	for frame in 12:
+		await get_tree().process_frame
+	await _save_shot("arsenal_lobby_mobile.png")
+	_start_from_hub(0, 5)
+	_res_idx = 2
+	_apply_graphics_preset()
+	world.enemies_paused = true
+	_mobile_autofire = false
+	_banner_label.text = ""
+	_banner_timer = 0
+	_body.position = Vector3(-5, 0.1, 17)
+	_yaw = -0.2
+	_pitch = -0.03
+	for idx in [4, 5]:
+		weapons.select_weapon(idx, true)
+		weapons.apply_weapon_skin(2 if idx == 4 else 4)
+		weapons.inspect_timer = 0
+		_mobile_hud_enabled = true
+		DisplayServer.window_set_size(Vector2i(844, 390))
+		for frame in 25:
+			await get_tree().process_frame
+		await _save_shot("arsenal_weapon_%d_mobile.png" % idx)
+		DisplayServer.window_set_size(Vector2i(1280, 720))
+		_mobile_hud_enabled = false
+		weapons.want_ads = true
+		for frame in 25:
+			await get_tree().process_frame
+		await _save_shot("arsenal_weapon_%d_ads.png" % idx)
+		weapons.want_ads = false
+		weapons.trigger_inspect()
+		for frame in 28:
+			await get_tree().process_frame
+		await _save_shot("arsenal_weapon_%d_inspect.png" % idx)
+		_toggle_shop(1)
+		_populate_shop_cards()
+		for frame in 18:
+			await get_tree().process_frame
+		await _save_shot("arsenal_weapon_%d_shop.png" % idx)
+		_toggle_shop(0)
+	get_tree().quit()
+
+func _run_navigation_qa() -> void:
+	DisplayServer.window_set_size(Vector2i(1280, 720))
+	_mobile_autofire = false
+	for stage in [1, 3]:
+		_start_from_hub(0, stage)
+		_res_idx = 2
+		_apply_graphics_preset()
+		set_physics_process(false)
+		_hud.hide()
+		weapons.hide()
+		_banner_label.text = ""
+		_banner_timer = 0
+		for actor in world.enemies:
+			actor.set_physics_process(false)
+		var bot: EnemyBot = world.enemies[0]
+		bot.global_position = Vector3(-8.5, 0.05, 18) if stage == 1 else Vector3(0, 0.05, 6)
+		bot.velocity = Vector3.ZERO
+		bot._spawn_check_pending = false
+		bot._has_target = false
+		bot._target_player = false
+		bot._target_bot = null
+		bot._target_memory = Vector3(0, 3.35, 0) if stage == 1 else Vector3(0, 7.3, 0)
+		bot._sense_cd = 10000
+		bot._tactical_cd = 10000
+		bot._tactical_until = 0
+		bot._route_cd = 0
+		bot._route.clear()
+		bot.set_physics_process(true)
+		world.enemies_paused = false
+		_cam.fov = 66
+		_cam.global_position = Vector3(-15, 8, 21) if stage == 1 else Vector3(5.5, 5.7, 6.8)
+		_cam.look_at(Vector3(-8.5, 1.8, 13) if stage == 1 else Vector3(0, 2, 10))
+		var captured := false
+		for frame in 1800:
+			await get_tree().physics_frame
+			if not captured and bot.global_position.y > 1.4:
+				await _save_shot("navigation_%d_stairs.png" % stage)
+				captured = true
+			if bot.global_position.distance_to(bot._target_memory) < 0.8:
+				break
+		print("NATIVE ROUTE stage=", stage, " bot=", bot.global_position, " steps=", bot.navigation_steps)
+		world.enemies_paused = true
+		_cam.global_position = Vector3(24, 22, 29)
+		_cam.look_at(Vector3(0, 1.5, 0) if stage == 1 else Vector3(0, 3.5, 0))
+		for frame in 12:
+			await get_tree().process_frame
+		await _save_shot("navigation_%d_overview.png" % stage)
+	get_tree().quit()

@@ -14,3 +14,20 @@ Thumbs.db
 *~
 .vscode/
 .idea/
+
+# Generated visual QA captures (rebuild with --qa)
+shots/foundation_*
+
+shots/atelier_*
+
+shots/arena*
+
+shots/mobile_*
+
+shots/phase2_*
+
+shots/combat_*
+
+shots/arsenal_*
+
+shots/navigation_*
