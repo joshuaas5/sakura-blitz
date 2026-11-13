@@ -33,7 +33,8 @@ func run(g: SakuraBlitzMain) -> bool:
 	check(exterior_solids == 0, "Backdrop has no invisible collision outside the combat bounds")
 	var palette_batches := 0
 	for mesh in stage.find_children("*", "MeshInstance3D", true, false):
-		if mesh.mesh != null and mesh.get_active_material(0) == HarborAtelier.palette_material:
+		var material: Material = mesh.get_active_material(0) if mesh.mesh != null else null
+		if material is StandardMaterial3D and material.vertex_color_use_as_albedo and material.albedo_texture == null and is_equal_approx(material.roughness, 0.86):
 			palette_batches += 1
 	check(palette_batches > 0 and palette_batches <= 12, "Container paint shares a small set of spatial vertex-color batches")
 	check(stage.find_children("*", "OmniLight3D", true, false).is_empty(), "Industrial lamps add no real-time point lights")

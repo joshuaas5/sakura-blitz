@@ -9,6 +9,9 @@ var pieces: Dictionary = {}
 var map_stage_id := 0
 var map_boxes: Array[Rect2] = []
 var map_canvas: Control
+var map_static: Control
+var map_polygons: Array[PackedVector2Array] = []
+var map_builds := 0
 var reticle: Control
 var font: FontVariation
 
@@ -33,6 +36,10 @@ func setup(g: SakuraBlitzMain) -> void:
 	glyph("knob", "knob")
 	for key in ["score_text", "clock_text", "hp_text", "armor_text", "ammo_text", "hint_text", "map_name", "sector_text", "mode_text", "objective_text", "weapon_name", "countdown", "leaderboard", "feed_text", "guard_text", "fire_hint", "aim_label", "aim_mode_label"]:
 		label(key)
+	map_static = Control.new()
+	map_static.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	map_static.draw.connect(_draw_static_map)
+	add_child(map_static)
 	map_canvas = Control.new()
 	map_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	map_canvas.draw.connect(_draw_map)
@@ -150,6 +157,10 @@ func sync() -> void:
 	map_canvas.visible = not race
 	map_canvas.position = Vector2(28, 26)
 	map_canvas.size = Vector2(100, 100)
+	map_static.visible = not race
+	map_static.position = map_canvas.position
+	map_static.size = map_canvas.size
+	_cache_map()
 	map_canvas.queue_redraw()
 	words("map_name", SakuraHub.MAPS[g.current_mode][g.current_stage], Rect2(18, 139 if not race else 18, 200, 24), 13)
 	pieces.map_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -257,12 +268,13 @@ func sync() -> void:
 	reticle.size = g.size
 	reticle.queue_redraw()
 
-func _draw_map() -> void:
+func _cache_map() -> void:
 	var stage := game.world._stage_root
 	if not is_instance_valid(stage):
 		return
 	if map_stage_id != stage.get_instance_id():
 		map_stage_id = stage.get_instance_id()
+		map_builds += 1
 		map_boxes.clear()
 		for body in stage.get_children():
 			if not body is StaticBody3D:
@@ -273,14 +285,22 @@ func _draw_map() -> void:
 					var pos: Vector3 = collider.global_position
 					if extent.y >= 0.4 and extent.x < 60 and extent.z < 60 and pos.y + extent.y * 0.5 > 0.15:
 						map_boxes.append(Rect2(Vector2(pos.x, pos.z) - Vector2(extent.x, extent.z) * 0.5, Vector2(extent.x, extent.z)))
-	var circle := PackedVector2Array()
-	for i in 32:
-		circle.append(Vector2(50, 50) + Vector2.from_angle(i * TAU / 32) * 46)
-	for box in map_boxes:
-		var r := Rect2(map_point(box.position), box.size * map_scale())
-		var clipped := Geometry2D.intersect_polygons(PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]), circle)
-		for polygon in clipped:
-			map_canvas.draw_colored_polygon(polygon, Color("7e837a"))
+		map_polygons.clear()
+		var circle := PackedVector2Array()
+		for i in 32:
+			circle.append(Vector2(50, 50) + Vector2.from_angle(i * TAU / 32) * 46)
+		for box in map_boxes:
+			var r := Rect2(map_point(box.position), box.size * map_scale())
+			var clipped := Geometry2D.intersect_polygons(PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]), circle)
+			for polygon in clipped:
+				map_polygons.append(polygon)
+		map_static.queue_redraw()
+
+func _draw_static_map() -> void:
+	for polygon in map_polygons:
+		map_static.draw_colored_polygon(polygon, Color("7e837a"))
+
+func _draw_map() -> void:
 	if is_instance_valid(game.world.match_controller):
 		for team in 2:
 			var at: Vector3 = game.world.match_controller.flags[team].at
@@ -317,6 +337,13 @@ func _draw_reticle() -> void:
 	reticle.draw_circle(center, 1.4, color)
 	for direction in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
 		reticle.draw_line(center + direction * spread, center + direction * (spread + 5), color, 1.6, true)
+	if g._hitmarker_timer > 0:
+		var alpha := clampf(g._hitmarker_timer / 0.12, 0, 1)
+		var impact_color := Color("f0ce91") if g._hitmarker_kill else (Color("f0a6b9") if g._hitmarker_crit else INK)
+		impact_color.a = alpha
+		for angle in [PI / 4, 3 * PI / 4, 5 * PI / 4, 7 * PI / 4]:
+			var axis := Vector2.from_angle(angle)
+			reticle.draw_line(center + axis * 8, center + axis * (17 if g._hitmarker_kill else 13), impact_color, 2.6 if g._hitmarker_kill else 1.8, true)
 	if g._mobile_hud_enabled and g.weapons.ads_alpha > 0.01:
 		var aim: Rect2 = g._action_rects().ads
 		reticle.draw_arc(aim.get_center(), aim.size.x * 0.46, -PI * 0.5, -PI * 0.5 + TAU * g.weapons.ads_alpha, 48, Color("93e7c3"), 3, true)

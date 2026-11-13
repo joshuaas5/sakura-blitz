@@ -139,6 +139,7 @@ var inspect_timer := 0.0
 var inspect_duration := 1.45
 var _draw_timer := 0.0
 var _draw_duration := 0.52
+var _base_materials := {}
 
 # Multi-Stage Melee & Bolt Animation State
 var _melee_anim_t := 0.0
@@ -241,12 +242,17 @@ func setup(w: SakuraWorld, camera: Camera3D) -> void:
 	add_child(_slash_fx_root)
 	_build_slash_ribbon()
 
+	for model in _gun_models:
+		WeaponBatch.bake(self, model)
 	select_weapon(0, true)
 
 
 # ---------------------------------------------------------------- Specular PBR Viewmodel Material & Sculpted Primitives
 
 func _vm_mat(col: Color, emit: float = 0.0, unshaded: bool = false, metal: float = 0.68, rough: float = 0.26) -> StandardMaterial3D:
+	var key := str([col, emit, unshaded, metal, rough])
+	if _base_materials.has(key):
+		return _base_materials[key]
 	var m := StandardMaterial3D.new()
 	m.albedo_color = col
 	m.metallic = metal * 0.65
@@ -260,10 +266,12 @@ func _vm_mat(col: Color, emit: float = 0.0, unshaded: bool = false, metal: float
 		m.emission_energy_multiplier = emit
 	if unshaded:
 		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_base_materials[key] = m
 	return m
 
 
 func _register_role(mi: MeshInstance3D, role: String) -> void:
+	mi.set_meta("weapon_role", role)
 	match role:
 		"primary":
 			_skin_parts_primary.append(mi)
@@ -625,7 +633,7 @@ func select_weapon(idx: int, instant: bool = false) -> void:
 	_reset_subparts()
 	for i in _gun_models.size():
 		_gun_models[i].visible = (i == current_idx)
-	_draw_duration = 0.58 if current_idx == 3 else 0.44
+	_draw_duration = [0.34, 0.48, 0.26, 0.45, 0.29, 0.40][current_idx]
 	_draw_timer = 0.0 if instant else _draw_duration
 	_recoil_pitch = -0.22
 	_charm_vel += 10.0
@@ -742,7 +750,7 @@ func _trigger_slash_ribbon(combo_step: int, is_heavy: bool) -> void:
 
 
 func try_fire(moving_speed: float, heavy_melee: bool = false) -> bool:
-	if world.game_mode != SakuraWorld.MODE_COMBAT or world.combat_ready_time > 0 or world.combat_is_finished or is_reloading or fire_cd > 0.0:
+	if world.game_mode != SakuraWorld.MODE_COMBAT or world.combat_ready_time > 0 or world.combat_is_finished or is_reloading or fire_cd > 0.0 or _draw_timer > _draw_duration * 0.35:
 		return false
 	var w: Dictionary = WEAPONS[current_idx]
 	var sk: Dictionary = WEAPON_SKINS[active_skin_idx]
@@ -902,6 +910,15 @@ func try_fire(moving_speed: float, heavy_melee: bool = false) -> bool:
 
 
 func refill_all_ammo() -> void:
+	fire_cd = 0
+	is_reloading = false
+	reload_timer = 0
+	inspect_timer = 0
+	want_ads = false
+	ads_alpha = 0
+	_draw_timer = 0
+	_melee_anim_t = 0
+	_reset_subparts()
 	for i in WEAPONS.size():
 		var w: Dictionary = WEAPONS[i]
 		ammo[i] = max_mag_for(i)

@@ -31,6 +31,8 @@ func play_at(name: String, at: Vector3, volume: float = -12, pitch: float = 1) -
 	last_requested = name
 	if Sfx.muted or not streams.has(name):
 		return
+	if at.distance_squared_to(world.player_pos) > 45.0 * 45.0:
+		return
 	var voice := pool[voice_cursor]
 	for candidate in pool:
 		if not candidate.playing:
@@ -54,7 +56,7 @@ func noise(at: Vector3, source: EnemyBot = null, loudness: float = 1) -> void:
 
 func footstep(at: Vector3, player: bool = false) -> void:
 	var wood: bool = world.game_mode == 0 and (world.current_stage_idx == 7 or (world.current_stage_idx == 5 and at.x > -13.2 and at.x < -6.8 and at.z > 6.8 and at.z < 13.2))
-	var metal: bool = world.game_mode == 0 and world.current_stage_idx == 1 and at.y > 0.1
+	var metal: bool = world.game_mode == 0 and ((world.current_stage_idx in [1, 4] and at.y > 0.1) or world.current_stage_idx in [3, 8, 10])
 	play_at("step_metal" if metal else ("step_wood" if wood else "step_stone"), at + Vector3.UP * 0.15, -15 if player else -12, 0.95 + float(voice_cursor % 4) * 0.035)
 	if player:
 		noise(at, null, 0.22)

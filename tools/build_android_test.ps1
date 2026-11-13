@@ -5,7 +5,10 @@ param(
 $ErrorActionPreference = 'Stop'
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $artifactDir = Join-Path $projectRoot 'export/android'
-$apkPath = Join-Path $artifactDir 'SakuraBlitz-0.8.0-test.apk'
+$presetText = Get-Content -LiteralPath (Join-Path $projectRoot 'export_presets.cfg') -Raw
+$versionMatch = [regex]::Match($presetText, '(?m)^version/name="([0-9]+\.[0-9]+\.[0-9]+-test)"')
+if (-not $versionMatch.Success) { throw 'A valid test version is required in export_presets.cfg.' }
+$apkPath = Join-Path $artifactDir ("SakuraBlitz-" + $versionMatch.Groups[1].Value + '.apk')
 New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
 if (-not (Test-Path -LiteralPath $Godot)) { throw "Godot not found: $Godot" }
 $buildTools = Get-ChildItem -LiteralPath (Join-Path $AndroidSdk 'build-tools') -Directory |
@@ -14,7 +17,8 @@ if (-not $buildTools) { throw 'Android build-tools were not found.' }
 # Uses the local Godot debug keystore. No publishing/release credentials are read.
 & $Godot --headless --path $projectRoot --export-debug 'Android Test APK' $apkPath *> (Join-Path $artifactDir 'build.log')
 if ($LASTEXITCODE -ne 0) { throw 'APK export failed. See export/android/build.log.' }
-if (Select-String -LiteralPath (Join-Path $artifactDir 'build.log') -Pattern 'SCRIPT ERROR:|Parse Error:' -Quiet) {
+if (-not (Test-Path -LiteralPath $apkPath) -or (Get-Item -LiteralPath $apkPath).Length -lt 1000000) { throw 'APK was not generated completely.' }
+if (Select-String -LiteralPath (Join-Path $artifactDir 'build.log') -Pattern 'SCRIPT ERROR:|SHADER ERROR:|Parse Error:' -Quiet) {
     throw 'APK export reported a script error. See export/android/build.log.'
 }
 $signer = Join-Path $buildTools.FullName 'apksigner.bat'

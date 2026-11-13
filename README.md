@@ -2,7 +2,7 @@
 
 FPS e corrida de obstáculos em Godot 4.7.2, com controles para celular na horizontal. Esta versão é um jogo local contra bots; multiplayer online, pagamentos e contas ainda não estão implementados.
 
-**Produção atual: candidato offline de tiro.** Onze arenas, lotação por mapa, equipes, captura de bandeira, reconstrução visual das arenas antigas e bots com armas importadas/recargas estão integrados. Suíte completa no PC: 6.050 verificações, zero falhas. O APK 0.8.0 abaixo corresponde à entrega anterior; estas mudanças ainda não foram empacotadas. Detalhes em `docs/fps_producao.md`.
+**Produção atual: candidato offline de tiro.** Onze arenas, lotação por mapa, equipes, captura de bandeira, reconstrução visual das arenas antigas e bots com armas importadas/recargas estão integrados. Suíte completa no PC: 6.059 verificações, zero falhas. A versão de teste atual é a 0.9.0, com otimização do cenário, polimento de combate e todo o conteúdo offline integrado. Detalhes em `docs/fps_producao.md`.
 
 ## Jogar localmente
 
@@ -12,9 +12,9 @@ O lobby permite escolher modo, mapa e bots **Fácil, Médio ou Difícil**. A dif
 
 ### APK de teste no Android
 
-`export/android/SakuraBlitz-0.8.0-test.apk` — transfira para o aparelho e abra para instalar **Sakura Blitz Teste**. O app usa tela horizontal, ativa controles de toque automaticamente e começa na qualidade leve. A qualidade pode ser alterada em Ajustes no lobby.
+`export/android/SakuraBlitz-0.9.0-test.apk` — transfira para o aparelho e abra para instalar **Sakura Blitz Teste**. O app usa tela horizontal, ativa controles de toque automaticamente e começa na qualidade leve. A qualidade pode ser alterada em Ajustes no lobby.
 
-Build local de teste: Android 7.0/API 24 ou superior, ARM 32/64 bits, versão `0.8.0-test`, pacote `com.joshuaas5.sakurablitz.test`. Assinatura de depuração local; apenas permissão de vibração. Ainda requer teste de desempenho e ergonomia no aparelho real.
+Build local de teste: Android 7.0/API 24 ou superior, ARM 32/64 bits, versão `0.9.0-test`, pacote `com.joshuaas5.sakurablitz.test`. Assinatura de depuração local; apenas permissão de vibração. Ainda requer teste de desempenho e ergonomia no aparelho real.
 
 Para regenerar no PC configurado: `./tools/build_android_test.ps1`. O script exporta, verifica assinatura e alinhamento de 16 KB, inspeciona o manifesto e grava SHA256 em `export/android/`. Usa o SDK instalado em `C:/android-sdk`; aceita `-Godot` e `-AndroidSdk` para outros caminhos.
 
@@ -30,7 +30,7 @@ Para regenerar no PC configurado: `./tools/build_android_test.ps1`. O script exp
 - **Economia:** moedas por desempenho, desafio diário resgatável uma vez e loja com cosméticos. Upgrades comprados com moedas de jogo dão até +3% de dano; skins não alteram atributos. Não há compra com dinheiro real nesta versão.
 - **Visual e áudio:** Vila Floral com assets CC0 importados, HUD com molduras ilustradas, cinco armas importadas, skins pintadas e prévias 3D reais na loja e três loops musicais sintetizados para o projeto.
 - **Porto Cobalto:** contêineres corrugados, escadas e passarelas de aço com guarda-corpos, sinalização, mar, armazéns e guindastes do Factory Kit CC0. Agrupamento por cor de vértice, sombras conforme qualidade, ambiente de ondas e passos metálicos. Detalhes e limites em `docs/porto_atelier.md`.
-- **Acabamento em produção:** Cânion Âmbar reconstruído, abertura de partida, resumo com precisão e maestria, papéis distintos para os bots e impactos reutilizáveis. Suprimentos, coletas, impulsos e projéteis recebem modelos/sprites licenciados; o treino usa um alvo importado. Vila Sakura, Neon e Aurora também receberam fachadas, vegetação, plataformas e veículos importados; NPCs têm recargas finitas. Mudanças no código, ainda fora do APK 0.8.0.
+- **Acabamento em produção:** Cânion Âmbar reconstruído, abertura de partida, resumo com precisão e maestria, papéis distintos para os bots e impactos reutilizáveis. Suprimentos, coletas, impulsos e projéteis recebem modelos/sprites licenciados; o treino usa um alvo importado. Vila Sakura, Neon e Aurora também receberam fachadas, vegetação, plataformas e veículos importados; NPCs têm recargas finitas. Incluído no APK 0.9.0.
 
 ## Controles
 
@@ -69,7 +69,7 @@ Detalhes e próximos passos: [expansão mobile](docs/expansao_mobile.md). Proced
 
 ## Estado da publicação
 
-O repositório contém um workflow de deploy para Cloudflare Pages ao enviar mudanças para `main`. Alterações locais não atualizam o [site publicado](https://sakura-blitz.pages.dev/). O candidato offline atual foi validado no Godot nativo; ele não foi publicado na web nem empacotado em novo APK neste lote. Compatibilidade no navegador e desempenho em celulares reais ainda precisam de testes. Não há garantia de 60 FPS em aparelhos de 3–4 GB.
+O repositório contém um workflow de deploy para Cloudflare Pages ao enviar mudanças para `main`. Alterações locais não atualizam o [site publicado](https://sakura-blitz.pages.dev/). O candidato offline atual foi validado no Godot nativo; o APK de teste 0.9.0 foi preparado, e a web continua na publicação anterior. Compatibilidade no navegador e desempenho em celulares reais ainda precisam de testes. Não há garantia de 60 FPS em aparelhos de 3–4 GB.
 
 ## Rework Atelier
 
@@ -114,3 +114,7 @@ O jogador controla o disparo pelo botão de tiro ou mouse; mirar em inimigos nã
 ## Mira mobile 0.7.2
 
 MIRAR ficou maior e identificado, com feedback visual e vibração opcional. A mira híbrida permite tocar para manter ou segurar/arrastar até soltar; Ajustes também oferece Tocar e Segurar. Mirar enquanto corre agora abre a mira corretamente. O tiro permanece manual. Referências, controles e validação em [mira_mobile.md](docs/mira_mobile.md). O [norte criativo](docs/direcao_criativa.md) registra MicroVolts como referência de espírito arcade, preservando primeira pessoa e mapas próprios.
+
+## Polimento offline 0.9.0
+
+Materiais e peças de armas agrupados, minimapa com geometria em cache, sprites de impacto reutilizáveis, troca por classe, retorno parcial de recuo, queda de dano por alcance e rajadas dos bots. Oficinas e bandeirolas recebem acabamento novo. [Medições, ajustes e limites](docs/polimento_offline_090.md).

@@ -15,6 +15,8 @@ static func model(parent: Node3D, asset: String, position: Vector3, yaw: float =
 	node.position = position
 	node.rotation.y = yaw
 	node.scale = Vector3.ONE * size
+	if asset.begins_with("Flower_") or asset.begins_with("Grass") or asset.begins_with("Prop_Vine"):
+		node.set_meta("scenery_detail", true)
 	_prepare(node, tint)
 	return node
 

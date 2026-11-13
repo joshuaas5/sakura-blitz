@@ -12,6 +12,7 @@ func run(g: SakuraBlitzMain) -> bool:
 	g._start_from_hub(0, 5)
 	g.set_physics_process(false)
 	g.world.enemies_paused = true
+	_renderer_checks(g)
 	g._mobile_hud_enabled = true
 	await g.get_tree().physics_frame
 	await g.get_tree().physics_frame
@@ -85,3 +86,58 @@ func run(g: SakuraBlitzMain) -> bool:
 	g._start_from_hub(0, 5)
 	print("QUALITY: %d checks, %d failures" % [checks, failures])
 	return failures == 0
+
+func _renderer_checks(g: SakuraBlitzMain) -> void:
+	var sample := Node3D.new()
+	g.world._stage_root.add_child(sample)
+	for index in 3:
+		var cube := BoxMesh.new()
+		var mesh := ArrayMesh.new()
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, cube.get_mesh_arrays())
+		var node := MeshInstance3D.new()
+		node.mesh = mesh
+		node.position.x = 70 + index * 4
+		var material := StandardMaterial3D.new()
+		material.albedo_color = Color.RED if index != 1 else Color.BLUE
+		material.roughness = 0.2 if index < 2 else 0.9
+		material.vertex_color_is_srgb = false
+		node.material_override = material
+		sample.add_child(node)
+	ImportedSceneryBatch.bake(sample, 200)
+	var active: Array[MeshInstance3D] = []
+	for child in sample.get_children():
+		if child is MeshInstance3D and child.visible:
+			active.append(child)
+	check(active.size() == 2, "Static batching combines color variants and keeps different roughness separate")
+	var bounds := AABB()
+	var colors := {}
+	for node in active:
+		var box: AABB = node.transform * node.get_aabb()
+		bounds = box if bounds.size == Vector3.ZERO else bounds.merge(box)
+		var arrays: Array = node.mesh.surface_get_arrays(0)
+		for color in arrays[Mesh.ARRAY_COLOR]:
+			colors[color] = true
+	check(bounds.position.distance_to(Vector3(69.5, -0.5, -0.5)) < 0.001 and bounds.size.distance_to(Vector3(9, 1, 1)) < 0.001, "Cell-relative meshes preserve exact world geometry")
+	check(colors.has(Color.RED) and colors.has(Color.BLUE), "Merged geometry preserves both material tints")
+	sample.queue_free()
+	g._atelier.sync()
+	var builds := g._atelier.map_builds
+	for frame in 20:
+		g._atelier.sync()
+	check(g._atelier.map_builds == builds and not g._atelier.map_polygons.is_empty(), "HUD updates reuse the static minimap geometry")
+	var fx := g.world.combat_fx
+	var before := g.world.vfx_items.size()
+	for hit in 120:
+		g.world.spawn_voxel_burst(Vector3(0, 1, 0), Color("efc987"), 10)
+	check(fx.sparks.multimesh.instance_count == 96 and g.world.vfx_items.size() == before, "Repeated hits reuse a fixed spark pool without allocating VFX nodes")
+	fx._process(0.5)
+	check(not fx.sparks.visible, "All pooled sparks expire and hide")
+	g.weapons.select_weapon(0, true)
+	g.weapons.select_weapon(2)
+	check(not g.weapons.try_fire(0), "A weapon cannot fire before its swap animation reaches readiness")
+	g.weapons.tick_viewmodel(0.3, 0, true, false, false)
+	check(g.weapons.try_fire(0), "Sidearm becomes available after its short draw window")
+	g.weapons.ammo[2] = 1
+	g.weapons.start_reload()
+	g.weapons.refill_all_ammo()
+	check(not g.weapons.is_reloading and g.weapons.fire_cd == 0 and g.weapons.reload_timer == 0, "A fresh life clears stale reload and cooldown state")

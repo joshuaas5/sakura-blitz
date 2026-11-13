@@ -124,6 +124,7 @@ func run(g: SakuraBlitzMain) -> bool:
 		voice.stop()
 	Sfx.muted = old_mute
 	AudioServer.set_bus_mute(effects_bus, bus_was_muted)
+	w.current_stage_idx = 5
 	audio.footstep(Vector3.ZERO)
 	check(audio.last_requested == "step_stone", "Stone surface selects the stone footstep")
 	w.current_stage_idx = 7

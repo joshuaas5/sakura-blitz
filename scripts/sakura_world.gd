@@ -1239,6 +1239,9 @@ func spawn_tracer(from_pos: Vector3, to_pos: Vector3, col: Color, thickness: flo
 
 
 func spawn_voxel_burst(pos: Vector3, base_col: Color, count: int = 8) -> void:
+	if is_instance_valid(combat_fx):
+		combat_fx.burst(pos, base_col, count)
+		return
 	var cols := [base_col, Color("ffd166"), Color("ffffff")]
 	for i in count:
 		var sz := _rng.randf_range(0.06, 0.14)

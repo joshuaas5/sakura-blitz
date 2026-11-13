@@ -138,6 +138,9 @@ var _damage_flash: ColorRect
 var _damage_alpha := 0.0
 var _hitmarker_timer := 0.0
 var _hitmarker_crit := false
+var _hitmarker_kill := false
+var _recoil_recovery := 0.0
+var _recoil_hold := 0.0
 var _crosshair_spread := 0.0
 var _h_speed_cached := 0.0
 var _mouse_captured := true
@@ -345,6 +348,8 @@ func _apply_graphics_preset() -> void:
 	_vp_tex.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR if bool(p.linear) else CanvasItem.TEXTURE_FILTER_NEAREST
 	if is_instance_valid(world) and is_instance_valid(world.sun):
 		world.sun.shadow_enabled = current_mode == 0 and _res_idx > 0
+		for detail in get_tree().get_nodes_in_group("scenery_detail"):
+			detail.visibility_range_end = 36.0 if _res_idx == 0 else 58.0
 
 
 func _build_player() -> void:
@@ -1088,6 +1093,8 @@ func _select_mode_and_stage(mode_idx: int, stage_idx: int) -> void:
 	_pf_score_stack.clear()
 	killfeed.clear()
 	match_record.reset(profile.data.weapon_kills)
+	_recoil_recovery = 0
+	_recoil_hold = 0
 	current_mode = clampi(mode_idx, 0, 1)
 	current_stage = clampi(stage_idx, 0, SakuraHub.MAPS[current_mode].size() - 1)
 	var sp := world.load_mode_and_stage(current_mode, current_stage)
@@ -1213,6 +1220,11 @@ func _physics_process(delta: float) -> void:
 			_body.velocity = Vector3.ZERO
 
 	# Optional Arrow-key camera look
+	_recoil_hold = maxf(0, _recoil_hold - delta)
+	if _recoil_hold <= 0 and _recoil_recovery > 0:
+		var returned := minf(_recoil_recovery, delta * 0.12)
+		_pitch = clampf(_pitch - returned, -1.45, 1.45)
+		_recoil_recovery -= returned
 	var look_h := (1.0 if Input.is_key_pressed(KEY_RIGHT) else 0.0) - (1.0 if Input.is_key_pressed(KEY_LEFT) else 0.0)
 	var look_v := (1.0 if Input.is_key_pressed(KEY_DOWN) else 0.0) - (1.0 if Input.is_key_pressed(KEY_UP) else 0.0)
 	if absf(look_h) > 0.01 or absf(look_v) > 0.01:
@@ -1503,14 +1515,18 @@ func _on_shot_fired(_weapon_idx: int, kick_pitch: float, kick_yaw: float) -> voi
 	if _weapon_idx == 3 and world.combat_audio != null:
 		world.combat_audio.noise(world.player_pos, null, 0.25)
 	_pitch = clampf(_pitch + kick_pitch, -1.45, 1.45)
+	if _weapon_idx != 3:
+		_recoil_recovery = minf(0.08, _recoil_recovery + maxf(0, kick_pitch) * 0.4)
+		_recoil_hold = 0.14
 	_yaw += kick_yaw
 
 
 func _on_hit_registered(result: Dictionary, _weapon_idx: int) -> void:
 	if not result.get("target", false) and float(result.get("dmg", 0)) > 0:
 		match_record.hit(_weapon_idx)
-	_hitmarker_timer = 0.18
-	_hitmarker_crit = bool(result.get("headshot", false)) or bool(result.get("killed", false))
+	_hitmarker_kill = bool(result.get("killed", false))
+	_hitmarker_crit = bool(result.get("headshot", false))
+	_hitmarker_timer = 0.25 if _hitmarker_kill else 0.16
 
 
 func _on_enemy_killed(was_headshot: bool, bot_name: String, hit_pos: Vector3) -> void:
@@ -2167,6 +2183,8 @@ func _sync_touch_aim(feedback: bool = true) -> void:
 
 
 func _clear_touch_state() -> void:
+	_recoil_recovery = 0
+	_recoil_hold = 0
 	_mobile_aim.reset()
 	_fire_press_pending = false
 	_touch_actions.clear()

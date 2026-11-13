@@ -2,7 +2,7 @@
 
 ## Direção vigente
 
-Priorizar criação, conteúdo e acabamento do FPS. Parkour existente permanece disponível, com expansão adiada. A pedido do usuário, a bateria de testes fica após a implementação em lote; novos APKs dependem de novo pedido. O último instalador publicado continua sendo o 0.8.0.
+Priorizar criação, conteúdo e acabamento do FPS. Parkour existente permanece disponível, com expansão adiada. A pedido do usuário, a bateria de testes fica após a implementação em lote; novos APKs dependem de novo pedido. O instalador de teste desta entrega passa para 0.9.0, solicitado após o lote de polimento.
 
 ## Arenas e populações
 
@@ -58,3 +58,7 @@ NPCs usam armas importadas por classe, agrupadas na malha articulada da mão, ma
 A revisão consolidada terminou com **6.050 verificações, zero falhas**. Inclui controles e menus por toque, tutorial com tiro real, recargas, perfil, arsenal, navegação, mapas grandes e captura física por bots nas 11 arenas. Uma bancada no Vale foi deslocada para liberar uma entrada/patrulha. Há capturas reais do jogo em `shots/offline_*`, incluindo PC, celular e modelos de NPCs, e novas miniaturas das três arenas no lobby.
 
 Multiplayer e compras foram excluídos do escopo vigente; não foi gerado novo APK. O ciclo offline está integrado para avaliação humana. Ainda é necessário teste em celular e sessões humanas para medir ergonomia, desempenho e equilíbrio; a suíte no PC não comprova esses aspectos. Estado consolidado em `docs/estado_lancamento.md`.
+
+## Polimento 0.9.0
+
+Otimização, acabamento dos distritos, feedback de acerto, troca/recuo/alcance e ritmo dos bots estão descritos em [polimento_offline_090.md](polimento_offline_090.md). Suíte final: 6.059 verificações sem falhas. APK 0.9.0-test solicitado e preparado nesta etapa; o fechamento anterior não havia gerado APK.

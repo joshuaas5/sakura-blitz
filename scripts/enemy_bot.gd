@@ -42,6 +42,7 @@ var last_damage_weapon := "BLITZ"
 var _precision_charge := 0.0
 var magazine := 24
 var reload_left := 0.0
+var burst_left := 3
 const MAGAZINES := [24, 5, 20]
 const RELOAD_SECONDS := [2.2, 2.7, 1.7]
 var _aim_warning: MeshInstance3D
@@ -120,6 +121,7 @@ static func spawn_bot(w: Node3D, parent: Node3D, pos: Vector3, bot_kind: int, id
 	b.is_runner = false
 	b.kind = bot_kind
 	b.magazine = MAGAZINES[bot_kind]
+	b.burst_left = [3, 1, 5][bot_kind]
 	b.runner_idx = idx_seed
 	b.position = pos
 	b._rng.randomize()
@@ -522,6 +524,11 @@ func _fire_at_player(target_pos: Vector3, dist: float) -> void:
 	if reload_left > 0 or magazine <= 0 or _dead:
 		return
 	magazine -= 1
+	burst_left -= 1
+	if burst_left <= 0:
+		burst_left = [3, 1, 5][kind]
+		if kind != 1:
+			_fire_cd = maxf(_fire_cd, [1.55, 1.05, 0.68][world.bot_difficulty])
 	if magazine == 0:
 		reload_left = RELOAD_SECONDS[kind]
 		_tactical_cd = 0
@@ -649,6 +656,17 @@ func hear_noise(at: Vector3, loudness: float) -> void:
 	if is_runner or _dead or _has_target:
 		return
 	var range_limit := float(skill.hearing) * loudness
+	var distance_squared := global_position.distance_squared_to(at)
+	if distance_squared > range_limit * range_limit:
+		return
+	# At less than half range the sound is audible even through cover.
+	if distance_squared <= range_limit * range_limit * 0.25:
+		_target_memory = at
+		_memory_until = _t + float(skill.memory)
+		_patrol_cd = float(skill.memory)
+		_route_cd = 0
+		tactical_state = "investigate"
+		return
 	var ray := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 1.4, at + Vector3.UP * 0.8, 1)
 	if not world.get_world_3d().direct_space_state.intersect_ray(ray).is_empty():
 		range_limit *= 0.5

@@ -27,6 +27,7 @@ static func build(w: SakuraWorld, stage: int) -> void:
 	else:
 		terminal(w)
 		DistrictDressing.terminal(w)
+	DistrictFinish.build(w, tea)
 	w._current_pvp_spawn = Vector3(0, 0.15, size.y / 2 - 5)
 	w.tr_spawns = [
 		Vector3(-size.x / 2 + 5, 0.15, -size.y / 2 + 5), Vector3(size.x / 2 - 5, 0.15, -size.y / 2 + 5),

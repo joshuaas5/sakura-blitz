@@ -7,6 +7,9 @@ const DEFINITIONS := [
 		"name": "AK-47 COMMANDO",
 		"sub": "Fuzil de Assalto • 3 Tiros Corpo / 1-Tap Headshot (RMB)",
 		"dmg": 42.0,
+		"falloff_start": 24.0,
+		"falloff_end": 65.0,
+		"min_damage": 24.0,
 		"head_mult": 3.2, # 134 dmg -> Instant 1-tap headshot!
 		"rate": 0.092,
 		"mag": 32,
@@ -28,6 +31,9 @@ const DEFINITIONS := [
 		"name": "AWP / L96A1 ARCTIC",
 		"sub": "Sniper Bolt-Action • 1 Tiro Fatal Quickscope (RMB)",
 		"dmg": 140.0,
+		"falloff_start": 60.0,
+		"falloff_end": 110.0,
+		"min_damage": 85.0,
 		"head_mult": 2.5, # 350 dmg -> Instant kill
 		"rate": 0.80,
 		"mag": 10,
@@ -49,6 +55,9 @@ const DEFINITIONS := [
 		"name": "DESERT EAGLE .50",
 		"sub": "Pistola Pesada • 2 Tiros Corpo / 1-Tap Headshot (RMB)",
 		"dmg": 58.0,
+		"falloff_start": 14.0,
+		"falloff_end": 40.0,
+		"min_damage": 26.0,
 		"head_mult": 3.0, # 174 dmg -> 1-tap headshot!
 		"rate": 0.21,
 		"mag": 8,
