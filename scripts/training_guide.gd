@@ -89,7 +89,7 @@ func _update_text() -> void:
 		"Arraste o analógico para caminhar alguns passos." if mobile else "Use WASD para caminhar alguns passos.",
 		"Arraste na área livre para olhar ao redor." if mobile else "Mova o mouse para olhar ao redor.",
 		"Toque na seta para pular. Você também pode arrastar para olhar." if mobile else "Aperte Espaço para pular.",
-		"Toque no botão de tiro para acertar um bot. Arraste para ajustar a mira." if mobile else "Mire e clique para acertar um bot.",
+		("Segure MIRAR e arraste. ATIRAR dispara." if game.profile.data.aim_mode == MobileAim.HOLD else "Toque MIRAR para aproximar. Arraste para ajustar; ATIRAR dispara.") if mobile else "Mire e clique para acertar um bot.",
 		"Pronto! Escolha uma arena ou uma corrida e a dificuldade dos bots."
 	]
 	progress.text = "TREINO GUIADO  •  %d / 4" % mini(step + 1, 4) if step < 4 else "TREINO CONCLUÍDO"

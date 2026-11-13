@@ -31,7 +31,7 @@ func setup(g: SakuraBlitzMain) -> void:
 	glyph("shield_icon", "shield")
 	glyph("ammo_icon", "fire")
 	glyph("knob", "knob")
-	for key in ["score_text", "clock_text", "hp_text", "armor_text", "ammo_text", "hint_text", "map_name", "mode_text", "weapon_name", "countdown", "leaderboard", "feed_text", "guard_text", "fire_hint"]:
+	for key in ["score_text", "clock_text", "hp_text", "armor_text", "ammo_text", "hint_text", "map_name", "mode_text", "weapon_name", "countdown", "leaderboard", "feed_text", "guard_text", "fire_hint", "aim_label", "aim_mode_label"]:
 		label(key)
 	map_canvas = Control.new()
 	map_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -171,9 +171,20 @@ func sync() -> void:
 			var r: Rect2 = g._action_rects()[action]
 			place(action, r)
 			place(action + "_icon", r.grow(-r.size.x * 0.27))
-			pieces[action].self_modulate = Color("d7b47d") if g._touch_actions.values().has(action) else Color.WHITE
+			pieces[action].self_modulate = Color("93e7c3") if action == "ads" and g.weapons.want_ads else (Color("d7b47d") if g._touch_actions.values().has(action) else Color.WHITE)
 			pieces[action].modulate.a = MobileLayout.opacity(g.profile.data, action)
 			pieces[action + "_icon"].modulate.a = MobileLayout.opacity(g.profile.data, action)
+	pieces.aim_label.visible = mobile and not race
+	pieces.aim_mode_label.visible = mobile and not race
+	if mobile and not race:
+		var aim: Rect2 = g._action_rects().ads
+		place("ads_icon", Rect2(aim.position + Vector2(aim.size.x * 0.30, aim.size.y * 0.12), aim.size * 0.40))
+		var label_size := clampi(roundi(aim.size.x * 0.145), 9, 13)
+		words("aim_label", "MIRANDO" if g.weapons.want_ads else "MIRAR", Rect2(aim.position.x, aim.position.y + aim.size.y * 0.56, aim.size.x, aim.size.y * 0.21), label_size, Color("b1f0cc") if g.weapons.want_ads else INK)
+		var mode_text: String = ["TOQUE", "SEGURE", "TOQUE / SEGURE"][g.profile.data.aim_mode]
+		if g.weapons.want_ads:
+			mode_text = "TOQUE P/ SAIR" if g._mobile_aim.latched else "ARRASTE"
+		words("aim_mode_label", mode_text, Rect2(aim.position.x, aim.position.y + aim.size.y * 0.78, aim.size.x, aim.size.y * 0.16), 8)
 	pieces.fire_hint.visible = mobile and not race
 	if mobile and not race:
 		var fire: Rect2 = g._action_rects().fire
@@ -195,6 +206,17 @@ func sync() -> void:
 	words("hint_text", "ESPAÇO  Pular     G  Checkpoint" if race else "R  Recarregar     F  Inspecionar", Rect2(w * 0.5 - 165, h - 42, 330, 27), 13)
 	pieces.hint.visible = not mobile
 	pieces.hint_text.visible = not mobile
+	if mobile and not race and not g.profile.data.aim_tip_seen:
+		var coach_width := minf(300, w * 0.36)
+		var coach := Rect2(w * 0.5 - coach_width * 0.5, h - 31, coach_width, 24)
+		var clear := true
+		for action_rect: Rect2 in g._action_rects().values():
+			if coach.intersects(action_rect):
+				clear = false
+		place("hint", coach)
+		words("hint_text", ("SEGURE MIRAR" if g.profile.data.aim_mode == MobileAim.HOLD else "TOQUE EM MIRAR") + " • ARRASTE PARA AJUSTAR", coach.grow(-3), 10)
+		pieces.hint.visible = clear
+		pieces.hint_text.visible = clear
 	words("countdown", str(int(ceil(g.world.race_countdown))), Rect2(w * 0.5 - 50, h * 0.4, 100, 90), 68)
 	pieces.countdown.visible = race and g.world.race_countdown > 0
 	var leaders := ""
@@ -260,6 +282,9 @@ func _draw_reticle() -> void:
 	reticle.draw_circle(center, 1.4, color)
 	for direction in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
 		reticle.draw_line(center + direction * spread, center + direction * (spread + 5), color, 1.6, true)
+	if g._mobile_hud_enabled and g.weapons.ads_alpha > 0.01:
+		var aim: Rect2 = g._action_rects().ads
+		reticle.draw_arc(aim.get_center(), aim.size.x * 0.46, -PI * 0.5, -PI * 0.5 + TAU * g.weapons.ads_alpha, 48, Color("93e7c3"), 3, true)
 	if g.weapons.is_scoped_in():
 		reticle.draw_line(center - Vector2(0, g.size.y * 0.3), center + Vector2(0, g.size.y * 0.3), Color("192e30"), 1)
 		reticle.draw_line(center - Vector2(g.size.x * 0.2, 0), center + Vector2(g.size.x * 0.2, 0), Color("192e30"), 1)

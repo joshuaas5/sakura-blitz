@@ -18,7 +18,7 @@ static func safe_rect(view: Vector2) -> Rect2:
 
 static func defaults(area: Rect2, left_handed: bool = false) -> Dictionary:
 	var scale := clampf(minf(area.size.x / 844, area.size.y / 390), 0.65, 1.35)
-	var specs := {"jump": Vector3(74, 74, 96), "fire": Vector3(198, 94, 112), "ads": Vector3(300, 160, 62), "reload": Vector3(300, 70, 56), "weapon": Vector3(62, 164, 56), "checkpoint": Vector3(187, 64, 60)}
+	var specs := {"jump": Vector3(74, 74, 96), "fire": Vector3(198, 94, 112), "ads": Vector3(312, 172, 88), "reload": Vector3(300, 70, 56), "weapon": Vector3(62, 164, 56), "checkpoint": Vector3(187, 64, 60)}
 	var result := {}
 	for action in specs:
 		var spec: Vector3 = specs[action]
@@ -53,6 +53,8 @@ static func rects(area: Rect2, settings: Dictionary, race: bool = false) -> Dict
 			continue
 		var rect: Rect2 = base[action]
 		if custom.has(action):
+			if action == "ads" and int(settings.get("hud_layout_revision", 2)) == 1:
+				rect.size *= 62.0 / 88.0 # Preserve custom layouts made before the larger aim control.
 			var value: Vector4 = custom[action]
 			rect.size *= value.z
 			rect.position = area.position + area.size * Vector2(value.x, value.y) - rect.size / 2

@@ -1,10 +1,10 @@
 # Estado atual para lançamento
 
-Referência da implementação local 0.7.1. Os relatórios antigos descrevem as entregas de suas respectivas datas.
+Referência da implementação local 0.7.2. Os relatórios antigos descrevem as entregas de suas respectivas datas.
 
 | Frente | Implementado localmente | Trabalho necessário antes de lançamento comercial |
 | --- | --- | --- |
-| Entrada e mobile | Lobby rolável, toque nativo, editor do HUD, tiro manual com arraste, tutorial de combate, pausa e retomada | Teste em aparelhos físicos, interrupções do Android, ergonomia e tutorial específico de corrida |
+| Entrada e mobile | Lobby rolável, toque nativo, editor do HUD, tiro manual com arraste, mira híbrida, tutorial de combate, pausa e retomada | Teste em aparelhos físicos, interrupções do Android, ergonomia e tutorial específico de corrida |
 | Conteúdo | Nove arenas e seis corridas de oito setores; resultados e recordes | Playtests de fluxo, legibilidade, pontos de bloqueio e diversão em cada mapa |
 | Combate | Seis armas, recargas, skins, maestria, colisão e som espacial | Balanceamento humano, acessibilidade da mira e evolução da IA com o arsenal |
 | Bots | Fácil/Médio/Difícil, percepção, memória, som, cobertura e flancos | Navegação global nas nove arenas, com pisos e escadas nas cinco antigas; ampliar rotas testadas e sessões humanas prolongadas |

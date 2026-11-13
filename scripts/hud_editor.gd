@@ -16,7 +16,7 @@ var refreshing := false
 
 func open(g: SakuraBlitzMain) -> void:
 	game = g
-	draft = {"hud_left_handed": g.profile.data.hud_left_handed, "hud_layout": g.profile.data.hud_layout.duplicate(true)}
+	draft = {"hud_layout_revision": g.profile.data.hud_layout_revision, "hud_left_handed": g.profile.data.hud_left_handed, "hud_layout": g.profile.data.hud_layout.duplicate(true)}
 	set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	mouse_filter = MOUSE_FILTER_STOP
 	var panel := PanelContainer.new()
@@ -83,6 +83,7 @@ func _adjust(value: float, alpha: bool) -> void:
 func _reset() -> void:
 	dragging = -2
 	draft.hud_layout = {}
+	draft.hud_layout_revision = 2
 	draft.hud_left_handed = false
 	_select(selected)
 
@@ -108,11 +109,14 @@ func _save() -> void:
 			return
 	var previous: Dictionary = game.profile.data.hud_layout.duplicate(true)
 	var previous_hand: bool = game.profile.data.hud_left_handed
+	var previous_revision: int = game.profile.data.hud_layout_revision
 	game.profile.data.hud_layout = MobileLayout.sanitize(draft.hud_layout)
 	game.profile.data.hud_left_handed = draft.hud_left_handed
+	game.profile.data.hud_layout_revision = draft.hud_layout_revision
 	if game._save_profile() != OK:
 		game.profile.data.hud_layout = previous
 		game.profile.data.hud_left_handed = previous_hand
+		game.profile.data.hud_layout_revision = previous_revision
 		message.text = "Não foi possível salvar. Seu layout anterior foi preservado. Tente novamente."
 		return
 	finished.emit(true)

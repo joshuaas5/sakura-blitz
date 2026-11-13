@@ -150,6 +150,7 @@ var _ui_tex_cache := {}
 var _mobile_hud_enabled := false
 var _fire_press_pending := false
 var _mobile_aim_assist := true
+var _mobile_aim := MobileAim.new()
 var _mobile_move_vec := Vector2.ZERO
 var _mobile_fire_held := false
 var _mobile_jump_held := false
@@ -882,7 +883,7 @@ func _input(event: InputEvent) -> void:
 
 	if event is InputEventScreenTouch:
 		var st := event as InputEventScreenTouch
-		_handle_touch(st.index, st.position, st.pressed and not st.canceled)
+		_handle_touch(st.index, st.position, st.pressed and not st.canceled, st.canceled)
 		return
 	if event is InputEventScreenDrag:
 		var sd := event as InputEventScreenDrag
@@ -1158,6 +1159,10 @@ func _physics_process(delta: float) -> void:
 		_update_hud(delta, 0.0)
 		return
 
+	if _mobile_hud_enabled and current_mode == SakuraWorld.MODE_COMBAT:
+		_mobile_aim.tick(delta)
+		_sync_touch_aim(false)
+
 	if _body.is_on_floor():
 		var mp_delta := world.get_moving_platform_delta(_body.global_position)
 		if mp_delta.length_squared() > 0.000001:
@@ -1193,7 +1198,7 @@ func _physics_process(delta: float) -> void:
 		_crouching = want_crouch
 
 	var joy_sprint := _mobile_move_vec.length() > 0.72 and _mobile_move_vec.y < -0.25
-	_sprinting = (Input.is_key_pressed(KEY_SHIFT) or joy_sprint or current_mode == SakuraWorld.MODE_PARKOUR) and in_z < -0.1 and not _crouching and (current_mode == 1 or weapons.ads_alpha < 0.1)
+	_sprinting = (Input.is_key_pressed(KEY_SHIFT) or joy_sprint or current_mode == SakuraWorld.MODE_PARKOUR) and in_z < -0.1 and not _crouching and (current_mode == 1 or (not weapons.want_ads and weapons.ads_alpha < 0.1))
 	var jump_held := Input.is_key_pressed(KEY_SPACE) or _mobile_jump_held
 	if jump_held:
 		_jump_buffer = 0.15
@@ -1812,6 +1817,10 @@ func _run_automated_test() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_startup_grace = 0.0
+	if OS.get_cmdline_user_args().has("--aim"):
+		var aim = load("res://tests/aim_checks.gd").new()
+		get_tree().quit(0 if await aim.run(self) else 1)
+		return
 	if OS.get_cmdline_user_args().has("--manual-fire"):
 		var manual_fire = load("res://tests/manual_fire_checks.gd").new()
 		get_tree().quit(0 if await manual_fire.run(self) else 1)
@@ -1919,6 +1928,10 @@ func _run_automated_test() -> void:
 	if not await manual_fire_checks.run(self):
 		get_tree().quit(1)
 		return
+	var aim_checks = load("res://tests/aim_checks.gd").new()
+	if not await aim_checks.run(self):
+		get_tree().quit(1)
+		return
 	print("2 GAME MODES (9 COMBAT ARENAS + 6 MOBILE PARKOUR COURSES) + 7 RUNNER BOTS + MOBILE-FIRST HUD automated test PASSED!")
 	get_tree().quit(0)
 
@@ -1988,9 +2001,10 @@ func _save_shot(fname: String) -> void:
 	print("RENDER ", fname, " draw_calls=", Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), " objects=", Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME), " memory_MiB=", snappedf(Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0, 0.1))
 
 
-func _handle_touch(index: int, pos: Vector2, pressed: bool) -> void:
+func _handle_touch(index: int, pos: Vector2, pressed: bool, canceled: bool = false) -> void:
 	# Release by finger identity before hit testing. A release can be anywhere.
 	if not pressed:
+		_mobile_aim.release(index, canceled)
 		_touch_actions.erase(index)
 		if index == _joy_touch_idx:
 			_joy_touch_idx = -1
@@ -1999,6 +2013,12 @@ func _handle_touch(index: int, pos: Vector2, pressed: bool) -> void:
 			_look_touch_idx = -1
 		_mobile_fire_held = _touch_actions.values().has("fire")
 		_mobile_jump_held = _touch_actions.values().has("jump")
+		if _look_touch_idx < 0:
+			for action in ["fire", "ads", "jump"]:
+				for finger in _touch_actions:
+					if _touch_actions[finger] == action and _look_touch_idx < 0:
+						_look_touch_idx = finger
+		_sync_touch_aim()
 		return
 	if _killcam_active:
 		_stop_killcam()
@@ -2019,13 +2039,17 @@ func _handle_touch(index: int, pos: Vector2, pressed: bool) -> void:
 				_mobile_fire_held = true
 				_fire_press_pending = true
 			"ads":
-				weapons.want_ads = not weapons.want_ads
+				_mobile_aim.press(index, profile.data.aim_mode)
+				if not profile.data.aim_tip_seen:
+					profile.data.aim_tip_seen = true
+					_queue_save()
+				_sync_touch_aim()
 			"reload":
 				weapons.start_reload()
 			"weapon":
 				weapons.select_weapon((weapons.current_idx + 1) % WeaponRig.WEAPONS.size())
 		# Looking while jumping/firing is essential for two-thumb play.
-		if action in ["jump", "fire"] and _look_touch_idx < 0:
+		if action in ["jump", "fire", "ads"] and _look_touch_idx < 0:
 			_look_touch_idx = index
 		return
 	if _mobile_rect("joystick").grow(12).has_point(pos) and _joy_touch_idx < 0:
@@ -2039,20 +2063,34 @@ func _handle_touch(index: int, pos: Vector2, pressed: bool) -> void:
 
 
 func _handle_touch_drag(index: int, pos: Vector2, relative: Vector2) -> void:
+	_mobile_aim.drag(index, relative)
 	if index == _joy_touch_idx:
 		var motion := (pos - _joy_center).limit_length(_joy_radius)
 		_joy_knob = _joy_center + motion
 		_mobile_move_vec = motion / _joy_radius
 	elif index == _look_touch_idx:
 		var sensitivity := 0.0035 * float(profile.data.sensitivity)
-		if weapons.want_ads:
-			sensitivity *= float(profile.data.ads_sensitivity)
+		var fov := float(WeaponCatalog.DEFINITIONS[weapons.current_idx].ads_fov)
+		var zoom_ratio := tan(deg_to_rad(fov) * 0.5) / tan(deg_to_rad(76.0) * 0.5)
+		sensitivity *= lerpf(1.0, float(profile.data.ads_sensitivity) * sqrt(zoom_ratio), weapons.ads_alpha)
 		_yaw -= relative.x * sensitivity
 		_pitch = clampf(_pitch - relative.y * sensitivity, -1.45, 1.45)
 		weapons.add_look_sway(relative)
 
 
+func _sync_touch_aim(feedback: bool = true) -> void:
+	if not _mobile_hud_enabled or not is_instance_valid(weapons):
+		return
+	var allowed := current_mode == SakuraWorld.MODE_COMBAT and not _paused and not _hub_open and not _shop_open and not _killcam_active and not weapons.is_reloading and not bool(WeaponCatalog.DEFINITIONS[weapons.current_idx].melee)
+	var desired: bool = allowed and _mobile_aim.desired(profile.data.aim_mode)
+	if desired != weapons.want_ads:
+		weapons.want_ads = desired
+		if feedback:
+			_haptic(10 if desired else 5)
+
+
 func _clear_touch_state() -> void:
+	_mobile_aim.reset()
 	_fire_press_pending = false
 	_touch_actions.clear()
 	_joy_touch_idx = -1
@@ -2260,6 +2298,9 @@ func _haptic(duration: int) -> void:
 
 
 func _run_foundation_qa() -> void:
+	if OS.get_cmdline_user_args().has("--aim"):
+		await _run_aim_qa()
+		return
 	if OS.get_cmdline_user_args().has("--manual-fire"):
 		await _run_manual_fire_qa()
 		return
@@ -2805,4 +2846,52 @@ func _run_manual_fire_qa() -> void:
 		await get_tree().physics_frame
 	await _save_shot("color_manual_mobile_firing.png")
 	menus.touch(self, _action_rects().fire.get_center(), false, 2)
+	get_tree().quit()
+
+func _run_aim_qa() -> void:
+	var checks = load("res://tests/aim_checks.gd").new()
+	if not await checks.run(self):
+		get_tree().quit(1)
+		return
+	DisplayServer.window_set_size(Vector2i(844, 390))
+	_mobile_hud_enabled = true
+	profile.data.aim_mode = MobileAim.HYBRID
+	profile.data.aim_tip_seen = false
+	profile.data.hud_layout = {}
+	profile.data.hud_layout_revision = 2
+	_start_from_hub(0, 5)
+	_res_idx = 0
+	_apply_graphics_preset()
+	world.enemies_paused = true
+	_cam.transform = Transform3D.IDENTITY
+	_body.position = Vector3(-4, 0.1, 19)
+	_yaw = -0.12
+	_pitch = -0.02
+	weapons.select_weapon(0, true)
+	weapons.refill_all_ammo()
+	weapons.inspect_timer = 0
+	_banner_timer = 0
+	_banner_label.text = ""
+	for frame in 24:
+		await get_tree().process_frame
+	await _save_shot("aim_mobile_ready.png")
+	var menus = load("res://tests/menu_checks.gd").new()
+	Input.set_emulate_touch_from_mouse(true)
+	var aim: Vector2 = _action_rects().ads.get_center()
+	menus.touch(self, aim, true, 2)
+	menus.touch(self, aim, false, 2)
+	for frame in 16:
+		await get_tree().physics_frame
+	await _save_shot("aim_mobile_aimed.png")
+	_open_hub()
+	_hub.page = 2
+	_hub.refresh()
+	for frame in 8:
+		await get_tree().process_frame
+	for child in _hub._body.get_children():
+		if child is OptionButton and child.get_item_text(0).begins_with("MIRA /"):
+			_hub._scroll.ensure_control_visible(child)
+	for frame in 8:
+		await get_tree().process_frame
+	await _save_shot("aim_mobile_settings.png")
 	get_tree().quit()

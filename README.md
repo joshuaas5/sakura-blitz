@@ -10,9 +10,9 @@ O lobby permite escolher modo, mapa e bots **Fácil, Médio ou Difícil**. A dif
 
 ### APK de teste no Android
 
-`export/android/SakuraBlitz-0.7.1-test.apk` — transfira para o aparelho e abra para instalar **Sakura Blitz Teste**. O app usa tela horizontal, ativa controles de toque automaticamente e começa na qualidade leve. A qualidade pode ser alterada em Ajustes no lobby.
+`export/android/SakuraBlitz-0.7.2-test.apk` — transfira para o aparelho e abra para instalar **Sakura Blitz Teste**. O app usa tela horizontal, ativa controles de toque automaticamente e começa na qualidade leve. A qualidade pode ser alterada em Ajustes no lobby.
 
-Build local de teste: Android 7.0/API 24 ou superior, ARM 32/64 bits, versão `0.7.1-test`, pacote `com.joshuaas5.sakurablitz.test`. Assinatura de depuração local; apenas permissão de vibração. Ainda requer teste de desempenho e ergonomia no aparelho real.
+Build local de teste: Android 7.0/API 24 ou superior, ARM 32/64 bits, versão `0.7.2-test`, pacote `com.joshuaas5.sakurablitz.test`. Assinatura de depuração local; apenas permissão de vibração. Ainda requer teste de desempenho e ergonomia no aparelho real.
 
 Para regenerar no PC configurado: `./tools/build_android_test.ps1`. O script exporta, verifica assinatura e alinhamento de 16 KB, inspeciona o manifesto e grava SHA256 em `export/android/`. Usa o SDK instalado em `C:/android-sdk`; aceita `-Godot` e `-AndroidSdk` para outros caminhos.
 
@@ -104,3 +104,7 @@ As nove arenas têm navegação global. Nas cinco antigas, os bots agora seguem 
 ## Tiro manual e cor 0.7.1
 
 O jogador controla o disparo pelo botão de tiro ou mouse; mirar em inimigos não dispara mais a arma, inclusive após atualizar saves antigos. Armas automáticas atiram enquanto o botão está pressionado; pistola, sniper e escopeta respondem uma vez por toque. O botão de tiro também permite arrastar a câmera. A paleta dos pisos agora é preservada pelo shader, os telhados têm famílias de cor distintas e a Vila Floral, Docas e corridas receberam ajustes de cor. Detalhes em [tiro_manual_e_cor.md](docs/tiro_manual_e_cor.md).
+
+## Mira mobile 0.7.2
+
+MIRAR ficou maior e identificado, com feedback visual e vibração opcional. A mira híbrida permite tocar para manter ou segurar/arrastar até soltar; Ajustes também oferece Tocar e Segurar. Mirar enquanto corre agora abre a mira corretamente. O tiro permanece manual. Referências, controles e validação em [mira_mobile.md](docs/mira_mobile.md). O [norte criativo](docs/direcao_criativa.md) registra MicroVolts como referência de espírito arcade, preservando primeira pessoa e mapas próprios.

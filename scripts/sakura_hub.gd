@@ -295,6 +295,14 @@ func _build_settings() -> void:
 	_body.add_child(diagnostics_button)
 	_body.add_child(_label("Feito para dois polegares.", 28))
 	_body.add_child(_label("Esquerda: andar e correr. Direita: olhar. Arraste a partir do botão de pulo para saltar e olhar ao mesmo tempo. Para atirar, segure e arraste o botão de tiro: o mesmo dedo dispara e controla a mira. Pistola, sniper e escopeta disparam uma vez por toque.", 17, MUTED))
+	_body.add_child(_label("MIRAR: toque para manter a mira; segure e arraste para ajustar enquanto aperta. O botão ATIRAR continua manual.", 17, MINT))
+	var aim_mode := OptionButton.new()
+	for title in ["MIRA / Tocar para alternar", "MIRA / Segurar", "MIRA / Híbrida: tocar ou segurar"]:
+		aim_mode.add_item(title)
+	aim_mode.select(profile.data.aim_mode)
+	aim_mode.custom_minimum_size.y = 48
+	aim_mode.item_selected.connect(func(idx: int): profile.data.aim_mode = idx; profile_changed.emit())
+	_body.add_child(aim_mode)
 	for item in [["sensitivity", "Sensibilidade", 0.4, 2.0], ["ads_sensitivity", "Sensibilidade da mira", 0.25, 1.0], ["music_volume", "Volume da música", 0.0, 1.0], ["effects_volume", "Volume dos efeitos", 0.0, 1.0], ["ambience_volume", "Volume do ambiente", 0.0, 1.0]]:
 		var value_label := _label("%s: %.2f" % [item[1], profile.data[item[0]]])
 		_body.add_child(value_label)
