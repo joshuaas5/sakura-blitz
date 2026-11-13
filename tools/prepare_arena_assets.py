@@ -19,6 +19,8 @@ mast-ropes palm-detailed-bend palm-detailed-straight rocks-a rocks-b
 ship-large ship-medium ship-small structure-platform-dock structure-fence
 tower-complete-large cannon-mobile'''.split()
 
+FACTORY = 'box-large box-wide box-long crane crane-lift catwalk-straight\ncone warning-traffic screen-panel-wide screen-hanging-wide\npipe-large-valve pipe-large-bend robot-arm-a machine-window\nstructure-window-wide structure-yellow-tall door-wide-open floor-large'.split()
+
 
 def extract(archive, folder, names, ext, source):
     target = ROOT / 'assets/third_party' / folder
@@ -42,7 +44,7 @@ def extract(archive, folder, names, ext, source):
         selected.update(n for n in entries if Path(n).name in ('License.txt', 'License_Standard.txt'))
         for n in sorted(selected):
             content = z.read(n)
-            out = target / ('Textures/' + Path(n).name if folder == 'kenney_pirate' and '/Textures/' in n else Path(n).name)
+            out = target / ('Textures/' + Path(n).name if folder.startswith('kenney_') and '/Textures/' in n else Path(n).name)
             out.parent.mkdir(parents=True, exist_ok=True)
             out.write_bytes(content)
             manifest[out.relative_to(target).as_posix()] = hashlib.sha256(content).hexdigest()
@@ -53,3 +55,4 @@ def extract(archive, folder, names, ext, source):
 if __name__ == '__main__':
     extract('scifi_standard.zip', 'quaternius_scifi', SCI, '.gltf', 'https://quaternius.itch.io/modular-sci-fi-megakit')
     extract('kenney_pirate.zip', 'kenney_pirate', PIRATE, '.glb', 'https://opengameart.org/content/pirate-kit')
+    extract('kenney_factory.zip', 'kenney_factory', FACTORY, '.glb', 'https://opengameart.org/content/conveyor-kit')

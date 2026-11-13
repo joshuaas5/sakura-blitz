@@ -20,6 +20,10 @@ Para reproduzir os arquivos, instale NumPy no ambiente Python e execute `python 
 
 `step_stone.wav`, `step_wood.wav` e `land_soft.wav`: sinais mono de 0,14 / 0,18 / 0,24 segundo, a 22.050 Hz e 16 bits. Síntese de ruído filtrado e osciladores amortecidos, sem samples ou gravações externas, em `tools/compose_combat_audio.py`. São usados no pool espacial de efeitos do mapa. Para regenerar: `python tools/compose_combat_audio.py` (biblioteca padrão do Python).
 
+## Porto Cobalto
+
+`harbor_surf.wav`: loop mono de 8 segundos sintetizado com ruído filtrado e modulação lenta, em `tools/compose_ambience.py`. Emissor 3D no bus Ambience, encerrado ao trocar de mapa. `step_metal.wav`: impacto de 0,22 s com ressonâncias amortecidas de 360 e 930 Hz em `tools/compose_combat_audio.py`, usado nos contêineres, escadas e passarelas do Porto. Ambos a 22.050 Hz/16 bits, sem samples externos.
+
 Os antigos `bgm_sakura.wav` e `bgm_panadero.wav` permanecem no checkout, mas não são carregados pelo jogo e foram excluídos do export web. Esta nota documenta o processo de criação das novas faixas; não certifica a procedência de todos os demais assets herdados do protótipo.
 
 ## Arsenal Brisa e Flora

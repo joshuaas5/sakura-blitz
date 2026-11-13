@@ -35,3 +35,7 @@ shots/navigation_*
 shots/color_*
 
 shots/aim_*
+
+shots/harbor_*
+
+__pycache__/

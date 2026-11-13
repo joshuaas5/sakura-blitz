@@ -12,6 +12,7 @@ Nenhum asset pago foi comprado nesta integração. As licenças originais acompa
 | Nunito Sans | [Google Fonts / projeto Nunito Sans](https://github.com/google/fonts/tree/main/ofl/nunitosans) | SIL Open Font License 1.1 | Tipografia do HUD; OFL.txt acompanha a fonte |
 | Modular Sci-Fi MegaKit Standard | [Quaternius](https://quaternius.itch.io/modular-sci-fi-megakit) | CC0 1.0 | Módulos de paredes, pisos, colunas, consoles, ventilação e carga do Observatório Lunar |
 | Pirate Kit 2.1 | [Kenney, publicação do autor](https://opengameart.org/content/pirate-kit) | CC0 1.0 | Veleiros, barcos, palmeiras, carga, bandeiras, farol e equipamento das Docas do Festival e do Bazar Solar |
+| Factory Kit 3.0 | [Kenney, publicação do autor](https://opengameart.org/content/conveyor-kit) | CC0 1.0 | Guindastes, equipamentos, barreiras, consoles e estruturas industriais do Porto Cobalto; licença original e hashes em `assets/third_party/kenney_factory` |
 
 Os arquivos GLB originais das armas são preservados em `assets/third_party/pichuliru_guns`. `tools/prepare_weapon_models.py` gera os derivados em `prepared/`: separa peças rígidas pelos pesos de osso, mantém normais e materiais, e acrescenta UV planar. O jogo anima carregador e ferrolho separadamente. Os nomes de gameplay não representam identificação exata dos modelos reais de fábrica.
 

@@ -15,7 +15,7 @@ var was_grounded := false
 func setup(w: SakuraWorld) -> void:
 	world = w
 	previous_player = w.player_pos
-	for name in ["step_stone", "step_wood", "land_soft"]:
+	for name in ["step_stone", "step_wood", "step_metal", "land_soft"]:
 		streams[name] = load("res://assets/audio/original/%s.wav" % name)
 	for name in ["smg_shoot", "shotgun_shoot", "rail_shoot"]:
 		streams[name] = Sfx._streams[name]
@@ -54,7 +54,8 @@ func noise(at: Vector3, source: EnemyBot = null, loudness: float = 1) -> void:
 
 func footstep(at: Vector3, player: bool = false) -> void:
 	var wood: bool = world.game_mode == 0 and (world.current_stage_idx == 7 or (world.current_stage_idx == 5 and at.x > -13.2 and at.x < -6.8 and at.z > 6.8 and at.z < 13.2))
-	play_at("step_wood" if wood else "step_stone", at + Vector3.UP * 0.15, -15 if player else -12, 0.95 + float(voice_cursor % 4) * 0.035)
+	var metal: bool = world.game_mode == 0 and world.current_stage_idx == 1 and at.y > 0.1
+	play_at("step_metal" if metal else ("step_wood" if wood else "step_stone"), at + Vector3.UP * 0.15, -15 if player else -12, 0.95 + float(voice_cursor % 4) * 0.035)
 	if player:
 		noise(at, null, 0.22)
 

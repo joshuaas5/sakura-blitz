@@ -10,9 +10,9 @@ O lobby permite escolher modo, mapa e bots **Fácil, Médio ou Difícil**. A dif
 
 ### APK de teste no Android
 
-`export/android/SakuraBlitz-0.7.2-test.apk` — transfira para o aparelho e abra para instalar **Sakura Blitz Teste**. O app usa tela horizontal, ativa controles de toque automaticamente e começa na qualidade leve. A qualidade pode ser alterada em Ajustes no lobby.
+`export/android/SakuraBlitz-0.8.0-test.apk` — transfira para o aparelho e abra para instalar **Sakura Blitz Teste**. O app usa tela horizontal, ativa controles de toque automaticamente e começa na qualidade leve. A qualidade pode ser alterada em Ajustes no lobby.
 
-Build local de teste: Android 7.0/API 24 ou superior, ARM 32/64 bits, versão `0.7.2-test`, pacote `com.joshuaas5.sakurablitz.test`. Assinatura de depuração local; apenas permissão de vibração. Ainda requer teste de desempenho e ergonomia no aparelho real.
+Build local de teste: Android 7.0/API 24 ou superior, ARM 32/64 bits, versão `0.8.0-test`, pacote `com.joshuaas5.sakurablitz.test`. Assinatura de depuração local; apenas permissão de vibração. Ainda requer teste de desempenho e ergonomia no aparelho real.
 
 Para regenerar no PC configurado: `./tools/build_android_test.ps1`. O script exporta, verifica assinatura e alinhamento de 16 KB, inspeciona o manifesto e grava SHA256 em `export/android/`. Usa o SDK instalado em `C:/android-sdk`; aceita `-Godot` e `-AndroidSdk` para outros caminhos.
 
@@ -26,6 +26,7 @@ Para regenerar no PC configurado: `./tools/build_android_test.ps1`. O script exp
 - **Perfil local:** moedas, equipamentos, recordes, preferências e maestria salvos com arquivo de recuperação. Ouro aos 50 abates por arma; silenciador cosmético aos 100 abates nas armas de fogo.
 - **Economia:** moedas por desempenho, desafio diário resgatável uma vez e loja com cosméticos. Upgrades comprados com moedas de jogo dão até +3% de dano; skins não alteram atributos. Não há compra com dinheiro real nesta versão.
 - **Visual e áudio:** Vila Floral com assets CC0 importados, HUD com molduras ilustradas, cinco armas importadas, skins pintadas e prévias 3D reais na loja e três loops musicais sintetizados para o projeto.
+- **Porto Cobalto:** contêineres corrugados, escadas e passarelas de aço com guarda-corpos, sinalização, mar, armazéns e guindastes do Factory Kit CC0. Agrupamento por cor de vértice, sombras conforme qualidade, ambiente de ondas e passos metálicos. Detalhes e limites em `docs/porto_atelier.md`.
 
 ## Controles
 

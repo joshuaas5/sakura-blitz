@@ -1,6 +1,6 @@
 # Estado atual para lançamento
 
-Referência da implementação local 0.7.2. Os relatórios antigos descrevem as entregas de suas respectivas datas.
+Referência da implementação local 0.8.0. Os relatórios antigos descrevem as entregas de suas respectivas datas.
 
 | Frente | Implementado localmente | Trabalho necessário antes de lançamento comercial |
 | --- | --- | --- |
@@ -8,7 +8,7 @@ Referência da implementação local 0.7.2. Os relatórios antigos descrevem as 
 | Conteúdo | Nove arenas e seis corridas de oito setores; resultados e recordes | Playtests de fluxo, legibilidade, pontos de bloqueio e diversão em cada mapa |
 | Combate | Seis armas, recargas, skins, maestria, colisão e som espacial | Balanceamento humano, acessibilidade da mira e evolução da IA com o arsenal |
 | Bots | Fácil/Médio/Difícil, percepção, memória, som, cobertura e flancos | Navegação global nas nove arenas, com pisos e escadas nas cinco antigas; ampliar rotas testadas e sessões humanas prolongadas |
-| Arte | Vila Floral com módulos CC0, Bazar/Docas/Observatório, personagens e armas com prévias 3D | Igualar qualidade dos mapas antigos, revisar densidade e silhuetas com orçamento mobile |
+| Arte | Vila Floral com módulos CC0, Porto Cobalto industrial, Bazar/Docas/Observatório, personagens e armas com prévias 3D | Revisar Vila Sakura, Cânion, Neon, Estação e corridas; aprofundar animações, silhuetas e materiais com orçamento mobile |
 | Desempenho | Qualidade leve padrão, agrupamento de geometria, descarte por mapa e diagnóstico de frames | Medir FPS, memória total, aquecimento e bateria em dispositivos de entrada; corrigir gargalos medidos |
 | Progressão | Perfil local com backup, moedas por desempenho, desafio diário, equipamentos e maestria | Backend autoritativo, migração de dados e recuperação de conta para economia online |
 | Multiplayer | Não implementado | Servidor autoritativo, sessões, sincronização, matchmaking, desconexões e infraestrutura |

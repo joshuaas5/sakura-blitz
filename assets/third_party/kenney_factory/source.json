@@ -1,0 +1,26 @@
+{
+  "source": "https://opengameart.org/content/conveyor-kit",
+  "license": "CC0-1.0",
+  "files_sha256": {
+    "License.txt": "61e86565dd297e143ad631594980eda0a17fc81a4cd7c6d71acf2f5e0cad30b6",
+    "Textures/colormap.png": "35d7bd6900dde0208429eeaec87fa17fbf024ed59f3f4eab54bc92802eba9dd7",
+    "box-large.glb": "f5c7a7b4d7ec48c2695dc5241d62a38dbb54b487e6be0f089548582c91bacdfd",
+    "box-long.glb": "6a6d7bfed3058809a9833606a6a3e78a156b6f3d898fba59fc054c62b5499c94",
+    "box-wide.glb": "41507d9e035b23e586cbf6bcc63427c810aefd428620264bebefc25c98922ff4",
+    "catwalk-straight.glb": "85797c6ce53e3f4373bc59ecd3ce951a3f6b707651def5e0bae46756051cd18d",
+    "cone.glb": "deb6ea20fe61bc094f0e64a3d6891b029ff552c5ab00bf57b763798624228e41",
+    "crane-lift.glb": "060197cd67598ed4359ecbcb0af980d4505992213c1ab6cc9f56812dff7bbf07",
+    "crane.glb": "ceaf20fb976ce0415d2b3d40e723b6ad377845818fa4fa68b55434108b1a6880",
+    "door-wide-open.glb": "bc8cfb0d899c512d85241c41db4247be11cfe833cab56949f19e2903789133d9",
+    "floor-large.glb": "6d4cf453bcacd653389a4a3071468ae1167b98c2b13f042aba55e8fe3de21db0",
+    "machine-window.glb": "1387bd337354fca7c7cb4163e6bd4bef8711373bbe23dae01ba9d42cd35681b7",
+    "pipe-large-bend.glb": "e234cba2e29bd825b9acdab56c0ff36504a6ceea4c74b21dafbbd98e84bb793b",
+    "pipe-large-valve.glb": "57126374dce5b172e06d5d6f8cbaab97c9cffe3e5e726060eb14c50a5bd519b6",
+    "robot-arm-a.glb": "ad3f766791adadd1cfb5ccc27d2b2ac8787848282f2a15b3c407f350dc281b68",
+    "screen-hanging-wide.glb": "69029512f8e13e06e6c60803e31b5b3c88f7884584440310fc254266eb64dd7f",
+    "screen-panel-wide.glb": "092066a198f1f81c857ceab23497dd3ea6066d261a91497cf0f83f7ba951c4d0",
+    "structure-window-wide.glb": "447f0e5a4eca379a02c3ade829e04b4df2fc517ab23f0b4f99fd31ae439ac19e",
+    "structure-yellow-tall.glb": "59c9a7cec6ebbaa523a720a4d65cf966180ab67d7bbc90fabe249b86753acc02",
+    "warning-traffic.glb": "b231e97424839b252e80555bc97d7360d2f04006cb3919675725a297bae049cd"
+  }
+}

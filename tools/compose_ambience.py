@@ -8,7 +8,7 @@ import wave
 OUT = Path(__file__).resolve().parents[1] / 'assets/audio/original'
 RATE = 22050
 SECONDS = 8
-for name, seed in [('courtyard_water', 202613), ('garden_breeze', 202614)]:
+for name, seed in [('courtyard_water', 202613), ('garden_breeze', 202614), ('harbor_surf', 202615)]:
     rng = random.Random(seed)
     slow = 0.0
     smooth = 0.0
@@ -21,8 +21,11 @@ for name, seed in [('courtyard_water', 202613), ('garden_breeze', 202614)]:
         if name == 'courtyard_water':
             amplitude = 0.72 + 0.13 * math.sin(math.tau * t / 8) + 0.1 * math.sin(math.tau * t * 3 / 8)
             value = (smooth * 0.8 + noise * 0.08 + slow * 1.3) * amplitude
-        else:
+        elif name == 'garden_breeze':
             value = slow * (2.8 + 1.2 * math.sin(math.tau * t / 8)) + smooth * 0.035
+        else:
+            swell = 0.55 + 0.35 * math.sin(math.tau * t / 8) + 0.1 * math.sin(math.tau * t / 4)
+            value = (smooth * 0.42 + slow * 2.4) * swell
         samples.append(value)
     # Crossfade the seam while preserving a full constant-rate loop.
     seam = RATE // 8

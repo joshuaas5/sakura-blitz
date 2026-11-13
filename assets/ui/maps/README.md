@@ -1,6 +1,8 @@
 # Miniaturas do lobby
 
 Capturas reais das arenas no Godot, geradas por `--qa --arenas`.
-IDs: 6 Bazar Solar, 7 Docas do Festival, 8 Observatório Lunar.
+IDs: 1 Porto Cobalto; 6 Bazar Solar, 7 Docas do Festival, 8 Observatório Lunar.
 Fontes: `shots/arena_<id>_hero.png`, copiadas sem composição ou retoque.
 Licenças dos modelos: `THIRD_PARTY_LICENSES.md`.
+
+Porto Cobalto: `shots/harbor_after_overview.png`, gerada por `--qa --harbor`, sem retoque.

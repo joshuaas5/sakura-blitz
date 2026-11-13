@@ -332,7 +332,7 @@ func _apply_graphics_preset() -> void:
 	_vp.msaa_3d = p.msaa
 	_vp_tex.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR if bool(p.linear) else CanvasItem.TEXTURE_FILTER_NEAREST
 	if is_instance_valid(world) and is_instance_valid(world.sun):
-		world.sun.shadow_enabled = current_mode == 0 and current_stage >= 5 and _res_idx > 0
+		world.sun.shadow_enabled = current_mode == 0 and (current_stage == 1 or current_stage >= 5) and _res_idx > 0
 
 
 func _build_player() -> void:
@@ -1817,6 +1817,10 @@ func _run_automated_test() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_startup_grace = 0.0
+	if OS.get_cmdline_user_args().has("--harbor"):
+		var harbor = load("res://tests/harbor_checks.gd").new()
+		get_tree().quit(0 if await harbor.run(self) else 1)
+		return
 	if OS.get_cmdline_user_args().has("--aim"):
 		var aim = load("res://tests/aim_checks.gd").new()
 		get_tree().quit(0 if await aim.run(self) else 1)
@@ -1930,6 +1934,10 @@ func _run_automated_test() -> void:
 		return
 	var aim_checks = load("res://tests/aim_checks.gd").new()
 	if not await aim_checks.run(self):
+		get_tree().quit(1)
+		return
+	var harbor_checks = load("res://tests/harbor_checks.gd").new()
+	if not await harbor_checks.run(self):
 		get_tree().quit(1)
 		return
 	print("2 GAME MODES (9 COMBAT ARENAS + 6 MOBILE PARKOUR COURSES) + 7 RUNNER BOTS + MOBILE-FIRST HUD automated test PASSED!")
@@ -2298,6 +2306,9 @@ func _haptic(duration: int) -> void:
 
 
 func _run_foundation_qa() -> void:
+	if OS.get_cmdline_user_args().has("--harbor"):
+		await _run_harbor_qa()
+		return
 	if OS.get_cmdline_user_args().has("--aim"):
 		await _run_aim_qa()
 		return
@@ -2894,4 +2905,43 @@ func _run_aim_qa() -> void:
 	for frame in 8:
 		await get_tree().process_frame
 	await _save_shot("aim_mobile_settings.png")
+	get_tree().quit()
+
+func _run_harbor_qa() -> void:
+	var prefix := "harbor_before" if OS.get_cmdline_user_args().has("--before") else "harbor_after"
+	_start_from_hub(0, 1)
+	world.enemies_paused = true
+	_banner_timer = 0
+	_banner_label.text = ""
+	for quality in [0, 2]:
+		DisplayServer.window_set_size(Vector2i(844, 390))
+		_mobile_hud_enabled = true
+		_res_idx = quality
+		_apply_graphics_preset()
+		_body.position = Vector3(-11, 0.1, 17)
+		_yaw = -0.32
+		_pitch = -0.025
+		_cam.transform = Transform3D.IDENTITY
+		weapons.select_weapon(4, true)
+		weapons.inspect_timer = 0
+		for frame in 24:
+			await get_tree().process_frame
+		await _save_shot("%s_mobile_%d.png" % [prefix, quality])
+	DisplayServer.window_set_size(Vector2i(1280, 720))
+	_mobile_hud_enabled = false
+	_body.position = Vector3(-1, 0.1, 17)
+	_yaw = 0.0
+	_pitch = -0.025
+	_cam.transform = Transform3D.IDENTITY
+	for frame in 24:
+		await get_tree().process_frame
+	await _save_shot(prefix + "_desktop.png")
+	set_physics_process(false)
+	_hud.hide()
+	weapons.hide()
+	_cam.global_position = Vector3(24, 22, 29)
+	_cam.look_at(Vector3(0, 2, 0))
+	for frame in 16:
+		await get_tree().process_frame
+	await _save_shot(prefix + "_overview.png")
 	get_tree().quit()

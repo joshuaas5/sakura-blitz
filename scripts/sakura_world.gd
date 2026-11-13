@@ -227,7 +227,9 @@ func load_mode_and_stage(new_mode: int, new_stage_idx: int) -> Array:
 		else:
 			ExpansionArenas.build(self, current_stage_idx == 5)
 		apply_atmosphere_preset([0, 1, 1, 2, 1, 0, 0, 0, 2][current_stage_idx])
-		if current_stage_idx < 5:
+		if current_stage_idx == 1:
+			HarborAtelier.atmosphere(self)
+		elif current_stage_idx < 5:
 			_add_district_details()
 		elif current_stage_idx == 5:
 			CuratedVillage.atmosphere(self)
@@ -982,89 +984,7 @@ func _build_combat_1_vila_bo2() -> void:
 
 
 func _build_combat_2_shipment_cqc() -> void:
-	# ARENA SHIPMENT & KILLHOUSE: Ultra-fast Close Quarters Combat (Containers, Upper Catwalk, Breach Rooms)
-	_current_pvp_spawn = Vector3(0.0, 0.2, 16.5)
-	tr_spawns = [
-		Vector3(-14.0, 0.2, -14.0), Vector3(14.0, 0.2, -14.0),
-		Vector3(0.0, 0.2, -18), Vector3(-12.5, 0.2, 0.0),
-		Vector3(12.5, 0.2, 0.0), Vector3(-9.0, 0.2, -6.5),
-		Vector3(9.0, 0.2, -6.5), Vector3(0.0, 3.6, 0.0)
-	]
-	var asphalt := Color("2b303c")
-	var concrete := Color("78808e")
-	var c_red := Color("d62828")
-	var c_blue := Color("0077b6")
-	var c_gold := Color("f77f00")
-	var c_teal := Color("2a9d8f")
-	var wood_ply := Color("c89b6e")
-
-	box(self, -24.0, -0.5, -24.0, 48.0, 0.5, 48.0, asphalt, true, 0.0, 2)
-	# Painted tactical court lines
-	box(self, -19.0, 0.01, -0.25, 38.0, 0.03, 0.5, Color("ffd166"), false, 0.9, -1)
-	box(self, -0.25, 0.01, -19.0, 0.5, 0.03, 38.0, Color("00f5d4"), false, 0.9, -1)
-
-	# High Container Yard Perimeter Walls
-	for sz in [-20.0, 19.4]:
-		box(self, -20.0, 0.0, sz, 40.0, 4.2, 0.6, concrete, true, 0.0, 4)
-		box(self, -20.0, 4.2, sz, 40.0, 0.25, 0.6, Color("ffd166"), false, 1.2, -1)
-	for sx in [-20.0, 19.4]:
-		box(self, sx, 0.0, -20.0, 0.6, 4.2, 40.0, concrete, true, 0.0, 4)
-		box(self, sx, 4.2, -20.0, 0.6, 0.25, 40.0, Color("00f5d4"), false, 1.2, -1)
-
-	# 4 Open Walk-Through Shipping Containers around the center X-Crossfire!
-	_build_shipping_container(Vector3(-8.5, 0.0, -8.5), 3.0, 3.0, 7.6, c_red, true)
-	_build_shipping_container(Vector3(8.5, 0.0, -8.5), 3.0, 3.0, 7.6, c_blue, true)
-	_build_shipping_container(Vector3(-8.5, 0.0, 8.5), 3.0, 3.0, 7.6, c_teal, true)
-	_build_shipping_container(Vector3(8.5, 0.0, 8.5), 3.0, 3.0, 7.6, c_gold, true)
-
-	# 4 Outer Side Containers + Second-Floor Stacked Containers
-	_build_shipping_container(Vector3(-15.5, 0.0, 0.0), 3.0, 3.2, 8.5, c_blue, false)
-	_build_shipping_container(Vector3(15.5, 0.0, 0.0), 3.0, 3.2, 8.5, c_red, false)
-	_build_shipping_container(Vector3(0.0, 0.0, -15.5), 8.5, 3.2, 3.0, c_gold, false)
-
-	# Central Elevated Steel Catwalk Bridge (y = 3.2m) connecting the 4 inner container roofs!
-	box(self, -10.0, 3.05, -2.0, 20.0, 0.25, 4.0, Color("383f52"), true, 0.0, 2)
-	box(self, -2.0, 3.05, -10.0, 4.0, 0.25, 20.0, Color("383f52"), true, 0.0, 2)
-	box(self, -10.0, 3.32, -2.0, 20.0, 0.10, 0.18, Color("ffd166"), false, 1.4, -1)
-	box(self, -10.0, 3.32, 1.82, 20.0, 0.10, 0.18, Color("ffd166"), false, 1.4, -1)
-
-	# Wooden Killhouse Assault Ramps up to the Catwalk & Container Roofs
-	for rx in [-8.5, 8.5]:
-		for step in 8:
-			box(self, rx - 1.2, step * 0.40, 16.1 - step * 0.55, 2.4, 0.42, 0.60, wood_ply, true, 0.0, 1)
-			box(self, rx - 1.2, step * 0.40, -16.7 + step * 0.55, 2.4, 0.42, 0.60, wood_ply, true, 0.0, 1)
-
-	# Landings connect container roofs to the central catwalk, with no jump gaps.
-	for rx in [-8.5, 8.5]:
-		for z in [-4.9, 1.9]:
-			box(self, rx - 1.2, 3.05, z, 2.4, 0.25, 3.0, Color("383f52"), true, 0, 2)
-			box(self, rx - 1.2, 3.31, z, 0.10, 0.03, 3.0, Color("ffd166"), false, 0.8, -1)
-
-	# Plywood Killhouse Cover Walls in the Center Plaza
-	box(self, -4.2, 0.0, -1.8, 0.35, 2.2, 3.6, wood_ply, true, 0.0, 1)
-	box(self, 3.85, 0.0, -1.8, 0.35, 2.2, 3.6, wood_ply, true, 0.0, 1)
-
-	# 2 Corner Jump-Pads for Instant Roof Flanks!
-	for jp in [Vector3(-15.5, 0.1, 15.5), Vector3(15.5, 0.1, -15.5)]:
-		cyl(self, jp, 1.2, 1.3, 0.18, Color("ff2a85"), 12, 2.0, true)
-		kz_jumppads.append(jp)
-
-	_add_weapon_pad(Vector3(0.0, 0.04, 0.0), "KIT CQC + MUNICAO", Color("ff2a85"))
-	_add_weapon_pad(Vector3(0.0, 3.32, 0.0), "DOMINIO DA PASSARELA", Color("ffd166"))
-	_add_weapon_pad(Vector3(-12.5, 0.04, 12.5), "RECARGA RAPIDA", Color("00f5d4"))
-	_add_weapon_pad(Vector3(12.5, 0.04, -12.5), "RECARGA RAPIDA", Color("00f5d4"))
-
-
-func _build_shipping_container(center: Vector3, sx: float, sy: float, sz: float, col: Color, open_ends: bool) -> void:
-	if not open_ends:
-		box(self, center.x - sx * 0.5, center.y, center.z - sz * 0.5, sx, sy, sz, col, true, 0.0, 2)
-		box(self, center.x - sx * 0.52, center.y + sy - 0.18, center.z - sz * 0.52, sx * 1.04, 0.18, sz * 1.04, col.lightened(0.18), false, 0.4, -1)
-		return
-	# Hollow walk-through container: floor, roof, and left/right walls!
-	box(self, center.x - sx * 0.5, center.y, center.z - sz * 0.5, sx, 0.18, sz, Color("222630"), true, 0.0, 2)
-	box(self, center.x - sx * 0.5, center.y + sy - 0.22, center.z - sz * 0.5, sx, 0.22, sz, col, true, 0.0, 2)
-	box(self, center.x - sx * 0.5, center.y, center.z - sz * 0.5, 0.24, sy, sz, col, true, 0.0, 2)
-	box(self, center.x + sx * 0.5 - 0.24, center.y, center.z - sz * 0.5, 0.24, sy, sz, col, true, 0.0, 2)
+	HarborAtelier.build(self)
 
 
 func _build_combat_3_sniper_canyon() -> void:
