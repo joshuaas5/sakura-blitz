@@ -31,7 +31,7 @@ func setup(g: SakuraBlitzMain) -> void:
 	glyph("shield_icon", "shield")
 	glyph("ammo_icon", "fire")
 	glyph("knob", "knob")
-	for key in ["score_text", "clock_text", "hp_text", "armor_text", "ammo_text", "hint_text", "map_name", "mode_text", "weapon_name", "countdown", "leaderboard", "feed_text", "guard_text"]:
+	for key in ["score_text", "clock_text", "hp_text", "armor_text", "ammo_text", "hint_text", "map_name", "mode_text", "weapon_name", "countdown", "leaderboard", "feed_text", "guard_text", "fire_hint"]:
 		label(key)
 	map_canvas = Control.new()
 	map_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -174,6 +174,10 @@ func sync() -> void:
 			pieces[action].self_modulate = Color("d7b47d") if g._touch_actions.values().has(action) else Color.WHITE
 			pieces[action].modulate.a = MobileLayout.opacity(g.profile.data, action)
 			pieces[action + "_icon"].modulate.a = MobileLayout.opacity(g.profile.data, action)
+	pieces.fire_hint.visible = mobile and not race
+	if mobile and not race:
+		var fire: Rect2 = g._action_rects().fire
+		words("fire_hint", "ATIRAR", Rect2(fire.position.x, fire.end.y - fire.size.y * 0.27, fire.size.x, fire.size.y * 0.18), 10)
 	place("checkpoint", checkpoint_rect(g))
 	place("checkpoint_icon", checkpoint_rect(g).grow(-18))
 	pieces.checkpoint.visible = race

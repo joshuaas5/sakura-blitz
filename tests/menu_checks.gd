@@ -59,7 +59,6 @@ func run(g: SakuraBlitzMain) -> bool:
 	var old_emulation := Input.is_emulating_touch_from_mouse()
 	Input.set_emulate_touch_from_mouse(true)
 	g._mobile_hud_enabled = true
-	g._mobile_autofire = false
 	g.get_window().size = Vector2i(844, 390)
 	g._hub.mode = 0
 	g._hub.page = 0

@@ -13,7 +13,6 @@ func run(g: SakuraBlitzMain) -> bool:
 	g.set_physics_process(false)
 	g.world.enemies_paused = true
 	g._mobile_hud_enabled = true
-	g._mobile_autofire = false
 	await g.get_tree().physics_frame
 	await g.get_tree().physics_frame
 	var joy := g._mobile_rect("joystick").get_center()

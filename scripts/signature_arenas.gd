@@ -397,15 +397,15 @@ static func atmosphere(w: SakuraWorld, index: int) -> void:
 		6:
 			w.sun.light_color = Color("ffe2b3")
 			w.sun.rotation_degrees = Vector3(-42, -30, 0)
-			w.sky_mat.sky_top_color = Color("5996ae")
-			w.sky_mat.sky_horizon_color = Color("ead5b5")
+			w.sky_mat.sky_top_color = Color("258ebe")
+			w.sky_mat.sky_horizon_color = Color("f2d49d")
 			w.env.fog_light_color = Color("e4c795")
 		7:
 			w.sun.light_color = Color("ffe6ce")
 			w.sun.rotation_degrees = Vector3(-27, -48, 0)
-			w.sky_mat.sky_top_color = Color("729da9")
-			w.sky_mat.sky_horizon_color = Color("f2cead")
-			w.env.fog_light_color = Color("a1c0c6")
+			w.sky_mat.sky_top_color = Color("268ebd")
+			w.sky_mat.sky_horizon_color = Color("efc899")
+			w.env.fog_light_color = Color("83becb")
 		8:
 			w.sun.light_color = Color("c4daf4")
 			w.sun.light_energy = 0.85

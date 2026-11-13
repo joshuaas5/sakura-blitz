@@ -10,9 +10,9 @@ O lobby permite escolher modo, mapa e bots **Fácil, Médio ou Difícil**. A dif
 
 ### APK de teste no Android
 
-`export/android/SakuraBlitz-0.7.0-test.apk` — transfira para o aparelho e abra para instalar **Sakura Blitz Teste**. O app usa tela horizontal, ativa controles de toque automaticamente e começa na qualidade leve. A qualidade pode ser alterada em Ajustes no lobby.
+`export/android/SakuraBlitz-0.7.1-test.apk` — transfira para o aparelho e abra para instalar **Sakura Blitz Teste**. O app usa tela horizontal, ativa controles de toque automaticamente e começa na qualidade leve. A qualidade pode ser alterada em Ajustes no lobby.
 
-Build local de teste: Android 7.0/API 24 ou superior, ARM 32/64 bits, versão `0.7.0-test`, pacote `com.joshuaas5.sakurablitz.test`. Assinatura de depuração local; apenas permissão de vibração. Ainda requer teste de desempenho e ergonomia no aparelho real.
+Build local de teste: Android 7.0/API 24 ou superior, ARM 32/64 bits, versão `0.7.1-test`, pacote `com.joshuaas5.sakurablitz.test`. Assinatura de depuração local; apenas permissão de vibração. Ainda requer teste de desempenho e ergonomia no aparelho real.
 
 Para regenerar no PC configurado: `./tools/build_android_test.ps1`. O script exporta, verifica assinatura e alinhamento de 16 KB, inspeciona o manifesto e grava SHA256 em `export/android/`. Usa o SDK instalado em `C:/android-sdk`; aceita `-Godot` e `-AndroidSdk` para outros caminhos.
 
@@ -22,7 +22,7 @@ Para regenerar no PC configurado: `./tools/build_android_test.ps1`. O script exp
 - **Seis corridas:** Festival das Nuvens, Telhados do Sol, Oásis das Marés, Órbita Neon, Jardim do Chá e Fábrica de Brinquedos. Cada percurso tem oito setores, sete corredores, checkpoints sequenciais, rota segura e atalhos.
 - **Arsenal:** seis armas disponíveis desde o início, incluindo Brisa SMG e Flora escopeta, seleção no lobby, prévias 3D, recargas e maestria por arma. A escolha de combate permanece salva entre sessões e corridas.
 - **Bots com níveis:** reação, precisão, frequência de tiro, movimento e velocidade de corrida diferentes; todos têm a mesma vida. Disparos respeitam paredes e os bots também disputam entre si.
-- **Mobile:** analógico esquerdo, câmera à direita, pulo com arraste para olhar, tiro automático opcional, recarga automática, assistência de subida em obstáculos baixos e tolerância no salto.
+- **Mobile:** analógico esquerdo, câmera à direita, pulo com arraste para olhar, tiro manual com arraste para mirar, recarga automática, assistência de subida em obstáculos baixos e tolerância no salto.
 - **Perfil local:** moedas, equipamentos, recordes, preferências e maestria salvos com arquivo de recuperação. Ouro aos 50 abates por arma; silenciador cosmético aos 100 abates nas armas de fogo.
 - **Economia:** moedas por desempenho, desafio diário resgatável uma vez e loja com cosméticos. Upgrades comprados com moedas de jogo dão até +3% de dano; skins não alteram atributos. Não há compra com dinheiro real nesta versão.
 - **Visual e áudio:** Vila Floral com assets CC0 importados, HUD com molduras ilustradas, cinco armas importadas, skins pintadas e prévias 3D reais na loja e três loops musicais sintetizados para o projeto.
@@ -100,3 +100,7 @@ Brisa e Flora usam modelos CC0, peças animadas e efeitos sonoros sintetizados p
 ## Navegação 0.7.0
 
 As nove arenas têm navegação global. Nas cinco antigas, os bots agora seguem rotas entre pisos e sobem escadas com teste da cápsula contra colisões. Foram corrigidos acessos do Porto Cobalto, Cânion Âmbar, Distrito Neon e Estação Aurora, além de spawns bloqueados. A suíte completa passou em 1.873 verificações. Detalhes e limitações em [navegacao_fase3.md](docs/navegacao_fase3.md). O APK continua sendo uma versão de teste local contra bots, sem contas, multiplayer ou compras reais.
+
+## Tiro manual e cor 0.7.1
+
+O jogador controla o disparo pelo botão de tiro ou mouse; mirar em inimigos não dispara mais a arma, inclusive após atualizar saves antigos. Armas automáticas atiram enquanto o botão está pressionado; pistola, sniper e escopeta respondem uma vez por toque. O botão de tiro também permite arrastar a câmera. A paleta dos pisos agora é preservada pelo shader, os telhados têm famílias de cor distintas e a Vila Floral, Docas e corridas receberam ajustes de cor. Detalhes em [tiro_manual_e_cor.md](docs/tiro_manual_e_cor.md).

@@ -41,9 +41,15 @@ static func _prepare(node: Node, tint: Color) -> void:
 					blossom.shader = preload("res://assets/shaders/blossom_leaves.gdshader")
 					blossom.set_shader_parameter("leaf_texture", mat.albedo_texture)
 					materials[key] = blossom
+				elif "RoundTiles" in original.resource_name and mat.albedo_texture != null:
+					var painted := ShaderMaterial.new()
+					painted.shader = preload("res://assets/shaders/palette_pigment.gdshader")
+					painted.set_shader_parameter("pigment_texture", mat.albedo_texture)
+					painted.set_shader_parameter("palette_color", tint if tint != Color.WHITE else Color("ce6580"))
+					materials[key] = painted
 				else:
 					if "Bush_Leaves" in original.resource_name:
-						mat.albedo_color *= Color("a3b993")
+						mat.albedo_color *= Color("8fca72")
 					materials[key] = mat
 			node.set_surface_override_material(i, materials[key])
 	for child in node.get_children():
@@ -86,7 +92,7 @@ static func house(w: SakuraWorld, p: Vector3, variant: int, yaw: float = 0, uppe
 					model(root, "WindowShutters_Wide_Round_Open", at, angle)
 				if segment == -2 and side % 2 == 0:
 					model(root, "Prop_Vine1", at + Vector3(0, 2.8, 0), angle)
-	var roof_tint: Color = [Color("e5a8a2"), Color("a9bcb0"), Color("9baec7"), Color("e2c093")][variant % 4]
+	var roof_tint: Color = [Color("d85c84"), Color("36a58c"), Color("5787c8"), Color("e5a34a")][variant % 4]
 	model(root, "Roof_RoundTiles_6x6", Vector3(0, floors * 3, 0), 0, 1, false, roof_tint)
 	model(root, "Roof_Front_Brick6", Vector3(0, floors * 3, 3), 0)
 	model(root, "Roof_Front_Brick6", Vector3(0, floors * 3, -3), PI)
@@ -267,15 +273,15 @@ static func atmosphere(w: SakuraWorld) -> void:
 	w.sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	w.sun.shadow_bias = 0.06
 	w.sun.rotation_degrees = Vector3(-38, -32, 0)
-	w.sun.light_energy = 0.72
-	w.sun.light_color = Color("fff1db")
+	w.sun.light_energy = 0.90
+	w.sun.light_color = Color("fff0d7")
 	w.env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	w.env.ambient_light_color = Color("b9ced5")
-	w.env.ambient_light_energy = 0.48
+	w.env.ambient_light_color = Color("a6bfd5")
+	w.env.ambient_light_energy = 0.36
 	w.env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	w.env.fog_enabled = true
 	w.env.fog_light_color = Color("c4c8d5")
-	w.env.fog_density = 0.0015
+	w.env.fog_density = 0.0007
 	w.env.fog_sky_affect = 0.0
-	w.sky_mat.sky_top_color = Color("6e97b8")
-	w.sky_mat.sky_horizon_color = Color("e2d7cf")
+	w.sky_mat.sky_top_color = Color("3c8bd1")
+	w.sky_mat.sky_horizon_color = Color("b7def0")

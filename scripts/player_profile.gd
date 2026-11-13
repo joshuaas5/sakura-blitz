@@ -27,7 +27,7 @@ static func defaults() -> Dictionary:
 		"owned_tags": [true, false, false, false, false],
 		"character": 0, "tag": 0, "best_times": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
 		"daily_day": "", "daily_kills": 0, "daily_races": 0, "daily_claimed": false,
-		"sensitivity": 1.0, "ads_sensitivity": 0.55, "auto_fire": true,
+		"sensitivity": 1.0, "ads_sensitivity": 0.55, "auto_fire": false,
 		"haptics": true, "quality": 0, "bot_difficulty": 1, "music_volume": 0.35, "music_enabled": true,
 		"hud_left_handed": false, "hud_layout": {}, "tutorial_complete": false, "show_performance": false, "effects_volume": 1.0, "ambience_volume": 0.6
 	}
@@ -66,6 +66,7 @@ func read_save() -> void:
 		data.suppressors[i] = bool(data.suppressors[i]) and data.weapon_kills[i] >= 100 and i in WeaponCatalog.FIREARMS
 	for i in data.best_times.size():
 		data.best_times[i] = maxf(0.0, data.best_times[i]) if is_finite(data.best_times[i]) else 0.0
+	data.auto_fire = false # Legacy setting is retired: firing always requires player input.
 	data.selected_weapon = clampi(data.selected_weapon, 0, WeaponCatalog.DEFINITIONS.size() - 1)
 	data.character = clampi(data.character, 0, 3)
 	data.tag = clampi(data.tag, 0, 4)

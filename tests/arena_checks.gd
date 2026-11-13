@@ -10,7 +10,6 @@ func check(value: bool, message: String) -> void:
 
 func run(game: SakuraBlitzMain) -> bool:
 	game.set_physics_process(false)
-	game._mobile_autofire = false
 	for arena in [5, 6, 7, 8]:
 		game._start_from_hub(0, arena)
 		game.world.enemies_paused = true

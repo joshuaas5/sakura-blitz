@@ -148,7 +148,7 @@ var _ui_tex_cache := {}
 
 # Mobile-First Pro Touch & Aim-Assist System
 var _mobile_hud_enabled := false
-var _mobile_autofire := true
+var _fire_press_pending := false
 var _mobile_aim_assist := true
 var _mobile_move_vec := Vector2.ZERO
 var _mobile_fire_held := false
@@ -908,6 +908,8 @@ func _input(event: InputEvent) -> void:
 
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed and not _mobile_hud_enabled and _mouse_captured and not _paused and not _killcam_active:
+			_fire_press_pending = true
 		if mb.button_index == MOUSE_BUTTON_LEFT and _mobile_hud_enabled:
 			_handle_touch(99, mb.position, mb.pressed)
 			return
@@ -1019,10 +1021,7 @@ func _cycle_atmosphere_preset() -> void:
 
 func _toggle_mobile_hud() -> void:
 	_mobile_hud_enabled = not _mobile_hud_enabled
-	_joy_touch_idx = -1
-	_mobile_move_vec = Vector2.ZERO
-	_mobile_fire_held = false
-	_mobile_jump_held = false
+	_clear_touch_state()
 	if _mobile_hud_enabled:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		_mouse_captured = false
@@ -1274,10 +1273,9 @@ func _physics_process(delta: float) -> void:
 			if _body.velocity.z < 0.0:
 				_body.velocity.z = 0.0
 
-	# Mobile-First Aim-Assist Magnetism + Optional Auto-Fire when in Combat Mode!
-	var auto_trigger_target := false
+	# Aim assistance never requests a shot.
 	if current_mode == SakuraWorld.MODE_COMBAT and _mobile_aim_assist:
-		auto_trigger_target = _apply_mobile_aim_assist(delta)
+		_apply_mobile_aim_assist(delta)
 
 	var target_eye := EYE_CROUCH if _crouching else EYE_STAND
 	_eye_y = lerpf(_eye_y, target_eye, minf(1.0, delta * 16.0))
@@ -1299,24 +1297,29 @@ func _physics_process(delta: float) -> void:
 	world.player_grounded = _body.is_on_floor()
 	weapons.tick_viewmodel(delta, h_speed, _body.is_on_floor(), _sprinting, _crouching)
 
-	var want_fire := current_mode == 0 and not _shop_open and not _paused and (
-		(_mouse_captured and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT))
-		or _mobile_fire_held
-		or (_mobile_hud_enabled and _mobile_autofire and auto_trigger_target)
-	)
-	if _mobile_hud_enabled and current_mode == 0 and _cur_ammo_cached == 0 and not _reloading_cached:
-		weapons.start_reload()
-	if want_fire:
-		if bool(w_def.auto) or not bool(_body.get_meta("fire_was", false)) or (_mobile_hud_enabled and _mobile_autofire):
-			if weapons.try_fire(h_speed):
-				_crosshair_spread = minf(1.0, _crosshair_spread + (0.14 if weapons.ads_alpha > 0.5 else 0.28))
-	_body.set_meta("fire_was", want_fire)
+	_tick_weapon_trigger(h_speed)
 
 	_update_hud(delta, h_speed)
 
 
+func _tick_weapon_trigger(h_speed: float) -> void:
+	var pressed := _fire_press_pending
+	_fire_press_pending = false
+	if current_mode != SakuraWorld.MODE_COMBAT or _shop_open or _paused or _hub_open or _killcam_active:
+		_body.set_meta("fire_was", false)
+		return
+	var held := (_mouse_captured and not _mobile_hud_enabled and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)) or _mobile_fire_held
+	var w: Dictionary = WeaponRig.WEAPONS[weapons.current_idx]
+	if _mobile_hud_enabled and _cur_ammo_cached == 0 and not _reloading_cached:
+		weapons.start_reload()
+	if (held or pressed) and (bool(w.auto) or pressed or not bool(_body.get_meta("fire_was", false))):
+		if weapons.try_fire(h_speed):
+			_crosshair_spread = minf(1.0, _crosshair_spread + (0.14 if weapons.ads_alpha > 0.5 else 0.28))
+	_body.set_meta("fire_was", held)
+
+
 func _apply_mobile_aim_assist(delta: float) -> bool:
-	if not is_instance_valid(_cam) or world.enemies.is_empty():
+	if not _mobile_hud_enabled or (_look_touch_idx < 0 and not _mobile_fire_held and not weapons.want_ads) or not is_instance_valid(_cam) or world.enemies.is_empty():
 		return false
 	var cam_pos := _cam.global_position
 	var cam_fwd := -_cam.global_transform.basis.z
@@ -1636,6 +1639,7 @@ func _trigger_instant_killcam() -> void:
 
 
 func _start_killcam(mode: String, data: Dictionary) -> void:
+	_clear_touch_state()
 	_cleanup_killcam_actors()
 	_killcam_active = true
 	_killcam_mode = mode
@@ -1808,6 +1812,10 @@ func _run_automated_test() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_startup_grace = 0.0
+	if OS.get_cmdline_user_args().has("--manual-fire"):
+		var manual_fire = load("res://tests/manual_fire_checks.gd").new()
+		get_tree().quit(0 if await manual_fire.run(self) else 1)
+		return
 	if OS.get_cmdline_user_args().has("--navigation"):
 		var navigation = load("res://tests/navigation_checks.gd").new()
 		get_tree().quit(0 if await navigation.run(self) else 1)
@@ -1905,6 +1913,10 @@ func _run_automated_test() -> void:
 		return
 	var navigation_checks = load("res://tests/navigation_checks.gd").new()
 	if not await navigation_checks.run(self):
+		get_tree().quit(1)
+		return
+	var manual_fire_checks = load("res://tests/manual_fire_checks.gd").new()
+	if not await manual_fire_checks.run(self):
 		get_tree().quit(1)
 		return
 	print("2 GAME MODES (9 COMBAT ARENAS + 6 MOBILE PARKOUR COURSES) + 7 RUNNER BOTS + MOBILE-FIRST HUD automated test PASSED!")
@@ -2005,6 +2017,7 @@ func _handle_touch(index: int, pos: Vector2, pressed: bool) -> void:
 				_jump_buffer = 0.15
 			"fire":
 				_mobile_fire_held = true
+				_fire_press_pending = true
 			"ads":
 				weapons.want_ads = not weapons.want_ads
 			"reload":
@@ -2040,6 +2053,7 @@ func _handle_touch_drag(index: int, pos: Vector2, relative: Vector2) -> void:
 
 
 func _clear_touch_state() -> void:
+	_fire_press_pending = false
 	_touch_actions.clear()
 	_joy_touch_idx = -1
 	_look_touch_idx = -1
@@ -2099,7 +2113,6 @@ func _restore_profile() -> void:
 	unlocked_dogtags = profile.data.owned_tags.duplicate()
 	active_dogtag_idx = profile.data.tag
 	_res_idx = profile.data.quality
-	_mobile_autofire = profile.data.auto_fire
 	for i in RANK_TIERS.size():
 		if rp >= RANK_TIERS[i].min_rp:
 			rank_idx = i
@@ -2122,7 +2135,6 @@ func _sync_profile() -> void:
 func _apply_profile_settings() -> void:
 	Sfx.configure_music(profile.data.music_enabled, profile.data.music_volume)
 	Sfx.configure_effects(profile.data.effects_volume, profile.data.ambience_volume)
-	_mobile_autofire = profile.data.auto_fire
 	_res_idx = profile.data.quality
 	_apply_graphics_preset()
 	world.kz_best_times = profile.data.best_times.duplicate()
@@ -2248,6 +2260,12 @@ func _haptic(duration: int) -> void:
 
 
 func _run_foundation_qa() -> void:
+	if OS.get_cmdline_user_args().has("--manual-fire"):
+		await _run_manual_fire_qa()
+		return
+	if OS.get_cmdline_user_args().has("--color"):
+		await _run_color_qa()
+		return
 	if OS.get_cmdline_user_args().has("--navigation"):
 		await _run_navigation_qa()
 		return
@@ -2278,7 +2296,6 @@ func _run_foundation_qa() -> void:
 	if OS.get_cmdline_user_args().has("--art"):
 		await _run_art_qa()
 		return
-	_mobile_autofire = false
 	await get_tree().process_frame
 	_open_hub()
 	await _save_shot("foundation_hub.png")
@@ -2300,7 +2317,6 @@ func _run_foundation_qa() -> void:
 			await get_tree().process_frame
 		await _save_shot("foundation_combat_%d.png" % arena)
 	world.enemies_paused = true
-	_mobile_autofire = false
 	weapons.apply_weapon_skin(1)
 	for frame in 12:
 		await get_tree().process_frame
@@ -2342,7 +2358,6 @@ func _run_foundation_qa() -> void:
 		await get_tree().process_frame
 	await _save_shot("foundation_phone_race.png")
 	_start_from_hub(0, 5)
-	_mobile_autofire = false
 	for frame in 10:
 		await get_tree().process_frame
 	await _save_shot("foundation_phone_combat.png")
@@ -2413,7 +2428,6 @@ func _show_combat_result(standings: Array, place: int, reward: int) -> void:
 func _run_combat_qa() -> void:
 	DisplayServer.window_set_size(Vector2i(844, 390))
 	_mobile_hud_enabled = true
-	_mobile_autofire = false
 	profile.data.bot_difficulty = 2
 	_res_idx = 2
 	_start_from_hub(0, 5)
@@ -2465,7 +2479,6 @@ func _run_phase2_qa() -> void:
 	Input.set_emulate_touch_from_mouse(false)
 	_start_from_hub(0, 5)
 	_mobile_hud_enabled = true
-	_mobile_autofire = false
 	_res_idx = 2
 	_apply_graphics_preset()
 	world.enemies_paused = true
@@ -2496,7 +2509,6 @@ func _run_phase2_qa() -> void:
 func _run_mobile_qa() -> void:
 	DisplayServer.window_set_size(Vector2i(844, 390))
 	_mobile_hud_enabled = true
-	_mobile_autofire = false
 	_res_idx = 2
 	_start_from_hub(0, 6)
 	_apply_graphics_preset()
@@ -2533,7 +2545,6 @@ func _run_mobile_qa() -> void:
 
 func _run_arena_qa() -> void:
 	_res_idx = 2
-	_mobile_autofire = false
 	for arena in [6, 7, 8]:
 		DisplayServer.window_set_size(Vector2i(1280, 720))
 		_start_from_hub(0, arena)
@@ -2574,7 +2585,6 @@ func _run_art_qa() -> void:
 	_res_idx = 2
 	_apply_graphics_preset()
 	world.enemies_paused = true
-	_mobile_autofire = false
 	_mobile_hud_enabled = false
 	DisplayServer.window_set_size(Vector2i(1280, 720))
 	_banner_timer = 0
@@ -2654,7 +2664,6 @@ func _run_arsenal_qa() -> void:
 	_res_idx = 2
 	_apply_graphics_preset()
 	world.enemies_paused = true
-	_mobile_autofire = false
 	_banner_label.text = ""
 	_banner_timer = 0
 	_body.position = Vector3(-5, 0.1, 17)
@@ -2690,7 +2699,6 @@ func _run_arsenal_qa() -> void:
 
 func _run_navigation_qa() -> void:
 	DisplayServer.window_set_size(Vector2i(1280, 720))
-	_mobile_autofire = false
 	for stage in [1, 3]:
 		_start_from_hub(0, stage)
 		_res_idx = 2
@@ -2735,4 +2743,66 @@ func _run_navigation_qa() -> void:
 		for frame in 12:
 			await get_tree().process_frame
 		await _save_shot("navigation_%d_overview.png" % stage)
+	get_tree().quit()
+
+func _run_color_qa() -> void:
+	var prefix := "color_before" if OS.get_cmdline_user_args().has("--before") else "color_after"
+	DisplayServer.window_set_size(Vector2i(1280, 720))
+	var scenes := [
+		[0, 5, Vector3(-4, 2.3, 19), Vector3(0, 1.4, 0)],
+		[0, 3, Vector3(18, 10, 21), Vector3(0, 2, 2)],
+		[0, 7, Vector3(-11, 3, 21), Vector3(0, 2, -4)],
+		[1, 0, Vector3(7, 5, 14), Vector3(0, 1, -25)]
+	]
+	for spec in scenes:
+		_start_from_hub(spec[0], spec[1])
+		_res_idx = 0
+		_apply_graphics_preset()
+		set_physics_process(false)
+		world.enemies_paused = true
+		for actor in world.enemies + world.parkour_runners:
+			actor.set_physics_process(false)
+		_hud.hide()
+		weapons.hide()
+		_banner_timer = 0
+		_banner_label.text = ""
+		_cam.global_position = spec[2]
+		_cam.look_at(spec[3])
+		_cam.fov = 70
+		for frame in 16:
+			await get_tree().process_frame
+		await _save_shot("%s_%d_%d.png" % [prefix, spec[0], spec[1]])
+	get_tree().quit()
+
+func _run_manual_fire_qa() -> void:
+	var checks = load("res://tests/manual_fire_checks.gd").new()
+	if not await checks.run(self):
+		get_tree().quit(1)
+		return
+	DisplayServer.window_set_size(Vector2i(844, 390))
+	_mobile_hud_enabled = true
+	_start_from_hub(0, 5)
+	_res_idx = 0
+	_apply_graphics_preset()
+	world.enemies_paused = true
+	_cam.transform = Transform3D.IDENTITY
+	_body.position = Vector3(-4, 0.1, 19)
+	_yaw = -0.12
+	_pitch = -0.02
+	weapons.select_weapon(0, true)
+	weapons.refill_all_ammo()
+	weapons.fire_cd = 0
+	weapons.inspect_timer = 0
+	_banner_timer = 0
+	_banner_label.text = ""
+	for frame in 24:
+		await get_tree().process_frame
+	await _save_shot("color_manual_mobile_ready.png")
+	var menus = load("res://tests/menu_checks.gd").new()
+	Input.set_emulate_touch_from_mouse(true)
+	menus.touch(self, _action_rects().fire.get_center(), true, 2)
+	for frame in 5:
+		await get_tree().physics_frame
+	await _save_shot("color_manual_mobile_firing.png")
+	menus.touch(self, _action_rects().fire.get_center(), false, 2)
 	get_tree().quit()

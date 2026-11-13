@@ -2,7 +2,7 @@ class_name ParkourCourses
 extends RefCounted
 ## Two routes per sector. The detour has <=1.2m gaps and 4m-wide landings.
 ## Central skill lanes are shorter and offer one-shot collectible rings.
-const COLORS := [Color("e99bb3"), Color("eab277"), Color("76ccc0"), Color("a99bea"), Color("9cbd87"), Color("e7a081")]
+const COLORS := [Color("e75d91"), Color("f1a23e"), Color("24baa9"), Color("8660d5"), Color("63b34b"), Color("ec7b46")]
 const RECIPES := [
 	["DRUMS", "BUMPERS", "SWEEP", "BELT", "DRUMS", "PENDULUM", "MOVERS", "HAMMER"],
 	["STEPS", "BELT", "PENDULUM", "MOVERS", "PUSHERS", "STEPS", "HAMMER", "BELT"],

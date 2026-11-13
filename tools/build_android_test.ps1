@@ -5,7 +5,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $artifactDir = Join-Path $projectRoot 'export/android'
-$apkPath = Join-Path $artifactDir 'SakuraBlitz-0.7.0-test.apk'
+$apkPath = Join-Path $artifactDir 'SakuraBlitz-0.7.1-test.apk'
 New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
 if (-not (Test-Path -LiteralPath $Godot)) { throw "Godot not found: $Godot" }
 $buildTools = Get-ChildItem -LiteralPath (Join-Path $AndroidSdk 'build-tools') -Directory |

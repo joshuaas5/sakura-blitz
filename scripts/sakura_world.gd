@@ -57,8 +57,8 @@ const ATMO_PRESETS := [
 		"amb_e": 0.74,
 		"sun_c": Color("fff2dc"),
 		"sun_e": 0.52,
-		"sat": 1.02,
-		"con": 1.02
+		"sat": 1.12,
+		"con": 1.06
 	},
 	{
 		"name": "GOLDEN HOUR BO2 (POR DO SOL)",
@@ -69,8 +69,8 @@ const ATMO_PRESETS := [
 		"amb_e": 0.68,
 		"sun_c": Color("ffb76b"),
 		"sun_e": 0.64,
-		"sat": 1.06,
-		"con": 1.03
+		"sat": 1.12,
+		"con": 1.06
 	},
 	{
 		"name": "FESTIVAL CREPUSCULO SAKURA",
@@ -81,8 +81,8 @@ const ATMO_PRESETS := [
 		"amb_e": 0.56,
 		"sun_c": Color("ff9ebb"),
 		"sun_e": 0.44,
-		"sat": 1.08,
-		"con": 1.04
+		"sat": 1.12,
+		"con": 1.06
 	}
 ]
 
@@ -1155,14 +1155,14 @@ func _build_combat_4_cyber_vertigo() -> void:
 		Vector3(15.0, 3.8, 15.0), Vector3(0.0, 7.4, 0.0),
 		Vector3(-9.0, 0.2, 0.0), Vector3(9.0, 0.2, 0.0)
 	]
-	var deck_dark := Color("1f2433")
-	var deck_mid := Color("2e3548")
+	var deck_dark := Color("182f50")
+	var deck_mid := Color("355372")
 	var cyan := Color("00f5d4")
 	var pink := Color("ff2a85")
 	var gold := Color("ffd166")
 
 	# Floor 1: Skyscraper Rooftop Plaza (46m x 46m, y = 0.0m)
-	box(self, -23.0, -1.0, -23.0, 46.0, 1.0, 46.0, deck_dark, true, 0.0, 2)
+	box(self, -23.0, -1.0, -23.0, 46.0, 1.0, 46.0, deck_dark, true, 0.0, 0)
 	for s in [-23.0, 22.4]:
 		box(self, -23.0, 0.0, s, 46.0, 1.4, 0.6, cyan, true, 1.2, -1)
 		box(self, s, 0.0, -23.0, 0.6, 1.4, 46.0, pink, true, 1.2, -1)
@@ -1178,21 +1178,21 @@ func _build_combat_4_cyber_vertigo() -> void:
 	# Floor 1 Neon Server Monoliths for Cover
 	for mx in [-8.5, 8.5]:
 		for mz in [-8.5, 8.5]:
-			box(self, mx - 1.2, 0.0, mz - 1.2, 2.4, 3.6, 2.4, deck_mid, true, 0.0, 2)
+			box(self, mx - 1.2, 0.0, mz - 1.2, 2.4, 3.6, 2.4, deck_mid, true, 0.0, 0)
 			box(self, mx - 1.25, 1.5, mz - 1.25, 2.5, 0.25, 2.5, pink, false, 1.6, -1)
 
 	# Floor 2: Elevated Mezzanine Ring (y = 3.6m)
-	box(self, -18.0, 3.4, -18.0, 36.0, 0.30, 5.5, deck_mid, true, 0.0, 2)
-	box(self, -18.0, 3.4, 12.5, 36.0, 0.30, 5.5, deck_mid, true, 0.0, 2)
-	box(self, -18.0, 3.4, -12.5, 5.5, 0.30, 25.0, deck_mid, true, 0.0, 2)
-	box(self, 12.5, 3.4, -12.5, 5.5, 0.30, 25.0, deck_mid, true, 0.0, 2)
+	box(self, -18.0, 3.4, -18.0, 36.0, 0.30, 5.5, deck_mid, true, 0.0, 0)
+	box(self, -18.0, 3.4, 12.5, 36.0, 0.30, 5.5, deck_mid, true, 0.0, 0)
+	box(self, -18.0, 3.4, -12.5, 5.5, 0.30, 25.0, deck_mid, true, 0.0, 0)
+	box(self, 12.5, 3.4, -12.5, 5.5, 0.30, 25.0, deck_mid, true, 0.0, 0)
 	# Ramps from Floor 1 to Floor 2
 	for st in 9:
 		box(self, -2.2, st * 0.41, 7.3 + st * 0.65, 4.4, 0.42, 0.70, cyan.darkened(0.25), true, 0.4, 0)
 		box(self, -2.2, st * 0.41, -8.0 - st * 0.65, 4.4, 0.42, 0.70, pink.darkened(0.25), true, 0.4, 0)
 
 	# Floor 3: Central High Penthouse Helipad Deck (y = 7.2m)
-	box(self, -6.5, 6.9, -6.5, 13.0, 0.35, 13.0, deck_dark, true, 0.0, 2)
+	box(self, -6.5, 6.9, -6.5, 13.0, 0.35, 13.0, deck_dark, true, 0.0, 0)
 	box(self, -6.6, 7.25, -6.6, 13.2, 0.18, 13.2, gold, false, 1.6, -1)
 	RetroModels.torii_gate(self, _stage_root, Vector3(0.0, 7.25, 0.0), 5.2, 4.2, 0.0)
 	# Ramps from Floor 2 (x = +-12.5, y = 3.6m) up to Floor 3 Penthouse (x = +-6.5, y = 7.2m)

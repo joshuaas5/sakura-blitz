@@ -9,7 +9,7 @@ func check(value: bool, description: String) -> void:
 		push_error(description)
 
 func run(game: SakuraBlitzMain) -> bool:
-	# Isolate bot assertions from the player autofire enabled by touch tests.
+	# Isolate bot assertions from player input left by earlier touch tests.
 	game.set_physics_process(false)
 	for difficulty in 3:
 		game.profile.data.bot_difficulty = difficulty
