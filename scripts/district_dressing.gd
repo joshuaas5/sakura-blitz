@@ -29,7 +29,7 @@ static func plaque(w: SakuraWorld, text: String, at: Vector3, width: float, colo
 	S.signpost(w, text, at + Basis(Vector3.UP, yaw) * Vector3(0, 0, 0.075), "f2dfb5", yaw)
 
 static func garden(w: SakuraWorld) -> void:
-	for p in [Vector3(-29, 0, -18), Vector3(-29, 0, 0), Vector3(29, 0, 18), Vector3(11, 0, 7), Vector3(-11, 0, -7), Vector3(0, 0, 34)]:
+	for p in [Vector3(-29, 0, -18), Vector3(-29, 0, -3), Vector3(29, 0, 18), Vector3(11, 0, 7), Vector3(-11, 0, -7), Vector3(0, 0, 34)]:
 		bench(w, p, PI if p.x < 0 else 0.0)
 	for x in [-23, 23]:
 		for z in [-24, 24]:

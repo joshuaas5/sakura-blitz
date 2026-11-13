@@ -49,7 +49,7 @@ func run(g: SakuraBlitzMain) -> bool:
 		check(w.bots_per_round <= EnemyBot.BOT_NAMES.size(), "Population cannot exceed the available unique roster")
 	g.profile.data.match_kind = CombatMatch.CTF
 	g.profile.data.large_population = 0
-	for stage in [1, 9, 10]:
+	for stage in SakuraWorld.COMBAT_STAGE_DEFS.size():
 		g._start_from_hub(0, stage)
 		g.set_physics_process(false)
 		var w := g.world

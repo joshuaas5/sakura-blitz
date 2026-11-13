@@ -45,10 +45,16 @@ Requisito do usuário: nenhum item novo com arte provisória. Os pontos de supri
 
 Blaster Kit 2.1 e seleção de itens do Platformer Kit 1.1, publicados pelo Kenney e baixados das páginas do autor no OpenGameArt. Originais, sprites, atlas, licenças CC0 e hashes acompanham os assets. `ItemArt` centraliza o catálogo: não gera cubos substitutos quando falta arte. `SupplyStation` preserva seus modelos e animação no agrupamento do cenário. Licenças incluídas nos presets de export, sem gerar APK nesta etapa.
 
-Revisão visual nativa e captura dos componentes realizadas. Os 442 percursos e verificações de navegação passaram após a reconstrução do Cânion. A revisão geral de todos os sistemas permanece para o fim do lote, conforme orientação do usuário. A substituição dos demais visuais antigos continua; isto não declara que todos os mapas chegaram ao acabamento final.
+Revisão visual nativa e captura dos componentes realizadas. Os 442 percursos e verificações de navegação passaram após a reconstrução do Cânion. A revisão geral foi concluída no fechamento offline descrito abaixo.
 
-## Validação pendente do lote
+## Fechamento offline — Vila, Neon e Aurora
 
-Antes da última ampliação de cenário e HUD, houve verificações focadas de equipes e bandeiras, incluindo transporte físico por bots; percursos das arenas grandes também foram exercitados. A primeira suíte geral detectou uma expectativa antiga de seis bots na Estação, atualizada para oito. A suíte geral final ainda não foi repetida após o lote mais recente, por orientação do usuário. Não tratar esta produção como release validada.
+Vila Sakura recebe fachadas modulares com portas, janelas, trepadeiras, terraços de madeira, veículos do Car Kit e escadas com patamares. Duas aproximações opostas permitem que os bots subam aos terraços sem teletransporte; caixas mantêm atalhos de salto para o jogador. O limite de cenário é arquitetura visível de 6,5 m, acima dos telhados acessíveis.
 
-Continuam pendentes testes humanos de diversão e equilíbrio, medição em celular, multiplayer online, contas, cobrança e preparação de produção. A implementação atual é local contra bots.
+Distrito Neon passa a ser um átrio tecnológico de três níveis: módulos Sci-Fi, pilares, painéis, guarda-corpos, jardim suspenso e faixas de cor por andar. As peças planas ficam sobre o piso físico, e a largura dos módulos segue seu eixo original. Caixas de cobertura foram afastadas dos pontos de entrada. Estação Aurora usa vagões e trilhos do Train Kit, plataformas cobertas, passarelas e escadas, fachadas de estação, relógios e sinalização. Os quatro bondes do Terminal Girassol também usam vagões importados. Car Kit 3.1 e Train Kit 1.0 são seleções CC0, com originais, atlas e hashes preservados.
+
+NPCs usam armas importadas por classe, agrupadas na malha articulada da mão, mantendo o orçamento de desenhos do personagem. Rifles, armas de precisão e SMGs têm carregadores e tempos de recarga próprios; sem munição, não disparam. No Médio/Difícil, podem buscar cobertura durante a recarga; os objetivos de bandeira mantêm prioridade.
+
+A revisão consolidada terminou com **6.050 verificações, zero falhas**. Inclui controles e menus por toque, tutorial com tiro real, recargas, perfil, arsenal, navegação, mapas grandes e captura física por bots nas 11 arenas. Uma bancada no Vale foi deslocada para liberar uma entrada/patrulha. Há capturas reais do jogo em `shots/offline_*`, incluindo PC, celular e modelos de NPCs, e novas miniaturas das três arenas no lobby.
+
+Multiplayer e compras foram excluídos do escopo vigente; não foi gerado novo APK. O ciclo offline está integrado para avaliação humana. Ainda é necessário teste em celular e sessões humanas para medir ergonomia, desempenho e equilíbrio; a suíte no PC não comprova esses aspectos. Estado consolidado em `docs/estado_lancamento.md`.

@@ -23,7 +23,7 @@ func run(g: SakuraBlitzMain) -> bool:
 				var route := nav.path(spawns[i], spawns[j])
 				check(not route.is_empty(), "Arena %d route %d -> %d exists" % [stage, i, j])
 		var cases: Array = [
-			[[Vector3(-2, 0.05, -15), Vector3(0, 0.05, 15)]],
+			[[Vector3(-2, 0.05, -15), Vector3(0, 0.05, 15)], [Vector3(12, 0.05, -3), Vector3(9.5, 3.73, 5.5)], [Vector3(-12, 0.05, 3), Vector3(-9.5, 3.73, -5.5)]],
 			[[Vector3(-8.5, 0.05, 18), Vector3(0, 3.35, 0)], [Vector3(0, 3.35, 0), Vector3(8.5, 0.05, 18)]],
 			[[Vector3(0, 0.05, -10), Vector3(0, 4.05, 26.5)], [Vector3(0, 0.05, 10), Vector3(-18.5, 2.65, -14)]],
 			[[Vector3(0, 0.05, 6), Vector3(0, 7.3, 0)], [Vector3(0, 7.3, 0), Vector3(0, 0.05, 6)]],

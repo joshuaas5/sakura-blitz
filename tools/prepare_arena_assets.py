@@ -60,8 +60,14 @@ def extract_items():
     extract('kenney_platformer.zip', 'kenney_items', ['heart', 'coinGold', 'jewel', 'button', 'sign'], '.glb', 'https://opengameart.org/content/platformer-kit', ['Side/heart.png', 'Side/coinGold.png', 'Side/jewel.png', 'Side/button.png', 'Side/sign.png'])
 
 
+def extract_transport():
+    extract('kenney_car.zip', 'kenney_car', ['delivery', 'van', 'truck', 'sedan'], '.glb', 'https://opengameart.org/content/car-kit')
+    extract('kenney_train.zip', 'kenney_train', ['train-electric-city-a', 'train-electric-city-b', 'train-tram-classic', 'track-detailed'], '.glb', 'https://opengameart.org/content/train-kit')
+
+
 if __name__ == '__main__':
     extract('scifi_standard.zip', 'quaternius_scifi', SCI, '.gltf', 'https://quaternius.itch.io/modular-sci-fi-megakit')
     extract('kenney_pirate.zip', 'kenney_pirate', PIRATE, '.glb', 'https://opengameart.org/content/pirate-kit')
     extract('kenney_factory.zip', 'kenney_factory', FACTORY, '.glb', 'https://opengameart.org/content/conveyor-kit')
     extract_items()
+    extract_transport()

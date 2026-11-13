@@ -5,7 +5,7 @@ static var materials: Dictionary = {}
 static var distance_meshes: Dictionary = {}
 
 static func distance_model(bot: EnemyBot) -> MeshInstance3D:
-	var key := posmod(EnemyBot.BOT_NAMES.find(bot.bot_name), 3)
+	var key := Vector2i(posmod(EnemyBot.BOT_NAMES.find(bot.bot_name), 3), bot.kind)
 	if not distance_meshes.has(key):
 		var st := SurfaceTool.new()
 		st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -135,8 +135,7 @@ static func build(bot: EnemyBot) -> void:
 		part(bot, root, Vector3(0.14 + cos(angle) * 0.035, 1.22 + sin(angle) * 0.035, 0.23), Vector3(0.05, 0.05, 0.018), Color("f3c1c4"), 1)
 	if not bot.is_runner:
 		bot._arm_r.rotation.x = -0.9
-		part(bot, bot._arm_r, Vector3(0, -0.35, 0.22), Vector3(0.12, 0.16, 0.55), coat)
-		part(bot, bot._arm_r, Vector3(0, -0.35, 0.53), Vector3(0.065, 0.065, 0.18), leather)
+		NpcWeaponArt.attach(bot)
 	# One vertex-colored mesh per animated joint, instead of one draw per detail.
 	bot._meshes.clear()
 	bot._orig_mats.clear()
@@ -151,15 +150,19 @@ static func merge_parts(bot: EnemyBot, pivot: Node3D) -> void:
 	for child in pivot.get_children():
 		if not child is MeshInstance3D:
 			continue
-		var data: Array = child.mesh.get_mesh_arrays()
+		var data: Array = child.mesh.get_mesh_arrays() if child.mesh is PrimitiveMesh else child.mesh.surface_get_arrays(0)
 		var offset := vertices.size()
 		var basis: Basis = child.transform.basis.inverse().transposed()
 		for i in data[Mesh.ARRAY_VERTEX].size():
 			vertices.append(child.transform * data[Mesh.ARRAY_VERTEX][i])
 			normals.append((basis * data[Mesh.ARRAY_NORMAL][i]).normalized())
 			colors.append(child.material_override.albedo_color)
-		for index in data[Mesh.ARRAY_INDEX]:
-			indices.append(index + offset)
+		if data[Mesh.ARRAY_INDEX] != null and not data[Mesh.ARRAY_INDEX].is_empty():
+			for index in data[Mesh.ARRAY_INDEX]:
+				indices.append(index + offset)
+		else:
+			for index in data[Mesh.ARRAY_VERTEX].size():
+				indices.append(index + offset)
 		pivot.remove_child(child)
 		child.free()
 	var data := []

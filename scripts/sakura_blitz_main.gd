@@ -344,7 +344,7 @@ func _apply_graphics_preset() -> void:
 	_vp.msaa_3d = p.msaa
 	_vp_tex.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR if bool(p.linear) else CanvasItem.TEXTURE_FILTER_NEAREST
 	if is_instance_valid(world) and is_instance_valid(world.sun):
-		world.sun.shadow_enabled = current_mode == 0 and (current_stage in [1, 2] or current_stage >= 5) and _res_idx > 0
+		world.sun.shadow_enabled = current_mode == 0 and _res_idx > 0
 
 
 func _build_player() -> void:
@@ -2388,6 +2388,9 @@ func _run_foundation_qa() -> void:
 		await _save_shot("fps_atelier_training.png")
 		get_tree().quit()
 		return
+	if OS.get_cmdline_user_args().has("--offline-atelier"):
+		await _run_offline_atelier_preview()
+		return
 	if OS.get_cmdline_user_args().has("--atelier-batch"):
 		await _run_atelier_batch_preview()
 		return
@@ -3139,6 +3142,72 @@ func _run_team_qa() -> void:
 			for frame in 12:
 				await get_tree().process_frame
 			await _save_shot("teams_10_scoreboard.png")
+	get_tree().quit()
+
+func _run_offline_atelier_preview() -> void:
+	profile.data.match_kind = CombatMatch.FFA
+	profile.data.aim_tip_seen = true
+	for stage in [0, 3, 4]:
+		DisplayServer.window_set_size(Vector2i(1280, 720))
+		_mobile_hud_enabled = false
+		_cam.transform = Transform3D.IDENTITY
+		_start_from_hub(0, stage)
+		world.enemies_paused = true
+		world.combat_ready_time = 0
+		_res_idx = 2
+		_apply_graphics_preset()
+		weapons.select_weapon(0, true)
+		_body.position = Vector3(0, 0.1, 16 if stage == 0 else 20)
+		_yaw = 0.24
+		_pitch = -0.04
+		_banner_timer = 0
+		_banner_label.text = ""
+		for frame in 20:
+			await get_tree().process_frame
+		await _save_shot("offline_%d_pc.png" % stage)
+		DisplayServer.window_set_size(Vector2i(844, 390))
+		_mobile_hud_enabled = true
+		_res_idx = 0
+		_apply_graphics_preset()
+		for frame in 12:
+			await get_tree().process_frame
+		await _save_shot("offline_%d_mobile.png" % stage)
+		DisplayServer.window_set_size(Vector2i(1280, 720))
+		set_physics_process(false)
+		_res_idx = 2
+		_apply_graphics_preset()
+		_hud.hide()
+		weapons.hide()
+		_cam.fov = 65
+		_cam.global_position = Vector3(16, 8, 16) if stage == 0 else (Vector3(18, 10, 18) if stage == 3 else Vector3(13, 7, 19))
+		_cam.look_at(Vector3(0, 1.6, 0))
+		for frame in 15:
+			await get_tree().process_frame
+		await _save_shot("offline_%d_hero.png" % stage)
+		var thumbnail := get_viewport().get_texture().get_image()
+		thumbnail.resize(640, 360)
+		thumbnail.save_png("res://assets/ui/maps/arena_%d.png" % stage)
+		set_physics_process(true)
+	_cam.transform = Transform3D.IDENTITY
+	_start_from_hub(0, 5)
+	world.enemies_paused = true
+	world.combat_ready_time = 0
+	set_physics_process(false)
+	_hud.hide()
+	weapons.hide()
+	for index in world.enemies.size():
+		var bot: EnemyBot = world.enemies[index]
+		bot.visible = index < 3
+		if index < 3:
+			bot.global_position = Vector3((index - 1) * 1.6, 0.02, 20)
+			bot._root.rotation = Vector3.ZERO
+			bot._hp_bar_root.hide()
+	_cam.global_position = Vector3(0.5, 1.5, 25)
+	_cam.fov = 55
+	_cam.look_at(Vector3(0, 1.05, 20))
+	for frame in 15:
+		await get_tree().process_frame
+	await _save_shot("offline_bot_arsenal.png")
 	get_tree().quit()
 
 func _run_atelier_batch_preview() -> void:

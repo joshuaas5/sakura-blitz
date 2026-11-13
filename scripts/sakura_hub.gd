@@ -140,7 +140,7 @@ func refresh() -> void:
 		_build_arsenal()
 	else:
 		_build_settings()
-	_body.add_child(_label("Treino local com bots • progresso salvo neste dispositivo • multiplayer online em desenvolvimento", 13, MUTED))
+	_body.add_child(_label("Jogo offline com bots • progresso salvo neste dispositivo", 13, MUTED))
 	_layout.call_deferred()
 
 func _build_maps() -> void:
@@ -309,7 +309,7 @@ func _build_mastery() -> void:
 			)
 			sup.disabled = count < 100
 			actions.add_child(sup)
-	_body.add_child(_button("Loja de cosméticos e upgrades leves", func(): shop_requested.emit()))
+	_body.add_child(_button("Ateliê / cosméticos e evolução com moedas de partida", func(): shop_requested.emit()))
 
 func _build_settings() -> void:
 	_body.add_child(_button("Organizar botões na tela", func(): hud_editor_requested.emit(), true))

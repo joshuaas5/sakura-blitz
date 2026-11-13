@@ -15,6 +15,8 @@ Nenhum asset pago foi comprado nesta integração. As licenças originais acompa
 | Factory Kit 3.0 | [Kenney, publicação do autor](https://opengameart.org/content/conveyor-kit) | CC0 1.0 | Guindastes, equipamentos, barreiras, consoles e estruturas industriais do Porto Cobalto; licença original e hashes em `assets/third_party/kenney_factory` |
 | Blaster Kit 2.1 | [Kenney, publicação do autor](https://opengameart.org/content/blaster-kit) | CC0 1.0 | Modelos de estojos, carregadores, projéteis e alvos; sprites originais de munição e caixa. Licença, atlas e hashes em `assets/third_party/kenney_blaster` |
 | Platformer Kit 1.1, seleção de itens | [Kenney, publicação do autor](https://opengameart.org/content/platformer-kit) | CC0 1.0 | Modelos e sprites de coração, moeda, joia e botão de impulso. Nenhuma fase de parkour nova. Licença original e hashes em `assets/third_party/kenney_items` |
+| Car Kit 3.1 | [Kenney, publicação do autor](https://opengameart.org/content/car-kit) | CC0 1.0 | Veículos de cobertura da Vila Sakura; licença original, atlas e hashes em `assets/third_party/kenney_car` |
+| Train Kit, seleção | [Kenney, publicação do autor](https://opengameart.org/content/train-kit) | CC0 1.0 | Vagões e trilhos da Estação Aurora; licença original, atlas e hashes em `assets/third_party/kenney_train` |
 
 Os arquivos GLB originais das armas são preservados em `assets/third_party/pichuliru_guns`. `tools/prepare_weapon_models.py` gera os derivados em `prepared/`: separa peças rígidas pelos pesos de osso, mantém normais e materiais, e acrescenta UV planar. O jogo anima carregador e ferrolho separadamente. Os nomes de gameplay não representam identificação exata dos modelos reais de fábrica.
 

@@ -116,11 +116,12 @@ func run(g: SakuraBlitzMain) -> bool:
 	g._show_combat_result(g.world.get_combat_standings(0, 0), 7, 0)
 	await wait_frames(g)
 	check(g._safe_ui_rect().grow(0.1).encloses(g._result_panel.get_global_rect()), "Combat results fit the mobile safe area")
-	var result_scroll := g._result_panel.get_child(0) as ScrollContainer
+	var result_scroll := g._result_panel.get_child(0).get_child(0) as ScrollContainer
+	await tap(g, button(g._result_panel, "Ver todos"))
 	await swipe(g, result_scroll.get_global_rect().position + Vector2(50, 160))
 	check(result_scroll.scroll_vertical > 0, "Long match results scroll by touch")
 	var back := button(g._result_panel, "Voltar ao lobby")
-	result_scroll.ensure_control_visible(back)
+	check(g._safe_ui_rect().encloses(back.get_global_rect()), "Result actions stay visible below the scrolling report")
 	await wait_frames(g)
 	await tap(g, back)
 	check(g._hub_open and not g._result_panel.visible, "Results return to lobby by touch")

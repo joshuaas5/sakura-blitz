@@ -248,7 +248,7 @@ func load_mode_and_stage(new_mode: int, new_stage_idx: int) -> Array:
 		elif current_stage_idx == 5:
 			CuratedVillage.build(self)
 		else:
-			ExpansionArenas.build(self, current_stage_idx == 5)
+			AuroraAtelier.build(self)
 		apply_atmosphere_preset([0, 1, 1, 2, 1, 0, 0, 0, 2, 0, 0][current_stage_idx])
 		if large:
 			LargeArenas.atmosphere(self, current_stage_idx)
@@ -256,8 +256,12 @@ func load_mode_and_stage(new_mode: int, new_stage_idx: int) -> Array:
 			HarborAtelier.atmosphere(self)
 		elif current_stage_idx == 2:
 			CanyonAtelier.atmosphere(self)
-		elif current_stage_idx < 5:
-			_add_district_details()
+		elif current_stage_idx == 0:
+			VillageArenaAtelier.atmosphere(self)
+		elif current_stage_idx == 3:
+			NeonAtelier.atmosphere(self)
+		elif current_stage_idx == 4:
+			AuroraAtelier.atmosphere(self)
 		elif current_stage_idx == 5:
 			CuratedVillage.atmosphere(self)
 		else:
@@ -975,76 +979,7 @@ func cycle_atmosphere_preset() -> String:
 # ================================================================================================
 
 func _build_combat_1_vila_bo2() -> void:
-	_current_pvp_spawn = Vector3(0.0, 0.2, 15.2)
-	tr_spawns = [
-		Vector3(-15.6, 0.2, -8.5), Vector3(15.6, 0.2, -8.5),
-		Vector3(-2, 0.2, -15.5), Vector3(2, 0.2, -15.5),
-		Vector3(-15.6, 0.2, 7), Vector3(15.6, 0.2, 7),
-		Vector3(0, 0.2, 10.5), Vector3(0, 0.2, -10.5)
-	]
-	var grass_col := Color("6ab04c")
-	var cobble_floor := Color("d8cfc2")
-	var cobble_lane := Color("bfb3a2")
-	var timber_wall := Color("7d5a3c")
-	var warm_stone := Color("8d8478")
-	var crate_wood := Color("c98445")
-	var crate_mil := Color("436b50")
-
-	box(self, -28.0, -0.55, -28.0, 56.0, 0.50, 56.0, grass_col, true, 0.0, 5)
-	box(self, -18.0, -0.50, -18.0, 36.0, 0.50, 36.0, cobble_floor, true, 0.0, 8)
-	box(self, -2.6, 0.0, -17.9, 5.2, 0.03, 35.8, cobble_lane, false, 0.0, 8)
-	box(self, -17.9, 0.0, -2.6, 15.3, 0.03, 5.2, cobble_lane, false, 0.0, 8)
-	box(self, 2.6, 0.0, -2.6, 15.3, 0.03, 5.2, cobble_lane, false, 0.0, 8)
-
-	for side_z in [-18.4, 18.0]:
-		box(self, -18.4, 0.0, side_z, 36.8, 1.35, 0.45, warm_stone, true, 0.0, 4)
-		box(self, -18.5, 1.35, side_z - 0.05, 37.0, 0.16, 0.55, timber_wall, false, 0.0, 1)
-	for side_x in [-18.4, 18.0]:
-		box(self, side_x, 0.0, -18.0, 0.45, 1.35, 36.0, warm_stone, true, 0.0, 4)
-		box(self, side_x - 0.05, 1.35, -18.1, 0.55, 0.16, 36.2, timber_wall, false, 0.0, 1)
-
-	CozyProps.cozy_chalet(self, _stage_root, Vector3(-13.5, 0.0, 13.5), 6.2, 4.4, 6.2, Color("f7ecd8"), Color("b84a39"))
-	CozyProps.cozy_chalet(self, _stage_root, Vector3(13.5, 0.0, 13.5), 6.2, 4.4, 6.2, Color("f5e4c8"), Color("3d6b58"))
-	CozyProps.cozy_chalet(self, _stage_root, Vector3(-13.5, 0.0, -13.5), 6.2, 4.4, 6.2, Color("f5e4c8"), Color("4a6984"))
-	CozyProps.cozy_chalet(self, _stage_root, Vector3(13.5, 0.0, -13.5), 6.2, 4.4, 6.2, Color("f7ecd8"), Color("b84a39"))
-
-	CozyProps.nuketown_bus(self, _stage_root, Vector3(-3.8, 0.0, 0.0), PI * 0.5, Color("e63946"))
-	CozyProps.nuketown_bus(self, _stage_root, Vector3(3.8, 0.0, 0.0), -PI * 0.5, Color("00a8e8"))
-	RetroModels.torii_gate(self, _stage_root, Vector3(0.0, 0.0, 0.0), 4.6, 4.3, 0.0)
-
-	var bunker_coords := [
-		{"p": Vector2(-7.2, -7.2), "c": Color("3d6b58"), "team": Color("00f5d4")},
-		{"p": Vector2(7.2, -7.2), "c": Color("b84a39"), "team": Color("ff2a6d")},
-		{"p": Vector2(-7.2, 7.2), "c": Color("3d6b58"), "team": Color("00f5d4")},
-		{"p": Vector2(7.2, 7.2), "c": Color("b84a39"), "team": Color("ffd166")},
-	]
-	for b_info in bunker_coords:
-		var bc: Vector2 = b_info.p
-		var roof_c: Color = b_info.c
-		var stripe_c: Color = b_info.team
-		box(self, bc.x - 2.9, 0.0, bc.y - 2.9, 5.8, 3.4, 5.8, Color("f4ead8"), true, 0.0, 2)
-		box(self, bc.x - 3.05, 0.0, bc.y - 3.05, 6.1, 0.55, 6.1, warm_stone, false, 0.0, 4)
-		box(self, bc.x - 3.02, 2.55, bc.y - 3.02, 6.04, 0.22, 6.04, stripe_c, false, 1.1, -1)
-		box(self, bc.x - 3.25, 3.4, bc.y - 3.25, 6.5, 0.28, 6.5, roof_c, true, 0.0, 3)
-
-	CozyProps.market_stall(self, _stage_root, Vector3(-12.2, 0.0, 7.6), PI * 0.5, Color("e63946"), Color("fff8ee"))
-	bouncy_awnings.append(AABB(Vector3(-13.5, 2.1, 6.0), Vector3(2.6, 0.8, 3.2)))
-	CozyProps.market_stall(self, _stage_root, Vector3(12.2, 0.0, -7.6), -PI * 0.5, Color("2a9d8f"), Color("fff8ee"))
-	bouncy_awnings.append(AABB(Vector3(10.9, 2.1, -9.2), Vector3(2.6, 0.8, 3.2)))
-
-	CozyProps.wooden_watchtower(self, _stage_root, Vector3(-14.8, 0.0, 0.0), 3.5)
-	CozyProps.wooden_watchtower(self, _stage_root, Vector3(14.8, 0.0, 0.0), 3.5)
-	_build_crate_stair(Vector3(-11.2, 0.0, -7.6), -1.0, crate_wood, crate_mil)
-	_build_crate_stair(Vector3(11.2, 0.0, 7.6), 1.0, crate_wood, crate_mil)
-
-	_add_weapon_pad(Vector3(-4.5, 0.04, 15.2), "AK-47 + MUNICAO", Color("ffd166"))
-	_add_weapon_pad(Vector3(4.5, 0.04, 15.2), "AWP + COLETE", Color("00f5d4"))
-	_add_weapon_pad(Vector3(0.0, 0.04, 0.0), "KIT MEDICO + MUNICAO", Color("2ec4b6"))
-
-	for i in 10:
-		var ang := i * TAU / 10.0 + 0.25
-		var tp := Vector3(cos(ang) * 22.8, 0.0, sin(ang) * 22.8)
-		RetroModels.sakura_tree(self, _stage_root, tp, 1.55, 500 + i * 17, i % 3 != 0)
+	VillageArenaAtelier.build(self)
 
 
 func _build_combat_2_shipment_cqc() -> void:
@@ -1056,65 +991,7 @@ func _build_combat_3_sniper_canyon() -> void:
 
 
 func _build_combat_4_cyber_vertigo() -> void:
-	# TORRE CYBER-VERTIGO: 3-Floor Vertical Skyscraper Rooftop Arena with 4 Tactical Jump-Pads!
-	_current_pvp_spawn = Vector3(0.0, 0.2, 18.0)
-	tr_spawns = [
-		Vector3(0.0, 0.2, -18.0), Vector3(-15.0, 3.8, -15.0),
-		Vector3(15.0, 3.8, -15.0), Vector3(-15.0, 3.8, 15.0),
-		Vector3(15.0, 3.8, 15.0), Vector3(0.0, 7.4, 0.0),
-		Vector3(-9.0, 0.2, 0.0), Vector3(9.0, 0.2, 0.0)
-	]
-	var deck_dark := Color("182f50")
-	var deck_mid := Color("355372")
-	var cyan := Color("00f5d4")
-	var pink := Color("ff2a85")
-	var gold := Color("ffd166")
-
-	# Floor 1: Skyscraper Rooftop Plaza (46m x 46m, y = 0.0m)
-	box(self, -23.0, -1.0, -23.0, 46.0, 1.0, 46.0, deck_dark, true, 0.0, 0)
-	for s in [-23.0, 22.4]:
-		box(self, -23.0, 0.0, s, 46.0, 1.4, 0.6, cyan, true, 1.2, -1)
-		box(self, s, 0.0, -23.0, 0.6, 1.4, 46.0, pink, true, 1.2, -1)
-
-	# 4 Corner Jump-Pads on Floor 1 launching up to Floor 2 & Floor 3!
-	for jp in [
-		Vector3(-18.5, 0.1, 18.5), Vector3(18.5, 0.1, 18.5),
-		Vector3(-18.5, 0.1, -18.5), Vector3(18.5, 0.1, -18.5)
-	]:
-		ItemArt.jump_pad(_stage_root, jp)
-		kz_jumppads.append(jp)
-
-	# Floor 1 Neon Server Monoliths for Cover
-	for mx in [-8.5, 8.5]:
-		for mz in [-8.5, 8.5]:
-			box(self, mx - 1.2, 0.0, mz - 1.2, 2.4, 3.6, 2.4, deck_mid, true, 0.0, 0)
-			box(self, mx - 1.25, 1.5, mz - 1.25, 2.5, 0.25, 2.5, pink, false, 1.6, -1)
-
-	# Floor 2: Elevated Mezzanine Ring (y = 3.6m)
-	box(self, -18.0, 3.4, -18.0, 36.0, 0.30, 5.5, deck_mid, true, 0.0, 0)
-	box(self, -18.0, 3.4, 12.5, 36.0, 0.30, 5.5, deck_mid, true, 0.0, 0)
-	box(self, -18.0, 3.4, -12.5, 5.5, 0.30, 25.0, deck_mid, true, 0.0, 0)
-	box(self, 12.5, 3.4, -12.5, 5.5, 0.30, 25.0, deck_mid, true, 0.0, 0)
-	# Ramps from Floor 1 to Floor 2
-	for st in 9:
-		box(self, -2.2, st * 0.41, 7.3 + st * 0.65, 4.4, 0.42, 0.70, cyan.darkened(0.25), true, 0.4, 0)
-		box(self, -2.2, st * 0.41, -8.0 - st * 0.65, 4.4, 0.42, 0.70, pink.darkened(0.25), true, 0.4, 0)
-
-	# Floor 3: Central High Penthouse Helipad Deck (y = 7.2m)
-	box(self, -6.5, 6.9, -6.5, 13.0, 0.35, 13.0, deck_dark, true, 0.0, 0)
-	box(self, -6.6, 7.25, -6.6, 13.2, 0.18, 13.2, gold, false, 1.6, -1)
-	RetroModels.torii_gate(self, _stage_root, Vector3(0.0, 7.25, 0.0), 5.2, 4.2, 0.0)
-	# Ramps from Floor 2 (x = +-12.5, y = 3.6m) up to Floor 3 Penthouse (x = +-6.5, y = 7.2m)
-	for st in 9:
-		var rx := 6.5 + (8 - st) * 0.68
-		var ry := 3.6 + st * 0.40
-		box(self, -rx - 0.6, ry, -1.8, 0.8, 0.35, 3.6, gold.darkened(0.15), true, 0.6, 0)
-		box(self, rx - 0.2, ry, -1.8, 0.8, 0.35, 3.6, gold.darkened(0.15), true, 0.6, 0)
-
-	_add_weapon_pad(Vector3(0.0, 7.28, 0.0), "DOMINIO DA COBERTURA VIP", gold)
-	_add_weapon_pad(Vector3(0.0, 0.04, 0.0), "PATIO DE SERVIDORES", cyan)
-	_add_weapon_pad(Vector3(-15.0, 3.74, 0.0), "MEZANINO OESTE", pink)
-	_add_weapon_pad(Vector3(15.0, 3.74, 0.0), "MEZANINO LESTE", pink)
+	NeonAtelier.build(self)
 
 
 func _build_crate_stair(base: Vector3, dir_z: float, c_wood: Color, c_mil: Color) -> void:

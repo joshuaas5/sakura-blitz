@@ -1,0 +1,12 @@
+{
+  "source": "https://opengameart.org/content/train-kit",
+  "license": "CC0-1.0",
+  "files_sha256": {
+    "License.txt": "0f0ae49030c601add14fbd72654397fc82996822b22223463e23cd0b5b0b26e8",
+    "Textures/colormap.png": "e264660f3fc9ecbd642bdb7fb7b7dc10755a061560a66651baf48274c729af09",
+    "track-detailed.glb": "b56cab0c6cf54ea1e3e3dbdffc06995b7a432db41ee39bf063d54b171f937351",
+    "train-electric-city-a.glb": "cc606679c4e95b494ee0ad5c4c090ff3f14ab9bc95bee0f1b591ccb9a1d8dc4f",
+    "train-electric-city-b.glb": "ae7501a8c4564eceab3c601b875a106fd2e9798afa539fb59893884974f09f30",
+    "train-tram-classic.glb": "2f64db140f523985f29714c6b4e5844b15a0c789b2d486963d7eba3f9b1ac194"
+  }
+}

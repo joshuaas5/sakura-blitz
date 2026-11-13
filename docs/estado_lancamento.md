@@ -1,26 +1,27 @@
-# Estado atual para lançamento
+# Estado atual — candidato offline de tiro
 
-Referência: produção local após 0.8.0, com prioridade no modo tiro. O APK 0.8.0 é anterior às mudanças de mapas grandes e equipes. Não foi gerado novo APK nesta etapa. Os relatórios antigos descrevem suas respectivas entregas.
+Referência: 13/11/2026, código na branch `codex/mobile-foundation`, posterior ao APK 0.8.0. O escopo vigente exclui multiplayer, contas online e cobranças. O parkour existente foi preservado; a produção está concentrada no FPS. Nenhum APK novo foi gerado neste lote.
 
-| Frente | Implementado localmente | Trabalho necessário antes de lançamento comercial |
-| --- | --- | --- |
-| Entrada e mobile | Lobby rolável, toque nativo, editor do HUD, tiro manual com arraste, mira híbrida, tutorial de combate, pausa e retomada | Teste em aparelhos físicos, interrupções do Android, ergonomia e tutorial específico de corrida |
-| Conteúdo | Onze arenas de tiro, incluindo duas grandes; cada um por si, equipes e captura de bandeira locais; seis corridas existentes | Consolidar a revisão dos mapas e a bateria de validação após o lote de produção; depois, partidas humanas |
-| Combate | Seis armas, recargas, skins, maestria, equipes sem fogo amigo, objetivos de bandeira, placar tátil e som espacial | Balanceamento humano, acessibilidade da mira, ritmo dos objetivos e evolução da IA com o arsenal |
-| Bots | Fácil/Médio/Difícil, percepção, memória, som, cobertura e flancos | Navegação global nas nove arenas, com pisos e escadas nas cinco antigas; ampliar rotas testadas e sessões humanas prolongadas |
-| Arte | Vila Floral com módulos CC0, Porto Cobalto industrial, Bazar/Docas/Observatório, personagens e armas com prévias 3D | Revisar Vila Sakura, Cânion, Neon, Estação e corridas; aprofundar animações, silhuetas e materiais com orçamento mobile |
-| Desempenho | Qualidade leve padrão, agrupamento de geometria, descarte por mapa e diagnóstico de frames | Medir FPS, memória total, aquecimento e bateria em dispositivos de entrada; corrigir gargalos medidos |
-| Progressão | Perfil local com backup, moedas por desempenho, desafio diário, equipamentos e maestria | Backend autoritativo, migração de dados e recuperação de conta para economia online |
-| Multiplayer | Não implementado | Servidor autoritativo, sessões, sincronização, matchmaking, desconexões e infraestrutura |
-| Receita | Loja usando moeda local de jogo; não cobra dinheiro | Catálogo, integração de cobrança, validação de recibos, restauração e tratamento de falhas |
-| Publicação | APK de teste local, testes automatizados e workflow web | Chave de produção, testes externos, pacote de loja, privacidade, classificação e operação |
+## Entregue e integrado
 
-## Ordem do trabalho
+- Onze arenas de tiro, com mapas compactos, verticais e dois distritos grandes. Todos usam a navegação correspondente à geometria de colisão. Vila Sakura, Porto, Cânion, Neon e Aurora receberam reconstruções; os demais mapas têm módulos, mobiliário e paisagismo próprios.
+- Cada um por si, equipes e captura de bandeira locais, sem fogo amigo. População por mapa, três dificuldades e opções de 12/18/24 bots nos grandes em FFA; em equipes, a contagem inclui o jogador para formar lados iguais.
+- Seis armas disponíveis desde o início, disparo manual, mira tátil com modos selecionáveis, assistência limitada, recarga, inspeção, cosméticos e maestria local.
+- Bots com percepção, memória, audição, cobertura/flancos, papéis de rifle/precisão/SMG, aviso de disparo de precisão e recargas finitas. As armas importadas são agrupadas na malha articulada da mão. Os bots percorrem escadas e transportam bandeiras.
+- Lobby rolável com navegação fixa; tutorial com alvo físico importado; pausa/retomada e tratamento de interrupções; HUD editável e modo canhoto; placar tátil; abertura de partida e resultados roláveis com ações sempre visíveis.
+- Perfil com backup, desafios e recompensas por desempenho; moedas exclusivamente locais. Nenhuma integração de pagamento ou multiplayer foi acrescentada.
+- Suprimentos, coletas, impulsos, alvos, projéteis e veículos com modelos/sprites licenciados; impactos reutilizáveis; música sintetizada original e áudio espacial.
 
-1. Fechar o ciclo offline em aparelho real: abrir, rolar lobby, equipar, jogar, pausar, terminar e voltar. Medir antes de definir promessa de desempenho.
-2. Refinar a qualidade visual das arenas antigas e ampliar os playtests de navegação. Ajustar armas e dificuldades por partidas humanas, com atenção ao começo do jogo.
-3. Implementar e validar uma partida online mínima, com autoridade do servidor, antes de expandir matchmaking e ranking.
-4. Integrar conta e progressão ao servidor. Somente então conectar compras e recibos à economia persistente.
-5. Preparar produção e distribuição, testar reinstalação/atualização, falhas de conexão e operação.
+## Validação concluída no PC
 
-As validações automatizadas verificam invariantes e fluxos; não substituem testes humanos de diversão, equilíbrio ou qualidade visual. O desempenho desta implementação ainda não foi medido em aparelho físico. A versão 0.7.0 foi publicada como prévia de teste no GitHub. Não houve compra de asset ou cobrança real.
+Suíte completa no Godot 4.7.2: **6.050 verificações, zero falhas**. Inclui 448 verificações e percursos físicos das arenas com andares, 3.720 nas arenas grandes e 355 de equipes/bandeiras. O carregamento de todos os mapas, armas, salvamento/recuperação e gestos de toque no lobby, ajustes e resultados também foi exercitado.
+
+O treino foi verificado com um disparo real do sistema de armas contra o alvo físico. Acertar um bot fora do exercício não conclui o tutorial. As recargas de NPCs foram verificadas pela simulação, incluindo bloqueio de tiros e congelamento durante pausa. Os 11 mapas foram exercitados com transporte físico de bandeira por bot até captura por proximidade.
+
+Capturas nativas em 1280×720 e 844×390, com qualidade alta e leve, estão em `shots/offline_*`; os mapas grandes e o HUD de equipes em `shots/large_*` e `shots/teams_*`. São imagens reais do jogo. Os logs detalhados permanecem em `build/offline_full_validation.log` e `build/offline_atelier_preview.log`. Os diagnósticos deliberados de save corrompido e caminho de gravação inválido são parte dos testes de recuperação.
+
+## O que impede chamar isto de lançamento validado
+
+A validação automatizada no PC não comprova diversão, balanceamento humano nem desempenho Android. Falta jogar no aparelho físico: abrir/rolar o lobby, mirar e atirar com dois polegares, completar partidas, suspender/retomar, verificar áudio, aquecimento, memória e FPS. Nenhum aparelho foi validado nesta entrega. Não existe promessa comprovada de 60 FPS em celulares de entrada.
+
+Depois dessa sessão, devem ser corrigidos os problemas observados e ajustados dificuldade, tempos de confronto e recompensas. Preparação de distribuição comercial é uma etapa separada. Multiplayer e compras ficam fora do trabalho atual por decisão do usuário.

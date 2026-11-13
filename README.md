@@ -2,7 +2,7 @@
 
 FPS e corrida de obstáculos em Godot 4.7.2, com controles para celular na horizontal. Esta versão é um jogo local contra bots; multiplayer online, pagamentos e contas ainda não estão implementados.
 
-**Produção atual: modo tiro.** O código local acrescenta duas arenas grandes, lotação por mapa, equipes, captura de bandeira e placar de partida. O APK 0.8.0 abaixo corresponde à entrega anterior; estas mudanças ainda não foram empacotadas. Detalhes em `docs/fps_producao.md`.
+**Produção atual: candidato offline de tiro.** Onze arenas, lotação por mapa, equipes, captura de bandeira, reconstrução visual das arenas antigas e bots com armas importadas/recargas estão integrados. Suíte completa no PC: 6.050 verificações, zero falhas. O APK 0.8.0 abaixo corresponde à entrega anterior; estas mudanças ainda não foram empacotadas. Detalhes em `docs/fps_producao.md`.
 
 ## Jogar localmente
 
@@ -30,7 +30,7 @@ Para regenerar no PC configurado: `./tools/build_android_test.ps1`. O script exp
 - **Economia:** moedas por desempenho, desafio diário resgatável uma vez e loja com cosméticos. Upgrades comprados com moedas de jogo dão até +3% de dano; skins não alteram atributos. Não há compra com dinheiro real nesta versão.
 - **Visual e áudio:** Vila Floral com assets CC0 importados, HUD com molduras ilustradas, cinco armas importadas, skins pintadas e prévias 3D reais na loja e três loops musicais sintetizados para o projeto.
 - **Porto Cobalto:** contêineres corrugados, escadas e passarelas de aço com guarda-corpos, sinalização, mar, armazéns e guindastes do Factory Kit CC0. Agrupamento por cor de vértice, sombras conforme qualidade, ambiente de ondas e passos metálicos. Detalhes e limites em `docs/porto_atelier.md`.
-- **Acabamento em produção:** Cânion Âmbar reconstruído, abertura de partida, resumo com precisão e maestria, papéis distintos para os bots e impactos reutilizáveis. Suprimentos, coletas, impulsos e projéteis recebem modelos/sprites licenciados; o treino usa um alvo importado. Mudanças no código local, ainda fora do APK 0.8.0.
+- **Acabamento em produção:** Cânion Âmbar reconstruído, abertura de partida, resumo com precisão e maestria, papéis distintos para os bots e impactos reutilizáveis. Suprimentos, coletas, impulsos e projéteis recebem modelos/sprites licenciados; o treino usa um alvo importado. Vila Sakura, Neon e Aurora também receberam fachadas, vegetação, plataformas e veículos importados; NPCs têm recargas finitas. Mudanças no código, ainda fora do APK 0.8.0.
 
 ## Controles
 
@@ -56,7 +56,7 @@ Execute a partir da raiz, com Godot no PATH:
 ```powershell
 godot --headless --editor --import --path .
 godot --headless --fixed-fps 60 --path . -- --test
-godot --path . -- --qa
+godot --path . -- --qa --offline-atelier
 godot --headless --path . --export-release Web build/web/index.html
 python -m http.server 8765 --bind 127.0.0.1 --directory build/web
 ```
@@ -69,11 +69,11 @@ Detalhes e próximos passos: [expansão mobile](docs/expansao_mobile.md). Proced
 
 ## Estado da publicação
 
-O repositório contém um workflow de deploy para Cloudflare Pages ao enviar mudanças para `main`. Alterações locais não atualizam o [site publicado](https://sakura-blitz.pages.dev/). Esta expansão foi validada no Godot nativo e exportada para web; compatibilidade no navegador e desempenho em celulares reais ainda precisam de testes. Não há garantia de 60 FPS em aparelhos de 3–4 GB.
+O repositório contém um workflow de deploy para Cloudflare Pages ao enviar mudanças para `main`. Alterações locais não atualizam o [site publicado](https://sakura-blitz.pages.dev/). O candidato offline atual foi validado no Godot nativo; ele não foi publicado na web nem empacotado em novo APK neste lote. Compatibilidade no navegador e desempenho em celulares reais ainda precisam de testes. Não há garantia de 60 FPS em aparelhos de 3–4 GB.
 
 ## Rework Atelier
 
-Abra `run.bat`, selecione **Combate → Vila Floral** e use **L** para a loja ou **F** para inspecionar. A Vila Floral aparece primeiro na lista de arenas. O novo HUD funciona em todos os mapas; o cenário reconstruído está concentrado nessa arena.
+Abra `run.bat`, selecione **Combate → Vila Floral** e use **L** para a loja ou **F** para inspecionar. O lobby destaca os mapas grandes; a Vila Floral também está disponível na seleção. O HUD funciona em todos os mapas e as cinco arenas antigas receberam reconstruções próprias.
 
 Capturas adicionais: `godot --path . -- --qa --art`. Detalhes: [implementação Atelier](docs/rework_atelier.md). Licenças: [assets de terceiros](THIRD_PARTY_LICENSES.md).
 

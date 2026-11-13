@@ -1,0 +1,12 @@
+{
+  "source": "https://opengameart.org/content/car-kit",
+  "license": "CC0-1.0",
+  "files_sha256": {
+    "License.txt": "c33b7f6453d134deae7b1b8493717d9ccfa754c25ab97f6de89b88f8fda19b00",
+    "Textures/colormap.png": "f3622a03a20c6696065cae9cbe391351be873508af190c2ebd1d420c055787a5",
+    "delivery.glb": "426a3e3a2c242c05c889b1445ba02ef95b2c8b7cd6f597e1275ef736a826014b",
+    "sedan.glb": "b532ea7d2c59f7f6b22b138cf1955218a2c1898f1cea932af4d3fd563c3959b7",
+    "truck.glb": "5e1bc66c343501dd7d5734b57e672dd949bf95d7abdce680c6508cef99d374f8",
+    "van.glb": "ed4ed56e8e5ed98db050af09ed2062b3b6bb7b93eab1e563cb6774b387b233a1"
+  }
+}

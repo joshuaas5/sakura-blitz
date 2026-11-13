@@ -74,7 +74,7 @@ static func _bounds(node: Node3D, transform: Transform3D = Transform3D.IDENTITY)
 	return result
 
 static func prop(w: SakuraWorld, pack: String, asset: String, at: Vector3, size: Vector3, yaw: float = 0) -> Node3D:
-	var path := "res://assets/third_party/%s/%s.%s" % [pack, asset, "glb" if pack == "kenney_pirate" else "gltf"]
+	var path := "res://assets/third_party/%s/%s.%s" % [pack, asset, "glb" if pack.begins_with("kenney_") else "gltf"]
 	if not scenes.has(path):
 		scenes[path] = load(path)
 	var node: Node3D = scenes[path].instantiate()

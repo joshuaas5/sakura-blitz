@@ -191,6 +191,27 @@ func run(g: SakuraBlitzMain) -> bool:
 		for frame in 70:
 			await g.get_tree().physics_frame
 		check(bot.global_position.distance_to(flank) < distance_before - 1, "Hard bot physically follows its flank route")
+	# Last-round/reload integration: the bot must give a real firing window,
+	# stop its countdown during pause, then resume with a fresh magazine.
+	bot.set_physics_process(false)
+	bot._has_target = false
+	bot._sense_cd = 100
+	bot.magazine = 1
+	bot.reload_left = 0
+	bot._fire_at_player(bot.global_position + Vector3(0, 1, -12), 12)
+	check(bot.magazine == 0 and bot.reload_left > 0, "The last bot round starts a real reload")
+	var projectile_count: int = w.enemy_orbs.size()
+	bot._fire_at_player(bot.global_position + Vector3(0, 1, -12), 12)
+	check(w.enemy_orbs.size() == projectile_count, "A reloading bot cannot spawn another shot")
+	w.enemies_paused = true
+	var reload_before: float = bot.reload_left
+	bot._physics_process(1)
+	check(bot.reload_left == reload_before, "Pausing freezes an opponent's reload")
+	w.enemies_paused = false
+	bot.set_physics_process(true)
+	for frame in 180:
+		await g.get_tree().physics_frame
+	check(bot.reload_left == 0 and bot.magazine == EnemyBot.MAGAZINES[bot.kind], "Simulation refills the magazine after the reload window")
 	g.profile.data = previous
 	g.set_physics_process(true)
 	g._start_from_hub(0, 5)

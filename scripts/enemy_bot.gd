@@ -40,6 +40,10 @@ var skill := BotDifficulty.get_preset(1)
 var last_damage_by := "PLAYER"
 var last_damage_weapon := "BLITZ"
 var _precision_charge := 0.0
+var magazine := 24
+var reload_left := 0.0
+const MAGAZINES := [24, 5, 20]
+const RELOAD_SECONDS := [2.2, 2.7, 1.7]
 var _aim_warning: MeshInstance3D
 var _target_bot: EnemyBot
 var _target_player := false
@@ -115,6 +119,7 @@ static func spawn_bot(w: Node3D, parent: Node3D, pos: Vector3, bot_kind: int, id
 	b.world = w
 	b.is_runner = false
 	b.kind = bot_kind
+	b.magazine = MAGAZINES[bot_kind]
 	b.runner_idx = idx_seed
 	b.position = pos
 	b._rng.randomize()
@@ -243,6 +248,13 @@ func _physics_process(delta: float) -> void:
 	if _spawn_check_pending:
 		_ensure_clear_spawn()
 		_spawn_check_pending = false
+	if reload_left > 0:
+		reload_left = maxf(0, reload_left - delta)
+		if reload_left == 0:
+			magazine = MAGAZINES[kind]
+	if is_instance_valid(_arm_l):
+		_arm_l.rotation.x = lerpf(_arm_l.rotation.x, -0.7 + sin(_t * 7) * 0.18 if reload_left > 0 else 0.0, minf(1, delta * 8))
+		_arm_r.rotation.x = lerpf(_arm_r.rotation.x, -0.35 if reload_left > 0 else -0.9, minf(1, delta * 8))
 	_visual_cd -= delta
 	if _visual_cd <= 0 and is_instance_valid(_distance_mesh):
 		_visual_cd = 0.25
@@ -376,7 +388,7 @@ func _physics_process(delta: float) -> void:
 		_leg_r.rotation.x = -sw
 
 	# Balanced firing so the player has intense gunfights without dying cheaply!
-	if has_los and dist < 52.0:
+	if has_los and dist < 52.0 and reload_left <= 0:
 		_fire_cd -= delta
 		if _fire_cd <= 0.0:
 			if kind == 1:
@@ -507,6 +519,13 @@ func _process_parkour_runner(delta: float) -> void:
 
 
 func _fire_at_player(target_pos: Vector3, dist: float) -> void:
+	if reload_left > 0 or magazine <= 0 or _dead:
+		return
+	magazine -= 1
+	if magazine == 0:
+		reload_left = RELOAD_SECONDS[kind]
+		_tactical_cd = 0
+		_tactical_until = 0
 	var muzzle := global_position + Vector3(0, 1.35, 0)
 	var spread := float(skill.spread) * (0.7 + dist * 0.018)
 	var aim_error := Vector3(_rng.randf_range(-spread, spread), _rng.randf_range(-spread * 0.45, spread * 0.45), _rng.randf_range(-spread, spread))
@@ -652,7 +671,7 @@ func _tactical_destination(visible: bool, threat: Vector3) -> Variant:
 		return null
 	_tactical_cd = 3.0 + runner_idx * 0.07
 	var destination: Variant = null
-	if hp < 45:
+	if hp < 45 or reload_left > 0:
 		destination = CombatTactics.cover(world, global_position, threat)
 		if destination != null:
 			tactical_state = "cover"

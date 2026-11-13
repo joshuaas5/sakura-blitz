@@ -91,9 +91,22 @@ func run(g: SakuraBlitzMain) -> bool:
 	check(g._training.step == 2, "Training look requires camera rotation")
 	g._body.velocity.y = 5
 	g._training._process(0)
-	check(g._training.step == 3 and not g.world.enemies_paused, "Jump unlocks practice combat")
+	check(g._training.step == 3 and g.world.enemies_paused, "Jump opens target practice while bots remain non-attacking")
+	for frame in 3:
+		await g.get_tree().physics_frame
+	check(is_instance_valid(g._training.target) and g._training.target.collision_layer == 8, "Practice provides a physical target on the weapon hit layer")
 	check(not g.profile.data.tutorial_complete, "Training is incomplete before a hit")
 	g.weapons.hit_registered.emit({"killed": false}, 0)
+	check(g._training.step == 3, "Shooting an unrelated bot does not complete target practice")
+	if is_instance_valid(g._training.target):
+		var camera_pose := g._cam.transform
+		var aim_point: Vector3 = g._training.target.get_child(g._training.target.get_child_count() - 1).global_position
+		g._cam.look_at(aim_point)
+		g.weapons.select_weapon(0, true)
+		g.weapons.fire_cd = 0
+		g.weapons.ads_alpha = 1
+		check(g.weapons.try_fire(0), "Practice fires through the real weapon raycast")
+		g._cam.transform = camera_pose
 	check(g._training.step == 4 and g.profile.data.tutorial_complete, "A confirmed hit completes training")
 	g._training.stop()
 	check(g._hub_open and not g._training.active, "Training exits into lobby")

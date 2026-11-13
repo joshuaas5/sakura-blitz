@@ -191,24 +191,12 @@ static func shed(w: SakuraWorld, at: Vector3, color: String) -> void:
 	S.signpost(w, "OFICINA / GIRASSOL", at + Vector3(0, 4.7, 7.25), "f5dfaa")
 
 static func tram(w: SakuraWorld, at: Vector3, color: String) -> void:
-	S.block(w, at + Vector3(0, 1.85, 0), Vector3(3.6, 2.9, 15), color, true)
-	S.block(w, at + Vector3(0, 0.35, 0), Vector3(3.9, 0.7, 15.5), "294858", true)
-	S.block(w, at + Vector3(0, 3.4, 0), Vector3(3.8, 0.3, 15.3), "e7dfbb")
+	# Two imported carriages keep the original 15.5 m cover footprint.
 	for side in [-1, 1]:
-		for z in [-5.7, -3.4, -1.1, 1.2, 3.5, 5.8]:
-			S.block(w, at + Vector3(side * 1.82, 2.35, z), Vector3(0.05, 1, 1.7), "98c8cf")
-		S.block(w, at + Vector3(side * 1.84, 1.45, 0), Vector3(0.05, 0.12, 14.6), "e7dfbb")
-		for z in [-5, 5]:
-			var wheel := CylinderMesh.new()
-			wheel.top_radius = 0.43
-			wheel.bottom_radius = 0.43
-			wheel.height = 0.25
-			wheel.radial_segments = 12
-			S.mesh(w, wheel, at + Vector3(side * 1.85, 0.45, z), S.material("233e4b")).rotation.z = PI / 2
-		S.block(w, at + Vector3(0, 2.4, side * 7.53), Vector3(2.9, 1.15, 0.08), "98c8cf")
-		for x in [-1.2, 1.2]:
-			S.block(w, at + Vector3(x, 1.2, side * 7.57), Vector3(0.35, 0.3, 0.1), "f3dc9b")
-	S.signpost(w, "LINHA / SOL", at + Vector3(0, 3.15, 7.56), "f4dca4")
+		S.prop(w, "kenney_train", "train-tram-classic", at + Vector3(0, 0, side * 3.9), Vector3(3.8, 3.55, 7.4), PI if side < 0 else 0)
+	CV.collision(w, at + Vector3.UP * 1.775, Vector3(3.9, 3.55, 15.5))
+	S.signpost(w, "LINHA / SOL", at + Vector3(0, 3.15, 7.66), color)
+
 
 static func terminal(w: SakuraWorld) -> void:
 	for row in 2:

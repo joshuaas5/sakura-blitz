@@ -42,8 +42,8 @@ func start() -> void:
 	_update_text()
 	show()
 
-func hit(_result: Dictionary, _weapon: int) -> void:
-	if active and step == 3:
+func hit(result: Dictionary, _weapon: int) -> void:
+	if active and step == 3 and result.get("target", false):
 		advance()
 
 func advance() -> void:
